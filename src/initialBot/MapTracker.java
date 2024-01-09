@@ -10,6 +10,7 @@ public class MapTracker {
     long wall_mask1 = 0;
     // This is fully contained in the bottom mask.
     long adjblocked = 0;
+    MapInfo[] infos = null;
     public MapTracker(RobotController rc) {
         this.rc = rc;
         this.tl = new TileLoader(rc);

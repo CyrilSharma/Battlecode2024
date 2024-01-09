@@ -1,8 +1,3 @@
-# This can easily be made cheaper
-# Don't load into longs, load into ints
-# Fully unroll. Saves about 7 instruction per loop iteration.
-
-RSQR = 20
 MASK_WIDTH = 9
 MASK_HEIGHT = 7
 VISION = 9
@@ -48,38 +43,30 @@ def printLoader():
     cp.print("}")
 
 def load_tiles():
-    cp.print(f"MapLocation myloc = rc.getLocation();")
+    cp.print(f"int diff = {-(VISION//2)};")
+    cp.print(f"int offset = mt.rc.getLocation().translate(diff, diff).hashCode();")
     nmasks = (VISION * VISION + BITS_PER_MASK - 1) // BITS_PER_MASK
     for tile in TILES:
         for i in range(nmasks):
             cp.print(f"long t_{tile}_mask{i} = 0;")
     cp.print(f"long blocked = 0;")
-    
-    cp.print("MapLocation loc = null;")
-    cp.print("MapInfo m = null;")
-    for y in range(VISION):
-        for x in range(VISION):
-            dy = (y - (VISION // 2))
-            dx = (x - (VISION // 2))
-            if (dy * dy + dx * dx > RSQR): continue
-            cp.print(f"loc = myloc.translate({dx}, {dy});")
-            cp.print("if (rc.canSenseLocation(loc)) {")
-            with cp:
-                cp.print(f"m = rc.senseMapInfo(loc);")
-                cp.print(f"if (m.isWater()) {{")
-                with cp:
-                    tile = "water"
-                    idx = y * 9 + x
-                    block = idx // BITS_PER_MASK; index = idx % (BITS_PER_MASK);
-                    cp.print(f"t_{tile}_mask{block} += {hex(1 << index)}L;")
-                cp.print(f"}} else if (m.isWall()) {{")
-                with cp:
-                    tile = "wall"
-                    idx = y * 9 + x
-                    block = idx // BITS_PER_MASK; index = idx % (BITS_PER_MASK);
-                    cp.print(f"t_{tile}_mask{block} += {hex(1 << index)}L;")
-                cp.print("}")
-            cp.print("}")
+
+    cp.print(f"MapInfo[] infos = mt.rc.senseNearbyMapInfos();")
+    cp.print("for (int j = infos.length; j-- > 0; ) {")
+    with cp:
+        name = "m"
+        cp.print(f"MapInfo {name} = infos[j];")
+        cp.print(f"if ({name}.isWater()) {{")
+        with cp:
+            tile = "water"
+            load_switch(f"t_{tile}_mask")
+        cp.print(f"}} else if ({name}.isWall()) {{")
+        with cp:
+            tile = "wall"
+            load_switch(f"t_{tile}_mask")
+        cp.print("}")
+
+    cp.print("}")
     cp.print()
 
     # This is pretty useful and kind of fits with map tracking,
@@ -104,5 +91,22 @@ def load_tiles():
         cp.print(f"mt.{tile}_mask1 = t_{tile}_mask1;")
         cp.print(f"mt.{tile}_mask0 = t_{tile}_mask0;")
     cp.print(f"mt.adjblocked = blocked;")
+    cp.print("mt.infos = infos;")
+
+
+
+def load_switch(mask):
+    cp.print("switch (m.getMapLocation().hashCode() - offset) {")
+    with cp:
+        for idx in range(VISION * VISION):
+            y = idx // 9; x = idx % 9;
+            line = f"case {(1 << 16) * x + y}: "
+
+            # we don't store bit 0 at position 0, instead we store directly in it's final position.
+            block = idx // BITS_PER_MASK; index = idx % (BITS_PER_MASK);
+            line += f"{mask}{block} += {hex(1 << index)}L; continue;"
+            cp.print(line)
+        cp.print("default: System.out.println(\"This shouldn't happen...\"); continue;")
+    cp.print("}")
 
 printLoader()
