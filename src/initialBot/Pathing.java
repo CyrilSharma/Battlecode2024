@@ -1,10 +1,6 @@
 package initialBot;
 import battlecode.common.*;
 
-/*
- *  I'm copying XSquare's pathing to measure
- *  How big of a deal it makes.
- */
 
 public class Pathing {
     RobotController rc;
@@ -12,5 +8,7 @@ public class Pathing {
 
     Pathing(RobotController rc) {
         this.rc = rc;
+        H = rc.getMapHeight();
+        W = rc.getMapWidth();
     }
 }
