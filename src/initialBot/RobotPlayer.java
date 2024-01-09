@@ -6,9 +6,11 @@ public strictfp class RobotPlayer {
         Robot robot = new Duck(rc);
         while (true) {
             try {
-                // if (rc.getRoundNum() > 200 && rc.getRobotCount() <= 5) {
-                //     rc.resign();
-                // }
+                // PURELY FOR TESTING PLEASE DISABLE.
+                if (rc.getRoundNum() > 200) {
+                    rc.resign();
+                }
+                robot.init_turn();
                 robot.run();
             } catch (GameActionException e) {
                 System.out.println("Exception = ");
