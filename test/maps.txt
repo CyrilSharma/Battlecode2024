@@ -1,0 +1,4 @@
+DefaultHuge
+DefaultLarge
+DefaultMedium
+DefaultSmall
