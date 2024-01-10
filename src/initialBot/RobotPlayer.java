@@ -12,6 +12,7 @@ public strictfp class RobotPlayer {
                 // }
                 robot.init_turn();
                 robot.run();
+                robot.post_turn();
             } catch (GameActionException e) {
                 System.out.println("Exception = ");
                 e.printStackTrace();

@@ -10,20 +10,18 @@ public class Duck extends Robot {
     MapLocation exploreTarget;
     MapLocation target;
     AttackMicro am;
-    SymmetryChecker sc;
     public Duck(RobotController rc) {
         super(rc);
         path = new Pathing(this);
         am = new AttackMicro(rc);
-        sc = new SymmetryChecker(rc);
     }
 
     void run() throws GameActionException {
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
-        boolean ranmicro = am.runMicro();
-        if (!ranmicro) seekTarget();
-        sc.updateSymmetry();
+        if (am.runMicro()) return;
+        if (ranFlagMicro()) return;
+        seekTarget();
     }
 
     void spawn() throws GameActionException {
@@ -73,5 +71,49 @@ public class Duck extends Robot {
             rc.setIndicatorString("Hunting: " + target);
             path.moveTo(target);
         }
+    }
+
+    public boolean ranFlagMicro() throws GameActionException {
+        if (rc.hasFlag()) {
+            // Not sure how well this works. Ideally we just move directly
+            // Towards friendly territory.
+            MapLocation myloc = rc.getLocation();
+            int bestdist = 1 << 30;
+            MapLocation bestloc = null;
+            MapLocation[] locs = rc.getAllySpawnLocations();
+            for (int i = Math.min(locs.length, 10); i-- > 0; ) {
+                MapLocation m = locs[i];
+                int d = m.distanceSquaredTo(myloc);
+                if (d < bestdist) {
+                    bestdist = d;
+                    bestloc = m;
+                }
+            }
+            path.moveTo(bestloc);
+            return true;
+        }
+
+        FlagInfo[] flags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
+        if (flags.length == 0) return false;
+
+        // To prevent everyone rushing a flag at once.
+        int id = rc.getID();
+        RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
+        for (int i = friends.length; i-- > 0;) {
+            if (friends[i].ID > id) return false;
+        }
+
+        for (int i = flags.length; i-- > 0;) {
+            FlagInfo f = flags[i];
+            if (!f.isPickedUp()) {
+                MapLocation floc = f.getLocation();
+                if (rc.canPickupFlag(floc)) {
+                    rc.pickupFlag(floc);
+                } else {
+                    path.moveTo(floc);
+                }
+            }
+        }
+        return true;
     }
 }

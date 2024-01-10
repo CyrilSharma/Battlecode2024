@@ -7,6 +7,7 @@ class SymmetryChecker {
     MapInfo[][] tiles;
     boolean ready = false;
     int curW = 0;
+    int curI = 0;
 
     SymmetryChecker(RobotController rc) {
         this.rc = rc;
@@ -21,6 +22,15 @@ class SymmetryChecker {
             if (Clock.getBytecodesLeft() < 300) return false;
             tiles[curW] = new MapInfo[H];
             curW++;
+        }
+        MapLocation[] spawns = rc.getAllySpawnLocations();
+        while (curI < spawns.length) {
+            if (Clock.getBytecodesLeft() < 300) return false;
+            MapLocation m = spawns[curI++];
+            tiles[m.x][m.y] = new MapInfo(
+                m, true, false, 0,
+                false, 0, TrapType.NONE
+            );
         }
         ready = true;
         return true;
@@ -48,53 +58,40 @@ class SymmetryChecker {
 
     void updateSymmetry() throws GameActionException {
         if (getSymmetry() != -1) return;
+        if (!isReady()) return;
+
         int status = rc.readSharedArray(Channels.SYMMETRY);
-
         MapLocation s = null;
-        MapLocation[] spawns = rc.getAllySpawnLocations();
-        for (int i = Math.min(spawns.length, 20); i-- > 0;) {
-            if (Clock.getBytecodesLeft() < 2000) break;
-            MapLocation m = spawns[i];
-            s = getHSym(m);
-            if (rc.canSenseLocation(s)) {
-                MapInfo e = rc.senseMapInfo(s);
-                if (!e.isSpawnZone()) status |= 1;
-            }
-            s = getVSym(m);
-            if (rc.canSenseLocation(s)) {
-                MapInfo e = rc.senseMapInfo(s);
-                if (!e.isSpawnZone()) status |= 2;
-            }
-            s = getRSym(m);
-            if (rc.canSenseLocation(s)) {
-                MapInfo e = rc.senseMapInfo(s);
-                if (!e.isSpawnZone()) status |= 4;
-            }
-        }
+        MapInfo mi = null;
+        MapInfo[] infos = rc.senseNearbyMapInfos();
+        for (int i = infos.length; i-- > 0;) {
+            if (Clock.getBytecodesLeft() < 500) break;
+            MapInfo m = infos[i];
+            MapLocation mloc = m.getMapLocation();
+            tiles[mloc.x][mloc.y] = mi;
 
-        if (isReady()) {
-            MapInfo mi = null;
-            MapInfo[] infos = rc.senseNearbyMapInfos();
-            for (int i = infos.length; i-- > 0;) {
-                if (Clock.getBytecodesLeft() < 500) break;
-                MapInfo m = infos[i];
-                MapLocation mloc = m.getMapLocation();
-                s = getHSym(mloc);
-                mi = tiles[s.x][s.y];
-                if (mi != null && mi.isPassable() != m.isPassable())    
+            s = getHSym(mloc);
+            mi = tiles[s.x][s.y];
+            if ((mi != null)) {
+                if ((mi.isPassable() != m.isPassable()) || (mi.isSpawnZone() != m.isSpawnZone())) {   
                     status |= 1;
-                
-                s = getVSym(mloc);
-                mi = tiles[s.x][s.y];
-                if (mi != null && mi.isPassable() != m.isPassable())
+                }
+            }
+            
+            s = getVSym(mloc);
+            mi = tiles[s.x][s.y];
+            if ((mi != null)) {
+                if ((mi.isPassable() != m.isPassable()) || (mi.isSpawnZone() != m.isSpawnZone())) {
                     status |= 2;
+                }
+            }
 
-                s = getRSym(mloc);
-                mi = tiles[s.x][s.y];
-                if (mi != null && mi.isPassable() != m.isPassable())
+            s = getRSym(mloc);
+            mi = tiles[s.x][s.y];
+            if ((mi != null)) {
+                if ((mi.isPassable() != m.isPassable()) || (mi.isSpawnZone() != m.isSpawnZone())) {
                     status |= 4;
-                    
-                tiles[mloc.x][mloc.y] = mi;
+                }
             }
         }
         rc.writeSharedArray(Channels.SYMMETRY, status);
@@ -112,4 +109,3 @@ class SymmetryChecker {
         return new MapLocation(W - a.x - 1, H - a.y - 1);
     }
 }
-
