@@ -1,13 +1,17 @@
+import math
+
 MASK_WIDTH = 9
 MASK_HEIGHT = 7
 CLASS_NAME = "Pathing"
 RSQR = 20
+COST_OF_WATER = 3  # 2 actual turns, one for filling, and one for moving. +1 accounts for crumbs and base cooldown cost
+
 
 class ClassPrinter:
     def __init__(self):
-        self.tab = ' ' * 4
+        self.tab = " " * 4
         self.level = 0
-        self.file = open(f"{CLASS_NAME}.java", 'w')
+        self.file = open(f"{CLASS_NAME}.java", "w")
 
     def __enter__(self):
         self.level += 1
@@ -16,11 +20,13 @@ class ClassPrinter:
         self.level -= 1
 
     def print(self, text=""):
-        assert(self.level >= 0)
+        assert self.level >= 0
         self.file.write(f"{self.tab * self.level}{text}\n")
-    
+
 
 cp = ClassPrinter()
+
+
 def printPathing():
     cp.print("package initialBot;")
     cp.print("import battlecode.common.*;")
@@ -38,7 +44,8 @@ def printPathing():
         cp.print("}")
         cp.print("")
         cp.print("public void moveTo(MapLocation target) throws GameActionException {")
-        with cp: moveTo()
+        with cp:
+            moveTo()
         cp.print("}")
     cp.print("}")
 
@@ -63,7 +70,6 @@ def moveTo():
         advance_reachable("reach", True)
     cp.print()
 
-
     cp.print("long targetsqrs0 = 0;")
     cp.print("long targetsqrs1 = 0;")
     cp.print("MapLocation myloc = rc.getLocation();")
@@ -87,7 +93,7 @@ def moveTo():
             "Direction.WEST",
             "Direction.SOUTHWEST",
             "Direction.SOUTH",
-            "Direction.SOUTHEAST"
+            "Direction.SOUTHEAST",
         ]
         cp.print(f"MapLocation adj = null;")
         cp.print(f"int d = 0;")
@@ -106,32 +112,35 @@ def moveTo():
 
     # Load the target into a bitmask.
     # If you're trying to hunt down a bug after game constants changed it may be this hardcoded 4 lol.
-    cp.print(f"int idx = ((target.y - (myloc.y - 4)) * {MASK_WIDTH}) + (target.x - (myloc.x - 4));")
-    cp.print(f"if (idx >= {MASK_WIDTH * MASK_HEIGHT}) {{")
+    cp.print(
+        f"int i = ((target.y - (myloc.y - 4)) * {MASK_WIDTH}) + (target.x - (myloc.x - 4));"
+    )
+    cp.print(f"if (i >= {MASK_WIDTH * MASK_HEIGHT}) {{")
     with cp:
-        cp.print(f"targetsqrs1 = 1L << (idx - {MASK_WIDTH * MASK_HEIGHT});")
+        cp.print(f"targetsqrs1 = 1L << (i - {MASK_WIDTH * MASK_HEIGHT});")
     cp.print("} else {")
     with cp:
-        cp.print(f"targetsqrs0 = 1L << idx;")
+        cp.print(f"targetsqrs0 = 1L << i;")
     cp.print("}")
     cp.print()
 
     # From the target square, propogate backwards until you reach a reachable square.
     # This is important, because we want to go towards the target, even if it's not reachable.
     cp.print(f"while ((targetsqrs0 & reach0) == 0 && (targetsqrs1 & reach1) == 0) {{")
-    with cp: advance_reachable("targetsqrs", False)
+    with cp:
+        advance_reachable("targetsqrs", False)
     cp.print("}")
     cp.print()
 
     mp = {
         "Direction.NORTHWEST": start << (MASK_WIDTH - 1),
-        "Direction.NORTH":     start << (MASK_WIDTH),
+        "Direction.NORTH": start << (MASK_WIDTH),
         "Direction.NORTHEAST": start << (MASK_WIDTH + 1),
-        "Direction.EAST":      start << (1),
-        "Direction.WEST":      start >> (1),
+        "Direction.EAST": start << (1),
+        "Direction.WEST": start >> (1),
         "Direction.SOUTHWEST": start >> (MASK_WIDTH + 1),
-        "Direction.SOUTH":     start >> (MASK_WIDTH),
-        "Direction.SOUTHEAST": start >> (MASK_WIDTH - 1)
+        "Direction.SOUTH": start >> (MASK_WIDTH),
+        "Direction.SOUTHEAST": start >> (MASK_WIDTH - 1),
     }
 
     adjacency_mask = start
@@ -139,29 +148,89 @@ def moveTo():
         adjacency_mask |= value
 
     # From the optimal reachable square(s) propogate backwards until you hit the start square.
-    cp.print(f"long back0 = targetsqrs0 & reach0;")
-    cp.print(f"long back1 = targetsqrs1 & reach1;")
-    cp.print(f"while ((back0 & {hex(adjacency_mask)}L) == 0) {{")
-    with cp: advance_reachable("back", True)
+    cp.print(f"long[] back0 = \u007b{', '.join(['0'] * (COST_OF_WATER + 1))}\u007d;")
+    cp.print(f"long[] back1 = \u007b{', '.join(['0'] * (COST_OF_WATER + 1))}\u007d;")
+    cp.print("back0[0] = targetsqrs0 & reach0;")
+    cp.print("back1[0] = targetsqrs1 & reach1;")
+    cp.print("int idx = 0;")
+    cp.print(f"while ((back0[idx] & {hex(adjacency_mask)}L) == 0) {{")
+    with cp:
+        advance_reachable2("back", True)
     cp.print("}")
     cp.print()
-
 
     # You can also use a switch statement here, but it doesn't help you too much. Maybe 100 bytecode saved.
     # The only squares that should be active in best are those which
     # Are part of the optimal path. Hence, we can simply choose any of them.
-    cp.print(f"long best = back0 & {hex(adjacency_mask)}L;")
+    cp.print(f"long best = back0[idx] & {hex(adjacency_mask)}L;")
     for key, value in mp.items():
-        cp.print(f"if ((best & {hex(value)}L) > 0) {{ rc.move({key}); return; }}")
+        cp.print(
+            f"""if ((best & {hex(value)}L) > 0) {{
+            if (rc.canFill(rc.getLocation().add({key}))) {{
+                rc.fill(rc.getLocation().add({key}));
+            }} else {{
+                rc.move({key}); return; 
+            }}
+        }}
+    
+"""
+        )
 
 
 def advance_reachable(mask_name, walls):
-    shift = (MASK_WIDTH * (MASK_HEIGHT - 1))
-    cp.print(f"{mask_name}0 = ({mask_name}0 | (({mask_name}0 << 1) & loverflow) | (({mask_name}0 >> 1) & roverflow));")
-    cp.print(f"{mask_name}1 = ({mask_name}1 | (({mask_name}1 << 1) & loverflow) | (({mask_name}1 >> 1) & roverflow));")
-    cp.print(f"{mask_name}0 = ({mask_name}0 | ({mask_name}0 << {MASK_WIDTH}) |"
-        +    f" ({mask_name}0 >> {MASK_WIDTH}) | ({mask_name}1 << {shift})){' & passible0' if walls else ''};")
-    cp.print(f"{mask_name}1 = ({mask_name}1 | ({mask_name}1 << {MASK_WIDTH}) |"
-        +    f" ({mask_name}1 >> {MASK_WIDTH}) | ({mask_name}0 >> {shift})){' & passible1' if walls else ''};")
+    shift = MASK_WIDTH * (MASK_HEIGHT - 1)
+    cp.print(
+        f"{mask_name}0 = ({mask_name}0 | (({mask_name}0 << 1) & loverflow) | (({mask_name}0 >> 1) & roverflow));"
+    )
+    cp.print(
+        f"{mask_name}1 = ({mask_name}1 | (({mask_name}1 << 1) & loverflow) | (({mask_name}1 >> 1) & roverflow));"
+    )
+    cp.print(
+        f"{mask_name}0 = ({mask_name}0 | ({mask_name}0 << {MASK_WIDTH}) |"
+        + f" ({mask_name}0 >> {MASK_WIDTH}) | ({mask_name}1 << {shift})){' & passible0' if walls else ''};"
+    )
+    cp.print(
+        f"{mask_name}1 = ({mask_name}1 | ({mask_name}1 << {MASK_WIDTH}) |"
+        + f" ({mask_name}1 >> {MASK_WIDTH}) | ({mask_name}0 >> {shift})){' & passible1' if walls else ''};"
+    )
+
+
+def advance_reachable2(mask_name, walls):
+    shift = MASK_WIDTH * (MASK_HEIGHT - 1)
+    cp.print(f"int mask = 0b{'1' * int(math.log2(COST_OF_WATER + 1))};")
+    cp.print(f"int nidx = (idx + 1) & mask;")
+    cp.print(f"long water0 = {mask_name}0[nidx];")
+    cp.print(f"long water1 = {mask_name}1[nidx];")
+    cp.print(
+        f"{mask_name}0[nidx] = ({mask_name}0[idx] | (({mask_name}0[idx] << 1) & loverflow) | (({mask_name}0[idx] >> 1) & roverflow));"
+    )
+    cp.print(
+        f"{mask_name}1[nidx] = ({mask_name}1[idx] | (({mask_name}1[idx] << 1) & loverflow) | (({mask_name}1[idx] >> 1) & roverflow));"
+    )
+    cp.print(
+        f"{mask_name}0[nidx] = ({mask_name}0[nidx] | ({mask_name}0[nidx] << {MASK_WIDTH}) |"
+        + f" ({mask_name}0[nidx] >> {MASK_WIDTH}) | ({mask_name}1[nidx] << {shift}));"
+    )
+    cp.print(
+        f"{mask_name}1[nidx] = ({mask_name}1[nidx] | ({mask_name}1[nidx] << {MASK_WIDTH}) |"
+        + f" ({mask_name}1[nidx] >> {MASK_WIDTH}) | ({mask_name}0[nidx] >> {shift}));"
+    )
+
+    if walls:
+        cp.print(
+            f"{mask_name}0[(idx + 3) & mask] = ({mask_name}0[nidx] & mt.water_mask0);"
+        )
+        cp.print(
+            f"{mask_name}0[nidx] = water0 | {mask_name}0[idx] | ({mask_name}0[nidx] & passible0);"
+        )
+        cp.print(
+            f"{mask_name}1[(idx + 3) & mask] = ({mask_name}1[nidx] & mt.water_mask1);"
+        )
+        cp.print(
+            f"{mask_name}1[nidx] = water1 | {mask_name}1[idx] | ({mask_name}1[nidx] & passible1);"
+        )
+
+    cp.print("idx = nidx;")
+
 
 printPathing()

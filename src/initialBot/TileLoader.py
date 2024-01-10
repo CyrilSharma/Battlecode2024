@@ -3,16 +3,14 @@ MASK_HEIGHT = 7
 VISION = 9
 CLASS_NAME = "TileLoader"
 BITS_PER_MASK = 63
-TILES = [
-    "water",
-    "wall"
-]
+TILES = ["water", "wall"]
+
 
 class ClassPrinter:
     def __init__(self):
-        self.tab = ' ' * 4
+        self.tab = " " * 4
         self.level = 0
-        self.file = open(f"{CLASS_NAME}.java", 'w')
+        self.file = open(f"{CLASS_NAME}.java", "w")
 
     def __enter__(self):
         self.level += 1
@@ -21,10 +19,12 @@ class ClassPrinter:
         self.level -= 1
 
     def print(self, text=""):
-        assert(self.level >= 0)
+        assert self.level >= 0
         self.file.write(f"{self.tab * self.level}{text}\n")
-    
+
+
 cp = ClassPrinter()
+
 
 def printLoader():
     cp.print("package initialBot;")
@@ -41,6 +41,7 @@ def printLoader():
             load_tiles()
         cp.print("}")
     cp.print("}")
+
 
 def load_tiles():
     cp.print(f"int diff = {-(VISION//2)};")
@@ -74,18 +75,17 @@ def load_tiles():
     start = 1 << (4 * MASK_WIDTH + 4)
     mp = {
         "Direction.NORTHWEST": start << (MASK_WIDTH - 1),
-        "Direction.NORTH":     start << (MASK_WIDTH),
+        "Direction.NORTH": start << (MASK_WIDTH),
         "Direction.NORTHEAST": start << (MASK_WIDTH + 1),
-        "Direction.EAST":      start << (1),
-        "Direction.WEST":      start >> (1),
+        "Direction.EAST": start << (1),
+        "Direction.WEST": start >> (1),
         "Direction.SOUTHWEST": start >> (MASK_WIDTH + 1),
-        "Direction.SOUTH":     start >> (MASK_WIDTH),
-        "Direction.SOUTHEAST": start >> (MASK_WIDTH - 1)
+        "Direction.SOUTH": start >> (MASK_WIDTH),
+        "Direction.SOUTHEAST": start >> (MASK_WIDTH - 1),
     }
 
     for key, value in mp.items():
         cp.print(f"if (!rc.canMove({key})) {{ blocked += {hex(value)}L;}}")
-
 
     # Will need fancier code to support different mask sizes.
     for tile in TILES:
@@ -95,19 +95,21 @@ def load_tiles():
     cp.print("mt.infos = infos;")
 
 
-
 def load_switch(mask):
     cp.print("switch (m.getMapLocation().hashCode() - offset) {")
     with cp:
         for idx in range(VISION * VISION):
-            y = idx // 9; x = idx % 9;
+            y = idx // 9
+            x = idx % 9
             line = f"case {(1 << 16) * x + y}: "
 
             # we don't store bit 0 at position 0, instead we store directly in it's final position.
-            block = idx // BITS_PER_MASK; index = idx % (BITS_PER_MASK);
+            block = idx // BITS_PER_MASK
+            index = idx % (BITS_PER_MASK)
             line += f"{mask}{block} += {hex(1 << index)}L; continue;"
             cp.print(line)
-        cp.print("default: System.out.println(\"This shouldn't happen...\"); continue;")
+        cp.print('default: System.out.println("This shouldn\'t happen..."); continue;')
     cp.print("}")
+
 
 printLoader()

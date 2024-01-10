@@ -124,11 +124,11 @@ public class Pathing {
             target = bestTarget;
         }
         
-        int idx = ((target.y - (myloc.y - 4)) * 9) + (target.x - (myloc.x - 4));
-        if (idx >= 63) {
-            targetsqrs1 = 1L << (idx - 63);
+        int i = ((target.y - (myloc.y - 4)) * 9) + (target.x - (myloc.x - 4));
+        if (i >= 63) {
+            targetsqrs1 = 1L << (i - 63);
         } else {
-            targetsqrs0 = 1L << idx;
+            targetsqrs0 = 1L << i;
         }
         
         while ((targetsqrs0 & reach0) == 0 && (targetsqrs1 & reach1) == 0) {
@@ -138,23 +138,99 @@ public class Pathing {
             targetsqrs1 = (targetsqrs1 | (targetsqrs1 << 9) | (targetsqrs1 >> 9) | (targetsqrs0 >> 54));
         }
         
-        long back0 = targetsqrs0 & reach0;
-        long back1 = targetsqrs1 & reach1;
-        while ((back0 & 0x70381c0000000L) == 0) {
-            back0 = (back0 | ((back0 << 1) & loverflow) | ((back0 >> 1) & roverflow));
-            back1 = (back1 | ((back1 << 1) & loverflow) | ((back1 >> 1) & roverflow));
-            back0 = (back0 | (back0 << 9) | (back0 >> 9) | (back1 << 54)) & passible0;
-            back1 = (back1 | (back1 << 9) | (back1 >> 9) | (back0 >> 54)) & passible1;
+        long[] back0 = {0, 0, 0, 0};
+        long[] back1 = {0, 0, 0, 0};
+        back0[0] = targetsqrs0 & reach0;
+        back1[0] = targetsqrs1 & reach1;
+        int idx = 0;
+        while ((back0[idx] & 0x70381c0000000L) == 0) {
+            int mask = 0b11;
+            int nidx = (idx + 1) & mask;
+            long water0 = back0[nidx];
+            long water1 = back1[nidx];
+            back0[nidx] = (back0[idx] | ((back0[idx] << 1) & loverflow) | ((back0[idx] >> 1) & roverflow));
+            back1[nidx] = (back1[idx] | ((back1[idx] << 1) & loverflow) | ((back1[idx] >> 1) & roverflow));
+            back0[nidx] = (back0[nidx] | (back0[nidx] << 9) | (back0[nidx] >> 9) | (back1[nidx] << 54));
+            back1[nidx] = (back1[nidx] | (back1[nidx] << 9) | (back1[nidx] >> 9) | (back0[nidx] >> 54));
+            back0[(idx + 3) & mask] = (back0[nidx] & mt.water_mask0);
+            back0[nidx] = water0 | back0[idx] | (back0[nidx] & passible0);
+            back1[(idx + 3) & mask] = (back1[nidx] & mt.water_mask1);
+            back1[nidx] = water1 | back1[idx] | (back1[nidx] & passible1);
+            idx = nidx;
         }
         
-        long best = back0 & 0x70381c0000000L;
-        if ((best & 0x1000000000000L) > 0) { rc.move(Direction.NORTHWEST); return; }
-        if ((best & 0x2000000000000L) > 0) { rc.move(Direction.NORTH); return; }
-        if ((best & 0x4000000000000L) > 0) { rc.move(Direction.NORTHEAST); return; }
-        if ((best & 0x20000000000L) > 0) { rc.move(Direction.EAST); return; }
-        if ((best & 0x8000000000L) > 0) { rc.move(Direction.WEST); return; }
-        if ((best & 0x40000000L) > 0) { rc.move(Direction.SOUTHWEST); return; }
-        if ((best & 0x80000000L) > 0) { rc.move(Direction.SOUTH); return; }
-        if ((best & 0x100000000L) > 0) { rc.move(Direction.SOUTHEAST); return; }
+        long best = back0[idx] & 0x70381c0000000L;
+        if ((best & 0x1000000000000L) > 0) {
+            if (rc.canFill(rc.getLocation().add(Direction.NORTHWEST))) {
+                rc.fill(rc.getLocation().add(Direction.NORTHWEST));
+            } else {
+                rc.move(Direction.NORTHWEST); return; 
+            }
+        }
+    
+
+        if ((best & 0x2000000000000L) > 0) {
+            if (rc.canFill(rc.getLocation().add(Direction.NORTH))) {
+                rc.fill(rc.getLocation().add(Direction.NORTH));
+            } else {
+                rc.move(Direction.NORTH); return; 
+            }
+        }
+    
+
+        if ((best & 0x4000000000000L) > 0) {
+            if (rc.canFill(rc.getLocation().add(Direction.NORTHEAST))) {
+                rc.fill(rc.getLocation().add(Direction.NORTHEAST));
+            } else {
+                rc.move(Direction.NORTHEAST); return; 
+            }
+        }
+    
+
+        if ((best & 0x20000000000L) > 0) {
+            if (rc.canFill(rc.getLocation().add(Direction.EAST))) {
+                rc.fill(rc.getLocation().add(Direction.EAST));
+            } else {
+                rc.move(Direction.EAST); return; 
+            }
+        }
+    
+
+        if ((best & 0x8000000000L) > 0) {
+            if (rc.canFill(rc.getLocation().add(Direction.WEST))) {
+                rc.fill(rc.getLocation().add(Direction.WEST));
+            } else {
+                rc.move(Direction.WEST); return; 
+            }
+        }
+    
+
+        if ((best & 0x40000000L) > 0) {
+            if (rc.canFill(rc.getLocation().add(Direction.SOUTHWEST))) {
+                rc.fill(rc.getLocation().add(Direction.SOUTHWEST));
+            } else {
+                rc.move(Direction.SOUTHWEST); return; 
+            }
+        }
+    
+
+        if ((best & 0x80000000L) > 0) {
+            if (rc.canFill(rc.getLocation().add(Direction.SOUTH))) {
+                rc.fill(rc.getLocation().add(Direction.SOUTH));
+            } else {
+                rc.move(Direction.SOUTH); return; 
+            }
+        }
+    
+
+        if ((best & 0x100000000L) > 0) {
+            if (rc.canFill(rc.getLocation().add(Direction.SOUTHEAST))) {
+                rc.fill(rc.getLocation().add(Direction.SOUTHEAST));
+            } else {
+                rc.move(Direction.SOUTHEAST); return; 
+            }
+        }
+    
+
     }
 }
