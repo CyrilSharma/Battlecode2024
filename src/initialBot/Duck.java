@@ -8,19 +8,19 @@ import battlecode.common.*;
 public class Duck extends Robot {
     Pathing path;
     MapLocation target;
+    AttackMicro am;
     public Duck(RobotController rc) {
         super(rc);
         path = new Pathing(this);
+        am = new AttackMicro(rc);
     }
 
     void run() throws GameActionException {
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
 
-        tryAttack();
-        if (shouldMicro()) doMicro();
-        else seekTarget();
-        tryDesperateAttack();
+        boolean ranmicro = am.runMicro();
+        if (!ranmicro) seekTarget();
         // this.mt.displayLocalMasks();
     }
 
@@ -43,6 +43,7 @@ public class Duck extends Robot {
     void doMicro() throws GameActionException {}
 
     void tryAttack() throws GameActionException {
+
         return;
     }
 
