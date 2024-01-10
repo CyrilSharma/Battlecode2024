@@ -6,8 +6,11 @@ import battlecode.common.*;
  */
 
 public class Duck extends Robot {
+    Pathing path;
+    MapLocation target;
     public Duck(RobotController rc) {
         super(rc);
+        path = new Pathing(this);
     }
 
     void run() throws GameActionException {
@@ -18,6 +21,7 @@ public class Duck extends Robot {
         if (shouldMicro()) doMicro();
         else seekTarget();
         tryDesperateAttack();
+        // this.mt.displayLocalMasks();
     }
 
     void spawn() throws GameActionException {
@@ -29,6 +33,7 @@ public class Duck extends Robot {
                 break;
             }
         }
+        mt.run();
     }
 
     boolean shouldMicro() throws GameActionException {
@@ -45,10 +50,23 @@ public class Duck extends Robot {
         return;
     }
 
+    /*
+     *  This is just here so I can test out some funky pathing.
+     */
+
     void seekTarget() throws GameActionException {
-        int x = rng.nextInt(rc.getMapWidth());
-        int y = rng.nextInt(rc.getMapHeight());
-        MapLocation target = new MapLocation(x, y);
-        
+        if ((target == null) || (rc.getRoundNum() % 100 == 0)) {
+            // int x = rng.nextInt(rc.getMapWidth());
+            // int y = rng.nextInt(rc.getMapHeight());
+            // target = new MapLocation(x, y);
+            MapLocation[] targets = {
+                new MapLocation(0, 0),
+                new MapLocation(0, rc.getMapHeight()),
+                new MapLocation(rc.getMapWidth(), 0),
+                new MapLocation(rc.getMapWidth(), rc.getMapHeight())
+            };
+            target = targets[(rc.getRoundNum() / 100) % 4];
+        }
+        path.moveTo(target);
     }
 }
