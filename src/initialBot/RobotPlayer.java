@@ -7,9 +7,9 @@ public strictfp class RobotPlayer {
         while (true) {
             try {
                 // PURELY FOR TESTING PLEASE DISABLE.
-                if (rc.getRoundNum() > 500) {
-                    rc.resign();
-                }
+                // if (rc.getRoundNum() > 500) {
+                //     rc.resign();
+                // }
                 robot.init_turn();
                 robot.run();
             } catch (GameActionException e) {

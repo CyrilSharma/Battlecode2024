@@ -47,13 +47,12 @@ class SymmetryChecker {
     }
 
     void updateSymmetry() throws GameActionException {
-        // Mark whether or not you can see an enemy HQ.
         if (getSymmetry() != -1) return;
-
         int status = rc.readSharedArray(Channels.SYMMETRY);
+
         MapLocation s = null;
         MapLocation[] spawns = rc.getAllySpawnLocations();
-        for (int i = spawns.length; i-- > 0;) {
+        for (int i = Math.min(spawns.length, 20); i-- > 0;) {
             if (Clock.getBytecodesLeft() < 2000) break;
             MapLocation m = spawns[i];
             s = getHSym(m);
@@ -79,17 +78,23 @@ class SymmetryChecker {
             for (int i = infos.length; i-- > 0;) {
                 if (Clock.getBytecodesLeft() < 500) break;
                 MapInfo m = infos[i];
-                s = getHSym(m.getMapLocation());
+                MapLocation mloc = m.getMapLocation();
+                s = getHSym(mloc);
                 mi = tiles[s.x][s.y];
-                if (mi != null && mi.isPassable() != m.isPassable()) status |= 1;
+                if (mi != null && mi.isPassable() != m.isPassable())    
+                    status |= 1;
                 
-                s = getVSym(m.getMapLocation());
+                s = getVSym(mloc);
                 mi = tiles[s.x][s.y];
-                if (mi != null && mi.isPassable() != m.isPassable()) status |= 2;
+                if (mi != null && mi.isPassable() != m.isPassable())
+                    status |= 2;
 
-                s = getRSym(m.getMapLocation());
+                s = getRSym(mloc);
                 mi = tiles[s.x][s.y];
-                if (mi != null && mi.isPassable() != m.isPassable()) status |= 4;
+                if (mi != null && mi.isPassable() != m.isPassable())
+                    status |= 4;
+                    
+                tiles[mloc.x][mloc.y] = mi;
             }
         }
         rc.writeSharedArray(Channels.SYMMETRY, status);
