@@ -207,13 +207,14 @@ def advance_reachable2(mask_name, walls):
     cp.print(
         f"{mask_name}1[nidx] = ({mask_name}1[idx] | (({mask_name}1[idx] << 1) & loverflow) | (({mask_name}1[idx] >> 1) & roverflow));"
     )
+    cp.print(f"long temp = {mask_name}0[nidx];")
     cp.print(
         f"{mask_name}0[nidx] = ({mask_name}0[nidx] | ({mask_name}0[nidx] << {MASK_WIDTH}) |"
         + f" ({mask_name}0[nidx] >> {MASK_WIDTH}) | ({mask_name}1[nidx] << {shift}));"
     )
     cp.print(
         f"{mask_name}1[nidx] = ({mask_name}1[nidx] | ({mask_name}1[nidx] << {MASK_WIDTH}) |"
-        + f" ({mask_name}1[nidx] >> {MASK_WIDTH}) | ({mask_name}0[nidx] >> {shift}));"
+        + f" ({mask_name}1[nidx] >> {MASK_WIDTH}) | (temp >> {shift}));"
     )
 
     if walls:

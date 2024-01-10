@@ -150,8 +150,9 @@ public class Pathing {
             long water1 = back1[nidx];
             back0[nidx] = (back0[idx] | ((back0[idx] << 1) & loverflow) | ((back0[idx] >> 1) & roverflow));
             back1[nidx] = (back1[idx] | ((back1[idx] << 1) & loverflow) | ((back1[idx] >> 1) & roverflow));
+            long temp = back0[nidx];
             back0[nidx] = (back0[nidx] | (back0[nidx] << 9) | (back0[nidx] >> 9) | (back1[nidx] << 54));
-            back1[nidx] = (back1[nidx] | (back1[nidx] << 9) | (back1[nidx] >> 9) | (back0[nidx] >> 54));
+            back1[nidx] = (back1[nidx] | (back1[nidx] << 9) | (back1[nidx] >> 9) | (temp >> 54));
             back0[(idx + 3) & mask] = (back0[nidx] & mt.water_mask0);
             back0[nidx] = water0 | back0[idx] | (back0[nidx] & passible0);
             back1[(idx + 3) & mask] = (back1[nidx] & mt.water_mask1);
