@@ -21,7 +21,6 @@ public class Duck extends Robot {
     void run() throws GameActionException {
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
-
         boolean ranmicro = am.runMicro();
         if (!ranmicro) seekTarget();
         sc.updateSymmetry();
@@ -38,22 +37,6 @@ public class Duck extends Robot {
         }
         mt.run();
     }
-
-    boolean shouldMicro() throws GameActionException {
-        return false;
-    }
-
-    void doMicro() throws GameActionException {}
-
-    void tryAttack() throws GameActionException {
-
-        return;
-    }
-
-    void tryDesperateAttack() throws GameActionException {
-        return;
-    }
-
 
     void seekTarget() throws GameActionException {
         if ((target == null) && sc.getSymmetry() != -1) {
