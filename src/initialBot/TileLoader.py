@@ -73,17 +73,18 @@ def load_tiles():
     # So I'm going to keep it here.
     start = 1 << (4 * MASK_WIDTH + 4)
     mp = {
-        "Direction.NORTHWEST": start << (MASK_WIDTH + 1),
+        "Direction.NORTHWEST": start << (MASK_WIDTH - 1),
         "Direction.NORTH":     start << (MASK_WIDTH),
-        "Direction.NORTHEAST": start << (MASK_WIDTH - 1),
+        "Direction.NORTHEAST": start << (MASK_WIDTH + 1),
         "Direction.EAST":      start << (1),
         "Direction.WEST":      start >> (1),
-        "Direction.SOUTHWEST": start >> (MASK_WIDTH - 1),
+        "Direction.SOUTHWEST": start >> (MASK_WIDTH + 1),
         "Direction.SOUTH":     start >> (MASK_WIDTH),
-        "Direction.SOUTHEAST": start >> (MASK_WIDTH + 1)
+        "Direction.SOUTHEAST": start >> (MASK_WIDTH - 1)
     }
+
     for key, value in mp.items():
-        cp.print(f"if (!rc.canMove({key})) {{ blocked += {value}L;}}")
+        cp.print(f"if (!rc.canMove({key})) {{ blocked += {hex(value)}L;}}")
 
 
     # Will need fancier code to support different mask sizes.

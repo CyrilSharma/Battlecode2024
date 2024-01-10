@@ -47,8 +47,10 @@ def moveTo():
     # We could probably get away with 1 mask, if we're willing to discard squares
     # in the opposite direction of the target. We have so much bytecode tho, that I don't know
     # that this is necessary. Also, using more masks may generalize better if we ever use full-map pathing.
-    cp.print(f"long loverflow = {hex(0b111111110111111110111111110111111110111111110111111110111111110)}L;")
-    cp.print(f"long roverflow = {hex(0b011111111011111111011111111011111111011111111011111111011111111)}L;")
+    loverflow = 0b111111110111111110111111110111111110111111110111111110111111110
+    roverflow = 0b011111111011111111011111111011111111011111111011111111011111111
+    cp.print(f"long loverflow = {hex(loverflow)}L;")
+    cp.print(f"long roverflow = {hex(roverflow)}L;")
     cp.print("long passible0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0);")
     cp.print("long passible1 = ~(mt.wall_mask1 | mt.water_mask1);")
 
@@ -70,12 +72,12 @@ def moveTo():
     with cp:
         # If we can't see the location, just path towards the closest location to the
         # Target in our vision radius.
-        cp.print(f"double mult = ((double) {RSQR}) / dist;")
+        cp.print(f"double mult = Math.sqrt(((double) {RSQR}) / dist);")
         cp.print(f"int x = (int) Math.round(myloc.x + (target.x - myloc.x) * mult);")
         cp.print(f"int y = (int) Math.round(myloc.y + (target.y - myloc.y) * mult);")
         cp.print("MapLocation estimate = new MapLocation(x, y);")
         cp.print("MapLocation bestTarget = estimate;")
-        cp.print(f"int bestDist = {1 << 30};")
+        cp.print(f"int bestDist = estimate.distanceSquaredTo(target);")
 
         directions = [
             "Direction.NORTHWEST",
@@ -103,13 +105,14 @@ def moveTo():
     cp.print()
 
     # Load the target into a bitmask.
-    cp.print(f"int idx = (target.y * {MASK_WIDTH}) + target.x;")
+    # If you're trying to hunt down a bug after game constants changed it may be this hardcoded 4 lol.
+    cp.print(f"int idx = ((target.y - (myloc.y - 4)) * {MASK_WIDTH}) + (target.x - (myloc.x - 4));")
     cp.print(f"if (idx >= {MASK_WIDTH * MASK_HEIGHT}) {{")
     with cp:
-        cp.print(f"targetsqrs1 = 1 << (idx - {MASK_WIDTH * MASK_HEIGHT});")
+        cp.print(f"targetsqrs1 = 1L << (idx - {MASK_WIDTH * MASK_HEIGHT});")
     cp.print("} else {")
     with cp:
-        cp.print(f"targetsqrs0 = 1 << idx;")
+        cp.print(f"targetsqrs0 = 1L << idx;")
     cp.print("}")
     cp.print()
 
@@ -120,34 +123,36 @@ def moveTo():
     cp.print("}")
     cp.print()
 
-    adjacency_mask = start | (start << 1) | (start >> 1)
-    adjacency_mask = adjacency_mask | (adjacency_mask << MASK_HEIGHT) | (adjacency_mask >> MASK_HEIGHT)
+    mp = {
+        "Direction.NORTHWEST": start << (MASK_WIDTH - 1),
+        "Direction.NORTH":     start << (MASK_WIDTH),
+        "Direction.NORTHEAST": start << (MASK_WIDTH + 1),
+        "Direction.EAST":      start << (1),
+        "Direction.WEST":      start >> (1),
+        "Direction.SOUTHWEST": start >> (MASK_WIDTH + 1),
+        "Direction.SOUTH":     start >> (MASK_WIDTH),
+        "Direction.SOUTHEAST": start >> (MASK_WIDTH - 1)
+    }
+
+    adjacency_mask = start
+    for key, value in mp.items():
+        adjacency_mask |= value
 
     # From the optimal reachable square(s) propogate backwards until you hit the start square.
     cp.print(f"long back0 = targetsqrs0 & reach0;")
     cp.print(f"long back1 = targetsqrs1 & reach1;")
-    cp.print(f"while ((back0 & {adjacency_mask}L) == 0) {{")
+    cp.print(f"while ((back0 & {hex(adjacency_mask)}L) == 0) {{")
     with cp: advance_reachable("back", True)
     cp.print("}")
     cp.print()
 
-    # You can also use a switch statement here, but it doesn't help you too much. Maybe 100 bytecode saved.
-    mp = {
-        "Direction.NORTHWEST": start << (MASK_WIDTH + 1),
-        "Direction.NORTH":     start << (MASK_WIDTH),
-        "Direction.NORTHEAST": start << (MASK_WIDTH - 1),
-        "Direction.EAST":      start << (1),
-        "Direction.WEST":      start >> (1),
-        "Direction.SOUTHWEST": start >> (MASK_WIDTH - 1),
-        "Direction.SOUTH":     start >> (MASK_WIDTH),
-        "Direction.SOUTHEAST": start >> (MASK_WIDTH + 1)
-    }
 
+    # You can also use a switch statement here, but it doesn't help you too much. Maybe 100 bytecode saved.
     # The only squares that should be active in best are those which
     # Are part of the optimal path. Hence, we can simply choose any of them.
-    cp.print(f"long best = back0 & {adjacency_mask}L;")
+    cp.print(f"long best = back0 & {hex(adjacency_mask)}L;")
     for key, value in mp.items():
-        cp.print(f"if ((best & {value}L) > 0) {{ rc.move({key}); return; }}")
+        cp.print(f"if ((best & {hex(value)}L) > 0) {{ rc.move({key}); return; }}")
 
 
 def advance_reachable(mask_name, walls):

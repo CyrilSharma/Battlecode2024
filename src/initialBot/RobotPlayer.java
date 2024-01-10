@@ -7,7 +7,7 @@ public strictfp class RobotPlayer {
         while (true) {
             try {
                 // PURELY FOR TESTING PLEASE DISABLE.
-                if (rc.getRoundNum() > 200) {
+                if (rc.getRoundNum() > 10) {
                     rc.resign();
                 }
                 robot.init_turn();

@@ -23,7 +23,7 @@ public class MapTracker {
         int initial = Clock.getBytecodesLeft();
         tl.load(this);
         int end = Clock.getBytecodesLeft();
-        System.out.println("Used: " + (initial - end));
+        // System.out.println("Used: " + (initial - end));
     }
 
     public void displayLocalMasks() throws GameActionException {

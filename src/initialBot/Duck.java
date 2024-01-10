@@ -64,8 +64,7 @@ public class Duck extends Robot {
                 new MapLocation(rc.getMapWidth(), 0),
                 new MapLocation(rc.getMapWidth(), rc.getMapHeight())
             };
-            int r = rng.nextInt(targets.length);
-            target = targets[r];
+            target = targets[(rc.getRoundNum() / 100) % 4];
         }
         path.moveTo(target);
     }

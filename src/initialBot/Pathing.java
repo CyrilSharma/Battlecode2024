@@ -64,12 +64,12 @@ public class Pathing {
         MapLocation myloc = rc.getLocation();
         int dist = myloc.distanceSquaredTo(target);
         if (dist > 20) {
-            double mult = ((double) 20) / dist;
+            double mult = Math.sqrt(((double) 20) / dist);
             int x = (int) Math.round(myloc.x + (target.x - myloc.x) * mult);
             int y = (int) Math.round(myloc.y + (target.y - myloc.y) * mult);
             MapLocation estimate = new MapLocation(x, y);
             MapLocation bestTarget = estimate;
-            int bestDist = 1073741824;
+            int bestDist = estimate.distanceSquaredTo(target);
             MapLocation adj = null;
             int d = 0;
             
@@ -124,11 +124,11 @@ public class Pathing {
             target = bestTarget;
         }
         
-        int idx = (target.y * 9) + target.x;
+        int idx = ((target.y - (myloc.y - 4)) * 9) + (target.x - (myloc.x - 4));
         if (idx >= 63) {
-            targetsqrs1 = 1 << (idx - 63);
+            targetsqrs1 = 1L << (idx - 63);
         } else {
-            targetsqrs0 = 1 << idx;
+            targetsqrs0 = 1L << idx;
         }
         
         while ((targetsqrs0 & reach0) == 0 && (targetsqrs1 & reach1) == 0) {
@@ -140,22 +140,21 @@ public class Pathing {
         
         long back0 = targetsqrs0 & reach0;
         long back1 = targetsqrs1 & reach1;
-        while ((back0 & 496459564711936L) == 0) {
+        while ((back0 & 0x70381c0000000L) == 0) {
             back0 = (back0 | ((back0 << 1) & loverflow) | ((back0 >> 1) & roverflow));
             back1 = (back1 | ((back1 << 1) & loverflow) | ((back1 >> 1) & roverflow));
             back0 = (back0 | (back0 << 9) | (back0 >> 9) | (back1 << 54)) & passible0;
             back1 = (back1 | (back1 << 9) | (back1 >> 9) | (back0 >> 54)) & passible1;
         }
         
-        long best = back0 & 496459564711936L;
-        best = 0;
-        if ((best & 1125899906842624L) > 0) { rc.move(Direction.NORTHWEST); return; }
-        if ((best & 562949953421312L) > 0) { rc.move(Direction.NORTH); return; }
-        if ((best & 281474976710656L) > 0) { rc.move(Direction.NORTHEAST); return; }
-        if ((best & 2199023255552L) > 0) { rc.move(Direction.EAST); return; }
-        if ((best & 549755813888L) > 0) { rc.move(Direction.WEST); return; }
-        if ((best & 4294967296L) > 0) { rc.move(Direction.SOUTHWEST); return; }
-        if ((best & 2147483648L) > 0) { rc.move(Direction.SOUTH); return; }
-        if ((best & 1073741824L) > 0) { rc.move(Direction.SOUTHEAST); return; }
+        long best = back0 & 0x70381c0000000L;
+        if ((best & 0x1000000000000L) > 0) { rc.move(Direction.NORTHWEST); return; }
+        if ((best & 0x2000000000000L) > 0) { rc.move(Direction.NORTH); return; }
+        if ((best & 0x4000000000000L) > 0) { rc.move(Direction.NORTHEAST); return; }
+        if ((best & 0x20000000000L) > 0) { rc.move(Direction.EAST); return; }
+        if ((best & 0x8000000000L) > 0) { rc.move(Direction.WEST); return; }
+        if ((best & 0x40000000L) > 0) { rc.move(Direction.SOUTHWEST); return; }
+        if ((best & 0x80000000L) > 0) { rc.move(Direction.SOUTH); return; }
+        if ((best & 0x100000000L) > 0) { rc.move(Direction.SOUTHEAST); return; }
     }
 }

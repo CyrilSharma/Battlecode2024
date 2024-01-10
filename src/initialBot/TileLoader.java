@@ -6,6 +6,7 @@ public class TileLoader {
         this.rc = rc;
     }
     public void load(MapTracker mt) throws GameActionException {
+        if (!rc.isSpawned()) return;
         int diff = -4;
         int offset = mt.rc.getLocation().translate(diff, diff).hashCode();
         long t_water_mask0 = 0;
@@ -189,14 +190,14 @@ public class TileLoader {
             }
         }
         
-        if (!rc.canMove(Direction.NORTHWEST)) { blocked += 1125899906842624L;}
-        if (!rc.canMove(Direction.NORTH)) { blocked += 562949953421312L;}
-        if (!rc.canMove(Direction.NORTHEAST)) { blocked += 281474976710656L;}
-        if (!rc.canMove(Direction.EAST)) { blocked += 2199023255552L;}
-        if (!rc.canMove(Direction.WEST)) { blocked += 549755813888L;}
-        if (!rc.canMove(Direction.SOUTHWEST)) { blocked += 4294967296L;}
-        if (!rc.canMove(Direction.SOUTH)) { blocked += 2147483648L;}
-        if (!rc.canMove(Direction.SOUTHEAST)) { blocked += 1073741824L;}
+        if (!rc.canMove(Direction.NORTHWEST)) { blocked += 0x1000000000000L;}
+        if (!rc.canMove(Direction.NORTH)) { blocked += 0x2000000000000L;}
+        if (!rc.canMove(Direction.NORTHEAST)) { blocked += 0x4000000000000L;}
+        if (!rc.canMove(Direction.EAST)) { blocked += 0x20000000000L;}
+        if (!rc.canMove(Direction.WEST)) { blocked += 0x8000000000L;}
+        if (!rc.canMove(Direction.SOUTHWEST)) { blocked += 0x40000000L;}
+        if (!rc.canMove(Direction.SOUTH)) { blocked += 0x80000000L;}
+        if (!rc.canMove(Direction.SOUTHEAST)) { blocked += 0x100000000L;}
         mt.water_mask1 = t_water_mask1;
         mt.water_mask0 = t_water_mask0;
         mt.wall_mask1 = t_wall_mask1;
