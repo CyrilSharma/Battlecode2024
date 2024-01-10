@@ -5,6 +5,11 @@ import battlecode.common.*;
 
 public class Exploration {
     RobotController rc;
+    MapLocation target;
+    Pathing path;
+    int minDist;
+    int notCloser;
+
     final Random rng = new Random();
     static final Direction[] directions = {
         Direction.NORTH,
@@ -16,7 +21,27 @@ public class Exploration {
         Direction.WEST,
         Direction.NORTHWEST,
     };
-    public Exploration(RobotController rc){
-        this.rc = rc;
+    public Exploration(Robot robot){
+        this.rc = robot.rc;
+        target = new MapLocation(rng.nextInt() % rc.getMapWidth(), rng.nextInt() % rc.getMapHeight());
+        minDist = (rc.getLocation() != null ? rc.getLocation().distanceSquaredTo(target) : 1000000000);
+        notCloser = 0;
     }
+
+    public MapLocation tryExplore() throws GameActionException {
+        if (rc.getLocation().distanceSquaredTo(target) >= minDist) {
+            notCloser++;
+        }
+        else {
+            minDist = rc.getLocation().distanceSquaredTo(target);
+            notCloser = 0;
+        }
+        if (notCloser >= 5 || minDist <= 10) {
+            target = new MapLocation(rng.nextInt() % rc.getMapWidth(), rng.nextInt() % rc.getMapHeight());
+            minDist = rc.getLocation().distanceSquaredTo(target);
+            notCloser = 0;
+        }
+        return target;
+    }
+
 }
