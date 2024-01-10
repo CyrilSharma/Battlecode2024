@@ -2,7 +2,7 @@ MASK_WIDTH = 9
 MASK_HEIGHT = 7
 VISION = 9
 CLASS_NAME = "TileLoader"
-BITS_PER_MASK = 64
+BITS_PER_MASK = 63
 TILES = [
     "water",
     "wall"

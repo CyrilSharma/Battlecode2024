@@ -6,7 +6,6 @@ public class TileLoader {
         this.rc = rc;
     }
     public void load(MapTracker mt) throws GameActionException {
-        if (!rc.isSpawned()) return;
         int diff = -4;
         int offset = mt.rc.getLocation().translate(diff, diff).hashCode();
         long t_water_mask0 = 0;
@@ -82,24 +81,24 @@ public class TileLoader {
                     case 393222: t_water_mask0 += 0x1000000000000000L; continue;
                     case 458758: t_water_mask0 += 0x2000000000000000L; continue;
                     case 524294: t_water_mask0 += 0x4000000000000000L; continue;
-                    case 7: t_water_mask0 += 0x8000000000000000L; continue;
-                    case 65543: t_water_mask1 += 0x1L; continue;
-                    case 131079: t_water_mask1 += 0x2L; continue;
-                    case 196615: t_water_mask1 += 0x4L; continue;
-                    case 262151: t_water_mask1 += 0x8L; continue;
-                    case 327687: t_water_mask1 += 0x10L; continue;
-                    case 393223: t_water_mask1 += 0x20L; continue;
-                    case 458759: t_water_mask1 += 0x40L; continue;
-                    case 524295: t_water_mask1 += 0x80L; continue;
-                    case 8: t_water_mask1 += 0x100L; continue;
-                    case 65544: t_water_mask1 += 0x200L; continue;
-                    case 131080: t_water_mask1 += 0x400L; continue;
-                    case 196616: t_water_mask1 += 0x800L; continue;
-                    case 262152: t_water_mask1 += 0x1000L; continue;
-                    case 327688: t_water_mask1 += 0x2000L; continue;
-                    case 393224: t_water_mask1 += 0x4000L; continue;
-                    case 458760: t_water_mask1 += 0x8000L; continue;
-                    case 524296: t_water_mask1 += 0x10000L; continue;
+                    case 7: t_water_mask1 += 0x1L; continue;
+                    case 65543: t_water_mask1 += 0x2L; continue;
+                    case 131079: t_water_mask1 += 0x4L; continue;
+                    case 196615: t_water_mask1 += 0x8L; continue;
+                    case 262151: t_water_mask1 += 0x10L; continue;
+                    case 327687: t_water_mask1 += 0x20L; continue;
+                    case 393223: t_water_mask1 += 0x40L; continue;
+                    case 458759: t_water_mask1 += 0x80L; continue;
+                    case 524295: t_water_mask1 += 0x100L; continue;
+                    case 8: t_water_mask1 += 0x200L; continue;
+                    case 65544: t_water_mask1 += 0x400L; continue;
+                    case 131080: t_water_mask1 += 0x800L; continue;
+                    case 196616: t_water_mask1 += 0x1000L; continue;
+                    case 262152: t_water_mask1 += 0x2000L; continue;
+                    case 327688: t_water_mask1 += 0x4000L; continue;
+                    case 393224: t_water_mask1 += 0x8000L; continue;
+                    case 458760: t_water_mask1 += 0x10000L; continue;
+                    case 524296: t_water_mask1 += 0x20000L; continue;
                     default: System.out.println("This shouldn't happen..."); continue;
                 }
             } else if (m.isWall()) {
@@ -167,24 +166,24 @@ public class TileLoader {
                     case 393222: t_wall_mask0 += 0x1000000000000000L; continue;
                     case 458758: t_wall_mask0 += 0x2000000000000000L; continue;
                     case 524294: t_wall_mask0 += 0x4000000000000000L; continue;
-                    case 7: t_wall_mask0 += 0x8000000000000000L; continue;
-                    case 65543: t_wall_mask1 += 0x1L; continue;
-                    case 131079: t_wall_mask1 += 0x2L; continue;
-                    case 196615: t_wall_mask1 += 0x4L; continue;
-                    case 262151: t_wall_mask1 += 0x8L; continue;
-                    case 327687: t_wall_mask1 += 0x10L; continue;
-                    case 393223: t_wall_mask1 += 0x20L; continue;
-                    case 458759: t_wall_mask1 += 0x40L; continue;
-                    case 524295: t_wall_mask1 += 0x80L; continue;
-                    case 8: t_wall_mask1 += 0x100L; continue;
-                    case 65544: t_wall_mask1 += 0x200L; continue;
-                    case 131080: t_wall_mask1 += 0x400L; continue;
-                    case 196616: t_wall_mask1 += 0x800L; continue;
-                    case 262152: t_wall_mask1 += 0x1000L; continue;
-                    case 327688: t_wall_mask1 += 0x2000L; continue;
-                    case 393224: t_wall_mask1 += 0x4000L; continue;
-                    case 458760: t_wall_mask1 += 0x8000L; continue;
-                    case 524296: t_wall_mask1 += 0x10000L; continue;
+                    case 7: t_wall_mask1 += 0x1L; continue;
+                    case 65543: t_wall_mask1 += 0x2L; continue;
+                    case 131079: t_wall_mask1 += 0x4L; continue;
+                    case 196615: t_wall_mask1 += 0x8L; continue;
+                    case 262151: t_wall_mask1 += 0x10L; continue;
+                    case 327687: t_wall_mask1 += 0x20L; continue;
+                    case 393223: t_wall_mask1 += 0x40L; continue;
+                    case 458759: t_wall_mask1 += 0x80L; continue;
+                    case 524295: t_wall_mask1 += 0x100L; continue;
+                    case 8: t_wall_mask1 += 0x200L; continue;
+                    case 65544: t_wall_mask1 += 0x400L; continue;
+                    case 131080: t_wall_mask1 += 0x800L; continue;
+                    case 196616: t_wall_mask1 += 0x1000L; continue;
+                    case 262152: t_wall_mask1 += 0x2000L; continue;
+                    case 327688: t_wall_mask1 += 0x4000L; continue;
+                    case 393224: t_wall_mask1 += 0x8000L; continue;
+                    case 458760: t_wall_mask1 += 0x10000L; continue;
+                    case 524296: t_wall_mask1 += 0x20000L; continue;
                     default: System.out.println("This shouldn't happen..."); continue;
                 }
             }
