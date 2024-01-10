@@ -83,8 +83,9 @@ async def main():
     if len(sys.argv) < 3:
         print("Usage: python3 tester.py [Player1] [Player2] [Maps]?")
         exit(1)
-    _, a, b = sys.argv
+    a, b = sys.argv[1:3]
     maps = sys.argv[3:] if len(sys.argv) >= 4 else read_maps()
     await play(a, b, maps)
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
