@@ -33,6 +33,7 @@ public class Duck extends Robot {
                 break;
             }
         }
+        mt.run();
     }
 
     boolean shouldMicro() throws GameActionException {
