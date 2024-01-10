@@ -37,19 +37,46 @@ public class Duck extends Robot {
     }
 
     void seekTarget() throws GameActionException {
-        if ((target == null) && sc.getSymmetry() != -1) {
+        if ((rc.getRoundNum() > 200)) {
             int bestd = 1 << 30;
             MapLocation bestloc = null;
             MapLocation myloc = rc.getLocation();
-            MapLocation[] allies = rc.getAllySpawnLocations();
-            for (int i = Math.min(10, allies.length); i-- > 0;) {
-                MapLocation loc = sc.getSymLoc(allies[i]);
-                int d = loc.distanceSquaredTo(myloc);
-                if (d < bestd) {
-                    bestd = d;
-                    bestloc = loc;
+            MapLocation[] flags = communications.getflags();
+            if (flags.length != 0) {
+                for (int i = flags.length; i-- > 0;) {
+                    MapLocation loc = flags[i];
+                    int d = loc.distanceSquaredTo(myloc);
+                    if (d < bestd) {
+                        bestd = d;
+                        bestloc = loc;
+                    }
                 }
+                rc.setIndicatorString("Hunting flag: " + bestloc);
+            } else {
+                flags = rc.senseBroadcastFlagLocations();
+                for (int i = Math.min(10, flags.length); i-- > 0;) {
+                    MapLocation loc = flags[i];
+                    int d = loc.distanceSquaredTo(myloc);
+                    if (d < bestd && myloc.distanceSquaredTo(loc) > 4) {
+                        bestd = d;
+                        bestloc = loc;
+                    }
+                }
+                rc.setIndicatorString("Hunting Approximate flag: " + bestloc);
             }
+
+            // If symmetry is known, go towards nearest thing worth attacking.
+            // if ((sc.getSymmetry() != -1)) {
+            //     MapLocation[] allies = rc.getAllySpawnLocations();
+            //     for (int i = Math.min(10, allies.length); i-- > 0;) {
+            //         MapLocation loc = sc.getSymLoc(allies[i]);
+            //         int d = loc.distanceSquaredTo(myloc);
+            //         if (d < bestd) {
+            //             bestd = d;
+            //             bestloc = loc;
+            //         }
+            //     }
+            // }
             target = bestloc;
         } else if (exploreTarget == null) {
             // This is just here to test out pathing.
@@ -58,17 +85,20 @@ public class Duck extends Robot {
                 new MapLocation(0, 0),
                 new MapLocation(0, rc.getMapHeight()),
                 new MapLocation(rc.getMapWidth(), 0),
-                new MapLocation(rc.getMapWidth(), rc.getMapHeight())
+                new MapLocation(rc.getMapWidth(), rc.getMapHeight()),
+                new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2)
             };
-            int idx = rng.nextInt(4);
+            int idx = rng.nextInt(targets.length);
             exploreTarget = targets[idx];
+            rc.setIndicatorString("Exploring: " + exploreTarget);
         }
 
         if (target == null) {
-            rc.setIndicatorString("Exploring: " + exploreTarget);
             path.moveTo(exploreTarget);
+            if (rc.canSenseLocation(exploreTarget)) {
+                exploreTarget = null;
+            }
         } else {
-            rc.setIndicatorString("Hunting: " + target);
             path.moveTo(target);
         }
     }
@@ -107,8 +137,10 @@ public class Duck extends Robot {
             FlagInfo f = flags[i];
             if (!f.isPickedUp()) {
                 MapLocation floc = f.getLocation();
+                communications.logflag(floc);
                 if (rc.canPickupFlag(floc)) {
                     rc.pickupFlag(floc);
+                    communications.deleteflag(floc);
                 } else {
                     path.moveTo(floc);
                 }
