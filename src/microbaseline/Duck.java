@@ -1,4 +1,4 @@
-package initialBot;
+package microbaseline;
 import battlecode.common.*;
 
 /*
@@ -22,26 +22,9 @@ public class Duck extends Robot {
         updateFlags();
         purchaseGlobal();
         considerTrap();
-        if (am.runMicro()) {}
-        else if (ranFlagMicro()) {}
-        else seekTarget();
-        tryHeal();
-    }
-
-    public void tryHeal() throws GameActionException {
-        int besthealth = -1;
-        RobotInfo bestfriend = null;
-        RobotInfo[] friends = am.friends;
-        for (int i = friends.length; i-- > 0;) {
-            if ((friends[i].health > besthealth) && rc.canHeal(friends[i].location)) {
-                bestfriend = friends[i];
-                besthealth = friends[i].health;
-            }
-        }
-
-        if ((bestfriend != null) && (rc.canHeal(bestfriend.location))) {
-            rc.heal(bestfriend.location);
-        }
+        if (am.runMicro()) return;
+        if (ranFlagMicro()) return;
+        seekTarget();
     }
 
     void spawn() throws GameActionException {

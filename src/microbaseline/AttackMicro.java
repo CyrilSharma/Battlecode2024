@@ -1,4 +1,4 @@
-package initialBot;
+package microbaseline;
 import battlecode.common.*;
 
 public class AttackMicro {
@@ -21,7 +21,7 @@ public class AttackMicro {
 
     void maneuver() throws GameActionException {
         rc.setIndicatorString("Maneuvering");
-        if (rc.isActionReady()) tryAction();
+        if (rc.isActionReady()) tryAttack();
         canAttack = rc.isActionReady();
 
         // Needs 1k Bytecode.
@@ -81,11 +81,7 @@ public class AttackMicro {
             enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
         rc.setIndicatorString("ITERS: " + iters);
-        if (rc.isActionReady()) tryAction();
-    }
-
-    public void tryAction() throws GameActionException {
-        tryAttack();
+        if (rc.isActionReady()) tryAttack();
     }
 
     public void tryAttack() throws GameActionException {
@@ -106,7 +102,6 @@ public class AttackMicro {
     class MicroTarget {
         int minDistToEnemy = 100000;
         int minDistToAlly = 100000;
-        int healersAttackRange = 0;
         int launchersAttackRange = 0;
         int launchersVisionRange = 0;
         boolean canMove;
@@ -135,7 +130,6 @@ public class AttackMicro {
             if (!canMove) return;
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
-            if (d <= GameConstants.ATTACK_RADIUS_SQUARED) healersAttackRange++;
         }
 
         boolean inRange() {
