@@ -26,9 +26,9 @@ public class Duck extends Robot {
         considerTrap();
 
         // boolean shouldheal = true;
-        if (am.runMicro()) {}
+        if (ranFlagMicro()) {}
+        else if (am.runMicro()) {}
         else if (guardFlag()) {}
-        else if (ranFlagMicro()) {}
         else seekTarget();
         tryHeal();
     }
@@ -74,8 +74,9 @@ public class Duck extends Robot {
     void updateFlags() throws GameActionException {
         for (int ctr = 0; ctr < 2; ctr++) {
             boolean friendly = (ctr == 0) ? true : false;
+            Team team = (friendly) ? rc.getTeam() : rc.getTeam().opponent();
             MapLocation[] locs = communications.get_flags(friendly);
-            FlagInfo[] flags = rc.senseNearbyFlags(-1, rc.getTeam());
+            FlagInfo[] flags = rc.senseNearbyFlags(-1, team);
             for (int i = locs.length; i-- > 0;) {
                 if (!rc.canSenseLocation(locs[i])) continue;
                 boolean found = false;
@@ -107,15 +108,27 @@ public class Duck extends Robot {
         // In the future this may have some fancier logic
         // I.e if barrier still in place, try adding traps to barrier.
         // If attack targets are set, try adding traps near them... 
+        boolean shouldbuild = false;
         MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
         for (int i = targets.length; i-- > 0;) {
             if (myloc.distanceSquaredTo(targets[i].m) <= 16) {
-                if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
-                    rc.build(TrapType.EXPLOSIVE, myloc);
-                    return;
-                }
+                shouldbuild = true;
+                break;
             }
+        }
+        FlagInfo[] flags = rc.senseNearbyFlags(9, rc.getTeam());
+        if (flags.length != 0) shouldbuild = true;
+        if (!shouldbuild) return;
+
+
+        MapInfo[] infos = rc.senseNearbyMapInfos(9);
+        for (int i = infos.length; i-- > 0;) {
+            if (infos[i].getTrapType() != TrapType.NONE) return;
+        }
+        if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
+            rc.build(TrapType.EXPLOSIVE, myloc);
+            return;
         }
     }
 
@@ -156,16 +169,21 @@ public class Duck extends Robot {
         MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
         if (targets.length != 0) {
+            int idx = -1;
             for (int i = targets.length; i-- > 0;) {
                 MapLocation loc = targets[i].m;
+                int score = targets[i].score;
                 int d = loc.distanceSquaredTo(myloc);
-                if ((d < bestd)) { // && (d <= 81)) {
+                // Find closest unmanned target.
+                if ((d < bestd)) { // && (score < 5)) {
                     bestd = d;
                     bestloc = loc;
+                    idx = i;
                 }
             }
             if (bestloc != null) {
                 rc.setIndicatorString("Hunting enemy: " + bestloc);
+                communications.markAttackTarget(idx);
                 return bestloc;
             }
         }

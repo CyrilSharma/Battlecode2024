@@ -70,10 +70,29 @@ public class Communications {
         return trim;
     }
 
-    public void addAttackTarget(MapLocation m, int score) throws GameActionException {
-        int hash = hashAttackTarget(new AttackTarget(m, score));
+    // Marks a target as something I'm going to.
+    public void markAttackTarget(int id) throws GameActionException {
+        int channel = Channels.ATTACK_TARGETS + id;
+        int item = rc.readSharedArray(channel);
+        AttackTarget at = dehashAttackTarget(item);
+        at.score = Math.min(at.score + 1, 15);
+        rc.writeSharedArray(channel, hashAttackTarget(at));
+    }
 
-        // If there's an empty spot, put it there.
+    public void addAttackTarget(MapLocation m, boolean hasflag) throws GameActionException {
+        int hash = hashAttackTarget(new AttackTarget(m, 0));
+        if (!hasflag) {
+            // If we're close to other targets, don't add us.
+            for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
+                int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
+                if (item != 0) {
+                    AttackTarget at = dehashAttackTarget(item);
+                    if (at.m.distanceSquaredTo(m) <= 9) return;
+                }
+            }
+        }
+
+        // If there's an empty spot, put us there.
         for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
             int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
             if (item == 0) {
@@ -82,27 +101,8 @@ public class Communications {
             }
         }
 
-        // If there's any target relatively close to this one, and closer to flags,
-        // This target should not be added.
-        for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
-            int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
-            if (item != 0) {
-                AttackTarget at = dehashAttackTarget(item);
-                if (at.m.distanceSquaredTo(m) <= 100) return;
-            }
-        }
-
-        // Replace any target which isn't as close as the current target.
-        for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
-            int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
-            if (item != 0) {
-                AttackTarget at = dehashAttackTarget(item);
-                if (score < at.score) {
-                    rc.writeSharedArray(Channels.ATTACK_TARGETS + i, hash);
-                    return;
-                }
-            }
-        }
+        // If we still haven't written the target, and it's a flag, just overwrite something.
+        if (hasflag) rc.writeSharedArray(Channels.ATTACK_TARGETS, hash);
     }
 
     public void refreshTargets() throws GameActionException {

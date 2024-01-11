@@ -7,5 +7,5 @@ public class Channels {
     static int EFLAGS = FFLAGS + 3; // 3
     static int FIRST = EFLAGS + 3;
     static int ATTACK_TARGETS = FIRST + 1;
-    static int N_ATTACK_TARGETS = 6;
+    static int N_ATTACK_TARGETS = 10;
 }

@@ -22,30 +22,18 @@ public class AttackMicro {
         return true;
     }
 
+    // Finds the enemy closest to a flag, and marks it in comms.
     public void addBestTarget() throws GameActionException {
-        int bestD = 1 << 30;
-        MapLocation bestloc = null;
-        MapLocation[] fflags = comms.get_flags(true);
+        boolean hasFlag = false;
+        MapLocation bestloc = enemies[0].location;
         for (int i = enemies.length; i-- > 0;) {
-            for (MapLocation f: fflags) {
-                int d = enemies[i].location.distanceSquaredTo(f);
-                if (d < bestD) {
-                    bestloc = enemies[i].location;
-                    bestD = d;
-                }
+            if (enemies[i].hasFlag) {
+                bestloc = enemies[i].location;
+                hasFlag = true;
+                break;
             }
         }
-        if (bestloc != null) {
-            comms.addAttackTarget(
-                bestloc,
-                Math.min(bestD / 8, 15)
-            );
-        } else {
-            comms.addAttackTarget(
-                enemies[0].location,
-                15
-            );
-        }
+        comms.addAttackTarget(bestloc, hasFlag);
     }
 
     void maneuver() throws GameActionException {
@@ -147,17 +135,19 @@ public class AttackMicro {
         
         void addEnemy(RobotInfo r) throws GameActionException {
             int dist = r.location.distanceSquaredTo(nloc);
-            if (dist < minDistToEnemy) minDistToEnemy = dist;
-            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) enemiesAttackRange++;
-            if (dist <= GameConstants.VISION_RADIUS_SQUARED) enemiesVisionRange++;
             if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
                 canLandHit = 1;
             }
+            if (r.hasFlag) return;
+            if (dist < minDistToEnemy) minDistToEnemy = dist;
+            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) enemiesAttackRange++;
+            if (dist <= GameConstants.VISION_RADIUS_SQUARED) enemiesVisionRange++;            
         } 
 
         
         void addAlly(RobotInfo r) throws GameActionException {
             if (!canMove) return;
+            if (r.hasFlag) return;
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) healersVisionRange++;
@@ -168,11 +158,11 @@ public class AttackMicro {
         }
 
         int attackScore() {
-            return Math.max(enemiesAttackRange - (canLandHit + healersVisionRange / 2), 0);
+            return (Math.max(enemiesAttackRange - healersVisionRange / 2, 0) - canLandHit);
         }
 
         int visionScore() {
-            return Math.max((enemiesVisionRange - (canLandHit + healersVisionRange / 2)), 0);
+            return (Math.max(enemiesVisionRange - healersVisionRange / 2, 0) - canLandHit);
         }
 
         boolean isBetterThan(MicroTarget mt) {
