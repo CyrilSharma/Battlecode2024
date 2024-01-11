@@ -1,5 +1,6 @@
 package initialBot;
 import battlecode.common.*;
+import initialBot.Communications.AttackTarget;
 
 /*
  * in the future we may want to diversify this class into the multiple specializations.
@@ -13,10 +14,11 @@ public class Duck extends Robot {
     public Duck(RobotController rc) {
         super(rc);
         path = new Pathing(this);
-        am = new AttackMicro(rc);
+        am = new AttackMicro(this);
     }
 
     void run() throws GameActionException {
+        if (rc.getRoundNum() == 1) communications.decideFirst();
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
         updateFlags();
@@ -94,57 +96,83 @@ public class Duck extends Robot {
     }
 
     void seekTarget() throws GameActionException {
-        if ((rc.getRoundNum() > GameConstants.SETUP_ROUNDS)) {
-            int bestd = 1 << 30;
-            MapLocation bestloc = null;
-            MapLocation myloc = rc.getLocation();
-            MapLocation[] flags = communications.getflags();
-            if (flags.length != 0) {
-                for (int i = flags.length; i-- > 0;) {
-                    MapLocation loc = flags[i];
-                    int d = loc.distanceSquaredTo(myloc);
-                    if (d < bestd) {
-                        bestd = d;
-                        bestloc = loc;
-                    }
-                }
-                rc.setIndicatorString("Hunting flag: " + bestloc);
-            } else {
-                flags = rc.senseBroadcastFlagLocations();
-                for (int i = Math.min(10, flags.length); i-- > 0;) {
-                    MapLocation loc = flags[i];
-                    int d = loc.distanceSquaredTo(myloc);
-                    if (d < bestd && myloc.distanceSquaredTo(loc) > 4) {
-                        bestd = d;
-                        bestloc = loc;
-                    }
-                }
-                rc.setIndicatorString("Hunting Approximate flag: " + bestloc);
-            }
-            target = bestloc;
-            if (target != null) {
-                path.moveTo(target);
-            }
-        } else {
-            // This is just here to test out pathing.
-            // We'll add some exploration logic here eventually.
-            if (exploreTarget == null) {
-                MapLocation[] targets = {
-                    new MapLocation(0, 0),
-                    new MapLocation(0, rc.getMapHeight()),
-                    new MapLocation(rc.getMapWidth(), 0),
-                    new MapLocation(rc.getMapWidth(), rc.getMapHeight()),
-                    new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2)
-                };
-                int idx = rng.nextInt(targets.length);
-                exploreTarget = targets[idx];
-            }
-            rc.setIndicatorString("Exploring: " + exploreTarget);
-            path.moveTo(exploreTarget);
-            if (rc.canSenseLocation(exploreTarget)) {
-                exploreTarget = null;
-            }
+        if ((rc.getRoundNum() > GameConstants.SETUP_ROUNDS)) hunt();
+        else explore();
+    }
+
+    void explore() throws GameActionException {
+        // This is just here to test out pathing.
+        // We'll add some exploration logic here eventually.
+        if (exploreTarget == null) {
+            MapLocation[] targets = {
+                new MapLocation(0, 0),
+                new MapLocation(0, rc.getMapHeight()),
+                new MapLocation(rc.getMapWidth(), 0),
+                new MapLocation(rc.getMapWidth(), rc.getMapHeight()),
+                new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2)
+            };
+            int idx = rng.nextInt(targets.length);
+            exploreTarget = targets[idx];
         }
+        rc.setIndicatorString("Exploring: " + exploreTarget);
+        path.moveTo(exploreTarget);
+        if (rc.canSenseLocation(exploreTarget)) {
+            exploreTarget = null;
+        }
+    }
+
+    public void hunt() throws GameActionException {
+        MapLocation target = getHuntTarget();
+        if (target != null) path.moveTo(target);
+    }
+
+    public MapLocation getHuntTarget() throws GameActionException {
+        int bestd = 1 << 30;
+        MapLocation bestloc = null;
+        MapLocation myloc = rc.getLocation();
+        AttackTarget[] targets = communications.getAttackTargets();
+        if (targets.length != 0) {
+            for (int i = targets.length; i-- > 0;) {
+                MapLocation loc = targets[i].m;
+                int d = loc.distanceSquaredTo(myloc);
+                if (d < bestd) {
+                    bestd = d;
+                    bestloc = loc;
+                }
+            }
+            rc.setIndicatorString("Hunting enemy: " + bestloc);
+            return bestloc;
+        }
+
+        MapLocation[] flags = communications.getflags();
+        if (flags.length != 0) {
+            for (int i = flags.length; i-- > 0;) {
+                MapLocation loc = flags[i];
+                int d = loc.distanceSquaredTo(myloc);
+                if (d < bestd) {
+                    bestd = d;
+                    bestloc = loc;
+                }
+            }
+            rc.setIndicatorString("Hunting flag: " + bestloc);
+            return bestloc;
+        }
+
+        flags = rc.senseBroadcastFlagLocations();
+        if (flags.length != 0) {
+            for (int i = Math.min(10, flags.length); i-- > 0;) {
+                MapLocation loc = flags[i];
+                int d = loc.distanceSquaredTo(myloc);
+                if (d < bestd && myloc.distanceSquaredTo(loc) > 4) {
+                    bestd = d;
+                    bestloc = loc;
+                }
+            }
+            rc.setIndicatorString("Hunting Approximate flag: " + bestloc);
+            return bestloc;
+        }
+
+        return null;
     }
 
     public boolean ranFlagMicro() throws GameActionException {

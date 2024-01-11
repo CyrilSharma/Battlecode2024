@@ -6,8 +6,10 @@ public class AttackMicro {
     RobotController rc;
     RobotInfo[] friends = null;
     RobotInfo[] enemies = null;
-    public AttackMicro(RobotController rc) {
-        this.rc = rc;
+    Communications comms;
+    public AttackMicro(Robot r) {
+        this.rc = r.rc;
+        this.comms = r.communications;
     }
 
     public boolean runMicro() throws GameActionException {
@@ -15,6 +17,10 @@ public class AttackMicro {
         friends = rc.senseNearbyRobots(-1, myteam);
         enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         if (enemies.length == 0) return false;
+        comms.addAttackTarget(
+            enemies[0].location,
+            Math.min(enemies.length, 15)
+        );
         maneuver();
         return true;
     }

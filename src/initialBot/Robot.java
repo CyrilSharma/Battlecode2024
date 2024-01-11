@@ -30,6 +30,7 @@ public abstract class Robot {
     
     public void init_turn() throws GameActionException {
         mt.run();
+        communications.refreshTargets();
     }
 
     public void post_turn() throws GameActionException {
