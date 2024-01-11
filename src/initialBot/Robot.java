@@ -7,6 +7,7 @@ public abstract class Robot {
     MapTracker mt;
     final Random rng = new Random();
     Communications communications;
+    SymmetryChecker sc;
     static final Direction[] directions = {
         Direction.NORTH,
         Direction.NORTHEAST,
@@ -24,10 +25,16 @@ public abstract class Robot {
         rng.setSeed((long) rc.getID());
         communications = new Communications(rc);
         mt = new MapTracker(rc);
+        sc = new SymmetryChecker(rc);
     }
     
     public void init_turn() throws GameActionException {
         mt.run();
+    }
+
+    public void post_turn() throws GameActionException {
+        sc.updateSymmetry();
+        System.out.println(rc.readSharedArray(Channels.SYMMETRY));
     }
 
     abstract void run() throws GameActionException;
