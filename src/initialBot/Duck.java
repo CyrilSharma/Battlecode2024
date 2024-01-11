@@ -18,7 +18,7 @@ public class Duck extends Robot {
     }
 
     void run() throws GameActionException {
-        if (rc.getRoundNum() == 1) communications.decideFirst();
+        if (rc.getRoundNum() == 1) communications.establishOrder();
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
         updateFlags();
@@ -27,9 +27,19 @@ public class Duck extends Robot {
 
         // boolean shouldheal = true;
         if (am.runMicro()) {}
+        else if (guardFlag()) {}
         else if (ranFlagMicro()) {}
         else seekTarget();
         tryHeal();
+    }
+
+    public boolean guardFlag() throws GameActionException {
+        if (communications.order >= 3) return false;
+        MapLocation[] fflags = communications.get_flags(true);
+        if ((communications.order < fflags.length)) {
+            path.moveTo(fflags[communications.order]);
+        }
+        return true;
     }
 
     public void tryHeal() throws GameActionException {
@@ -61,21 +71,27 @@ public class Duck extends Robot {
         mt.run();
     }
 
-    // If a flag is dropped and not picked up it won't get deleted.
-    // This corrects for that.
     void updateFlags() throws GameActionException {
-        MapLocation[] locs = communications.getflags();
-        FlagInfo[] flags = rc.senseNearbyFlags(-1);
-        for (int i = locs.length; i-- > 0;) {
-            if (!rc.canSenseLocation(locs[i])) continue;
-            boolean found = false;
-            for (int j = flags.length; j-- > 0;) {
-                if (flags[j].getLocation() == locs[i]) {
-                    found = true;
-                    break;
+        for (int ctr = 0; ctr < 2; ctr++) {
+            boolean friendly = (ctr == 0) ? true : false;
+            MapLocation[] locs = communications.get_flags(friendly);
+            FlagInfo[] flags = rc.senseNearbyFlags(-1, rc.getTeam());
+            for (int i = locs.length; i-- > 0;) {
+                if (!rc.canSenseLocation(locs[i])) continue;
+                boolean found = false;
+                for (int j = flags.length; j-- > 0;) {
+                    if (flags[j].getLocation() == locs[i]) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    communications.delete_flag(locs[i], friendly);
                 }
             }
-            if (!found) communications.deleteflag(locs[i]);
+            for (int j = flags.length; j-- > 0;) {
+                communications.log_flag(flags[j].getLocation(), friendly);
+            }
         }
     }
 
@@ -104,7 +120,7 @@ public class Duck extends Robot {
     }
 
     void seekTarget() throws GameActionException {
-        if ((rc.getRoundNum() > GameConstants.SETUP_ROUNDS)) hunt();
+        if ((rc.getRoundNum() > GameConstants.SETUP_ROUNDS - 30)) hunt();
         else explore();
     }
 
@@ -154,7 +170,7 @@ public class Duck extends Robot {
             }
         }
 
-        MapLocation[] flags = communications.getflags();
+        MapLocation[] flags = communications.get_flags(false);
         if (flags.length != 0) {
             for (int i = flags.length; i-- > 0;) {
                 MapLocation loc = flags[i];
@@ -225,10 +241,9 @@ public class Duck extends Robot {
         if (f.isPickedUp()) return false;
 
         MapLocation floc = f.getLocation();
-        communications.logflag(floc);
         if (rc.canPickupFlag(floc)) {
             rc.pickupFlag(floc);
-            communications.deleteflag(floc);
+            communications.delete_flag(floc, false);
         } else {
              // To prevent everyone rushing a flag at once.
             int id = rc.getID();

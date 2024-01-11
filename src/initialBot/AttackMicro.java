@@ -17,12 +17,35 @@ public class AttackMicro {
         friends = rc.senseNearbyRobots(-1, myteam);
         enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         if (enemies.length == 0) return false;
-        comms.addAttackTarget(
-            enemies[0].location,
-            Math.min(enemies.length, 15)
-        );
+        addBestTarget();
         maneuver();
         return true;
+    }
+
+    public void addBestTarget() throws GameActionException {
+        int bestD = 1 << 30;
+        MapLocation bestloc = null;
+        MapLocation[] fflags = comms.get_flags(true);
+        for (int i = enemies.length; i-- > 0;) {
+            for (MapLocation f: fflags) {
+                int d = enemies[i].location.distanceSquaredTo(f);
+                if (d < bestD) {
+                    bestloc = enemies[i].location;
+                    bestD = d;
+                }
+            }
+        }
+        if (bestloc != null) {
+            comms.addAttackTarget(
+                bestloc,
+                Math.min(bestD / 8, 15)
+            );
+        } else {
+            comms.addAttackTarget(
+                enemies[0].location,
+                15
+            );
+        }
     }
 
     void maneuver() throws GameActionException {

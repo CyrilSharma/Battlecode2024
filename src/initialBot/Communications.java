@@ -2,32 +2,46 @@ package initialBot;
 import battlecode.common.*;
 
 public class Communications {
-    boolean first;
+    int order;
     RobotController rc;
     public Communications(RobotController rc) {
         this.rc = rc;
     }
 
-    public void logflag(MapLocation m) throws GameActionException {
+    public void establishOrder() throws GameActionException {
+        order = rc.readSharedArray(Channels.FIRST);
+        rc.writeSharedArray(Channels.FIRST, order + 1);
+    }
+
+    public void log_flag(MapLocation m, boolean friendly) throws GameActionException {
         int hash = hashLocation(m);
-        for (int i = Channels.FLAGS; i < Channels.FLAGS + 3; i++) {
+        int start = (friendly) ? Channels.FFLAGS : Channels.EFLAGS;
+        for (int i = start; i < start + 3; i++) {
             int data = rc.readSharedArray(i);
-            if (data == 0) rc.writeSharedArray(i, hash);
+            if (data == 0) {
+                rc.writeSharedArray(i, hash);
+                break;
+            }
         }
     }
 
-    public void deleteflag(MapLocation m) throws GameActionException {
+    public void delete_flag(MapLocation m, boolean friendly) throws GameActionException {
         int hash = hashLocation(m);
-        for (int i = Channels.FLAGS; i < Channels.FLAGS + 3; i++) {
+        int start = (friendly) ? Channels.FFLAGS : Channels.EFLAGS;
+        for (int i = start; i < start + 3; i++) {
             int data = rc.readSharedArray(i);
-            if (data == hash) rc.writeSharedArray(i, 0);
+            if (data == hash) {
+                rc.writeSharedArray(i, 0);
+                break;
+            }
         }
     }
 
-    public MapLocation[] getflags() throws GameActionException {
+    public MapLocation[] get_flags(boolean friendly) throws GameActionException {
         int ctr = 0;
         MapLocation[] locs = new MapLocation[3];
-        for (int i = Channels.FLAGS; i < Channels.FLAGS + 3; i++) {
+        int start = (friendly) ? Channels.FFLAGS : Channels.EFLAGS;
+        for (int i = start; i < start + 3; i++) {
             int data = rc.readSharedArray(i);
             if (data == 0) continue;
             locs[ctr++] = dehashLocation(data);
@@ -37,11 +51,6 @@ public class Communications {
             trim[i] = locs[i];
         }
         return trim;
-    }
-
-    public void decideFirst() throws GameActionException {
-        if (rc.readSharedArray(Channels.FIRST) == 0) first = true;
-        rc.writeSharedArray(Channels.FIRST, 1);
     }
 
     public AttackTarget[] getAttackTargets() throws GameActionException {
@@ -63,19 +72,41 @@ public class Communications {
 
     public void addAttackTarget(MapLocation m, int score) throws GameActionException {
         int hash = hashAttackTarget(new AttackTarget(m, score));
+
+        // If there's an empty spot, put it there.
+        for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
+            int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
+            if (item == 0) {
+                rc.writeSharedArray(Channels.ATTACK_TARGETS + i, hash);
+                return;
+            }
+        }
+
+        // If there's any target relatively close to this one, and closer to flags,
+        // This target should not be added.
         for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
             int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
             if (item != 0) {
                 AttackTarget at = dehashAttackTarget(item);
-                if (at.m.distanceSquaredTo(m) <= 100) continue;
+                if (at.m.distanceSquaredTo(m) <= 100) return;
             }
-            rc.writeSharedArray(Channels.ATTACK_TARGETS + i, hash);
-            break;
+        }
+
+        // Replace any target which isn't as close as the current target.
+        for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
+            int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
+            if (item != 0) {
+                AttackTarget at = dehashAttackTarget(item);
+                if (score < at.score) {
+                    rc.writeSharedArray(Channels.ATTACK_TARGETS + i, hash);
+                    return;
+                }
+            }
         }
     }
 
     public void refreshTargets() throws GameActionException {
-        if (!first) return;
+        if (order != 0) return;
         if (rc.getRoundNum() % 5 != 0) return;
         for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
             rc.writeSharedArray(Channels.ATTACK_TARGETS + i, 0);
