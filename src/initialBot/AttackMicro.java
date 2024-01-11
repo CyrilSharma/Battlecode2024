@@ -27,7 +27,7 @@ public class AttackMicro {
 
     void maneuver() throws GameActionException {
         rc.setIndicatorString("Maneuvering");
-        if (rc.isActionReady()) tryAction();
+        if (rc.isActionReady()) tryAttack();
         canAttack = rc.isActionReady();
 
         // Needs 1k Bytecode.
@@ -87,18 +87,14 @@ public class AttackMicro {
             enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
         rc.setIndicatorString("ITERS: " + iters);
-        if (rc.isActionReady()) tryAction();
-    }
-
-    public void tryAction() throws GameActionException {
-        tryAttack();
+        if (rc.isActionReady()) tryAttack();
     }
 
     public void tryAttack() throws GameActionException {
         RobotInfo bestenemy = null;
         int besthealth = 1 << 30;
         for (int i = enemies.length; i-- > 0;) {
-            if (enemies[i].health < besthealth) {
+            if ((enemies[i].health < besthealth) && (rc.canAttack(enemies[i].location))) {
                 bestenemy = enemies[i];
                 besthealth = enemies[i].health;
             }
@@ -149,11 +145,11 @@ public class AttackMicro {
         }
 
         int attackScore() {
-            return enemiesAttackRange - canLandHit + (healersVisionRange / 2);
+            return Math.max((enemiesAttackRange - (canLandHit + healersVisionRange / 2)), 0);
         }
 
         int visionScore() {
-            return enemiesVisionRange - canLandHit + (healersVisionRange / 2);
+            return Math.max((enemiesVisionRange - (canLandHit + healersVisionRange / 2)), 0);
         }
 
         boolean isBetterThan(MicroTarget mt) {

@@ -24,6 +24,8 @@ public class Duck extends Robot {
         updateFlags();
         purchaseGlobal();
         considerTrap();
+
+        // boolean shouldheal = true;
         if (am.runMicro()) {}
         else if (ranFlagMicro()) {}
         else seekTarget();
@@ -135,7 +137,7 @@ public class Duck extends Robot {
             for (int i = targets.length; i-- > 0;) {
                 MapLocation loc = targets[i].m;
                 int d = loc.distanceSquaredTo(myloc);
-                if ((d < bestd) && (d <= 81)) {
+                if ((d < bestd)) { // && (d <= 81)) {
                     bestd = d;
                     bestloc = loc;
                 }
@@ -177,7 +179,7 @@ public class Duck extends Robot {
         if (sc.getSymmetry() != -1) {
             MapLocation[] allies = rc.getAllySpawnLocations();
             for (int i = Math.min(10, allies.length); i-- > 0;) {
-                MapLocation loc = allies[i];
+                MapLocation loc = sc.getSymLoc(allies[i]);
                 int d = loc.distanceSquaredTo(myloc);
                 if (d < bestd) {
                     bestd = d;
