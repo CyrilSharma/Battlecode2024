@@ -50,6 +50,7 @@ class SymmetryChecker {
     void updateSymmetry() throws GameActionException {
         if (getSymmetry() != -1) return;
         if (!isReady()) return;
+        if (!rc.isSpawned()) return;
 
         int status = rc.readSharedArray(Channels.SYMMETRY);
         MapLocation s = null;

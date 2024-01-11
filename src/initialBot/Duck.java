@@ -19,6 +19,8 @@ public class Duck extends Robot {
     void run() throws GameActionException {
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
+        purchaseGlobal();
+        considerTrap();
         if (am.runMicro()) return;
         if (ranFlagMicro()) return;
         seekTarget();
@@ -36,8 +38,26 @@ public class Duck extends Robot {
         mt.run();
     }
 
+    void purchaseGlobal() throws GameActionException {
+        // Factored into it's own method because logic may
+        // Become complex.
+        if (rc.canBuyGlobal(GlobalUpgrade.ACTION)) {
+            rc.buyGlobal(GlobalUpgrade.ACTION);
+        }
+    }
+
+    void considerTrap() throws GameActionException {
+        // In the future this may have some fancier logic
+        // I.e if barrier still in place, try adding traps to barrier.
+        // If attack targets are set, try adding traps near them... 
+        MapLocation myloc = rc.getLocation();
+        if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
+            rc.build(TrapType.EXPLOSIVE, myloc);
+        }
+    }
+
     void seekTarget() throws GameActionException {
-        if ((rc.getRoundNum() > 200)) {
+        if ((rc.getRoundNum() > GameConstants.SETUP_ROUNDS)) {
             int bestd = 1 << 30;
             MapLocation bestloc = null;
             MapLocation myloc = rc.getLocation();
@@ -64,42 +84,29 @@ public class Duck extends Robot {
                 }
                 rc.setIndicatorString("Hunting Approximate flag: " + bestloc);
             }
-
-            // If symmetry is known, go towards nearest thing worth attacking.
-            // if ((sc.getSymmetry() != -1)) {
-            //     MapLocation[] allies = rc.getAllySpawnLocations();
-            //     for (int i = Math.min(10, allies.length); i-- > 0;) {
-            //         MapLocation loc = sc.getSymLoc(allies[i]);
-            //         int d = loc.distanceSquaredTo(myloc);
-            //         if (d < bestd) {
-            //             bestd = d;
-            //             bestloc = loc;
-            //         }
-            //     }
-            // }
             target = bestloc;
-        } else if (exploreTarget == null) {
+            if (target != null) {
+                path.moveTo(target);
+            }
+        } else {
             // This is just here to test out pathing.
             // We'll add some exploration logic here eventually.
-            MapLocation[] targets = {
-                new MapLocation(0, 0),
-                new MapLocation(0, rc.getMapHeight()),
-                new MapLocation(rc.getMapWidth(), 0),
-                new MapLocation(rc.getMapWidth(), rc.getMapHeight()),
-                new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2)
-            };
-            int idx = rng.nextInt(targets.length);
-            exploreTarget = targets[idx];
+            if (exploreTarget == null) {
+                MapLocation[] targets = {
+                    new MapLocation(0, 0),
+                    new MapLocation(0, rc.getMapHeight()),
+                    new MapLocation(rc.getMapWidth(), 0),
+                    new MapLocation(rc.getMapWidth(), rc.getMapHeight()),
+                    new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2)
+                };
+                int idx = rng.nextInt(targets.length);
+                exploreTarget = targets[idx];
+            }
             rc.setIndicatorString("Exploring: " + exploreTarget);
-        }
-
-        if (target == null) {
             path.moveTo(exploreTarget);
             if (rc.canSenseLocation(exploreTarget)) {
                 exploreTarget = null;
             }
-        } else {
-            path.moveTo(target);
         }
     }
 

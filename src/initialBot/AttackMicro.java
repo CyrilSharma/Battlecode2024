@@ -21,7 +21,7 @@ public class AttackMicro {
 
     void maneuver() throws GameActionException {
         rc.setIndicatorString("Maneuvering");
-        if (rc.isActionReady()) tryAttack();
+        if (rc.isActionReady()) tryAction();
         canAttack = rc.isActionReady();
 
         // Needs 1k Bytecode.
@@ -74,13 +74,23 @@ public class AttackMicro {
         if (microtargets[6].isBetterThan(best)) best = microtargets[6];
         if (microtargets[7].isBetterThan(best)) best = microtargets[7];
         if (microtargets[8].isBetterThan(best)) best = microtargets[8];
-        if (rc.canMove(best.dir)) rc.move(best.dir);
+        if (rc.canMove(best.dir)) {
+            rc.move(best.dir);
+            Team myteam = rc.getTeam();
+            friends = rc.senseNearbyRobots(-1, myteam);
+            enemies = rc.senseNearbyRobots(-1, myteam.opponent());
+        }
         rc.setIndicatorString("ITERS: " + iters);
-        if (rc.isActionReady()) tryAttack();
+        if (rc.isActionReady()) tryAction();
+    }
+
+    public void tryAction() throws GameActionException {
+        tryAttack();
+        tryHeal();
     }
 
     public void tryAttack() throws GameActionException {
-        RobotInfo bestenemy = enemies[0];
+        RobotInfo bestenemy = null;
         int besthealth = 1 << 30;
         for (int i = enemies.length; i-- > 0;) {
             if (enemies[i].health < besthealth) {
@@ -88,8 +98,23 @@ public class AttackMicro {
                 besthealth = enemies[i].health;
             }
         }
-        if (rc.canAttack(bestenemy.location)) {
+        if ((bestenemy != null) && (rc.canAttack(bestenemy.location))) {
             rc.attack(bestenemy.location);
+        }
+    }
+
+    public void tryHeal() throws GameActionException {
+        int besthealth = -1;
+        RobotInfo bestfriend = null;
+        for (int i = friends.length; i-- > 0;) {
+            if (friends[i].health > besthealth) {
+                bestfriend = friends[i];
+                besthealth = friends[i].health;
+            }
+        }
+
+        if ((bestfriend != null) && (rc.canHeal(bestfriend.location))) {
+            rc.heal(bestfriend.location);
         }
     }
 
