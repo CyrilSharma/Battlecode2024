@@ -101,6 +101,10 @@ public class Duck extends Robot {
         // Become complex.
         if (rc.canBuyGlobal(GlobalUpgrade.ACTION)) {
             rc.buyGlobal(GlobalUpgrade.ACTION);
+        } else if (rc.canBuyGlobal(GlobalUpgrade.HEALING)) {
+            rc.buyGlobal(GlobalUpgrade.HEALING);
+        } else if (rc.canBuyGlobal(GlobalUpgrade.CAPTURING)) {
+            rc.buyGlobal(GlobalUpgrade.HEALING);
         }
     }
 
@@ -205,8 +209,21 @@ public class Duck extends Robot {
                     bestloc = loc;
                 }
             }
-            rc.setIndicatorString("Hunting flag: " + bestloc);
-            return bestloc;
+            boolean dealt_with = false;
+            if (rc.canSenseLocation(bestloc)) {
+                FlagInfo[] nearbyflags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
+                for (FlagInfo flag: nearbyflags) {
+                    if (flag.getLocation() != bestloc) continue;
+                    if (flag.isPickedUp()) {
+                        dealt_with = true;
+                        break;
+                    }
+                }
+            }
+            if (!dealt_with) {
+                rc.setIndicatorString("Hunting flag: " + bestloc);
+                return bestloc;
+            }
         }
 
         flags = rc.senseBroadcastFlagLocations();
