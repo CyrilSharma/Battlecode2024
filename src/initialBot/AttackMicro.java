@@ -145,7 +145,7 @@ public class AttackMicro {
         }
 
         int attackScore() {
-            return Math.max((enemiesAttackRange - (canLandHit + healersVisionRange / 2)), 0);
+            return Math.max(enemiesAttackRange - (canLandHit + healersVisionRange / 2), 0);
         }
 
         int visionScore() {

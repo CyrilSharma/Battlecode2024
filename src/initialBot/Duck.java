@@ -92,8 +92,14 @@ public class Duck extends Robot {
         // I.e if barrier still in place, try adding traps to barrier.
         // If attack targets are set, try adding traps near them... 
         MapLocation myloc = rc.getLocation();
-        if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
-            rc.build(TrapType.EXPLOSIVE, myloc);
+        AttackTarget[] targets = communications.getAttackTargets();
+        for (int i = targets.length; i-- > 0;) {
+            if (myloc.distanceSquaredTo(targets[i].m) <= 16) {
+                if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
+                    rc.build(TrapType.EXPLOSIVE, myloc);
+                    return;
+                }
+            }
         }
     }
 
