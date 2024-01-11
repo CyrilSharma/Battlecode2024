@@ -19,6 +19,7 @@ public class Duck extends Robot {
     void run() throws GameActionException {
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
+        updateFlags();
         purchaseGlobal();
         considerTrap();
         if (am.runMicro()) return;
@@ -37,6 +38,24 @@ public class Duck extends Robot {
             }
         }
         mt.run();
+    }
+
+    // If a flag is dropped and not picked up it won't get deleted.
+    // This corrects for that.
+    void updateFlags() throws GameActionException {
+        MapLocation[] locs = communications.getflags();
+        FlagInfo[] flags = rc.senseNearbyFlags(-1);
+        for (int i = locs.length; i-- > 0;) {
+            if (!rc.canSenseLocation(locs[i])) continue;
+            boolean found = false;
+            for (int j = flags.length; j-- > 0;) {
+                if (flags[j].getLocation() == locs[i]) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) communications.deleteflag(locs[i]);
+        }
     }
 
     void purchaseGlobal() throws GameActionException {
@@ -134,25 +153,22 @@ public class Duck extends Robot {
         FlagInfo[] flags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
         if (flags.length == 0) return false;
 
-        // To prevent everyone rushing a flag at once.
-        int id = rc.getID();
-        RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
-        for (int i = friends.length; i-- > 0;) {
-            if (friends[i].ID > id) return false;
-        }
+        FlagInfo f = flags[0];
+        if (f.isPickedUp()) return false;
 
-        for (int i = flags.length; i-- > 0;) {
-            FlagInfo f = flags[i];
-            if (!f.isPickedUp()) {
-                MapLocation floc = f.getLocation();
-                communications.logflag(floc);
-                if (rc.canPickupFlag(floc)) {
-                    rc.pickupFlag(floc);
-                    communications.deleteflag(floc);
-                } else {
-                    path.moveTo(floc);
-                }
+        MapLocation floc = f.getLocation();
+        communications.logflag(floc);
+        if (rc.canPickupFlag(floc)) {
+            rc.pickupFlag(floc);
+            communications.deleteflag(floc);
+        } else {
+             // To prevent everyone rushing a flag at once.
+            int id = rc.getID();
+            RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
+            for (int i = friends.length; i-- > 0;) {
+                if (friends[i].ID > id) return false;
             }
+            path.moveTo(floc);
         }
         return true;
     }
