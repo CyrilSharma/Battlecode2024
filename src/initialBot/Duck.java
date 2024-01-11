@@ -174,6 +174,19 @@ public class Duck extends Robot {
             return bestloc;
         }
 
+        if (sc.getSymmetry() != -1) {
+            MapLocation[] allies = rc.getAllySpawnLocations();
+            for (int i = Math.min(10, allies.length); i-- > 0;) {
+                MapLocation loc = allies[i];
+                int d = loc.distanceSquaredTo(myloc);
+                if (d < bestd) {
+                    bestd = d;
+                    bestloc = loc;
+                }
+            }
+            return bestloc;
+        }
+
         return null;
     }
 
