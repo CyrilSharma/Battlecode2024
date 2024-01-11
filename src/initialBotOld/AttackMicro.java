@@ -123,14 +123,12 @@ public class AttackMicro {
         int enemiesAttackRange = 0;
         int enemiesVisionRange = 0;
         boolean canMove;
-        boolean hasTrap;
         int canLandHit;
         MapLocation nloc;
         Direction dir;
 
         MicroTarget(Direction dir) throws GameActionException {
             nloc = rc.getLocation().add(dir);
-            hasTrap = rc.senseMapInfo(nloc).getTrapType() == TrapType.EXPLOSIVE;
             canMove = rc.canMove(dir);
             this.dir = dir;
         }
@@ -169,9 +167,6 @@ public class AttackMicro {
 
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
-
-            if (!hasTrap && mt.hasTrap) return true;
-            if (hasTrap && !mt.hasTrap) return false;
 
             if (attackScore() < mt.attackScore()) return true;
             if (attackScore() > mt.attackScore()) return false;
