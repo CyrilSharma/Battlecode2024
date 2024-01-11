@@ -35,7 +35,6 @@ public class MapTracker {
 
         rc.setIndicatorString(String.format("wall_mask0: 0x%08X", wall_mask0));
 
-        int dots = 0;
         int FE_MASK_WIDTH = 9;
         int FE_MASK_HEIGHT = 7;
         MapLocation bl = (rc.getLocation()).translate(-4, -4);
@@ -43,26 +42,21 @@ public class MapTracker {
             for (int j = FE_MASK_WIDTH; j-- > 0;) {
                 if (Clock.getBytecodesLeft() < 1000) break;
                 if ((wall_mask0 >>> (i * FE_MASK_WIDTH + j) & 1) > 0) {
-                    if (rc.getRoundNum() % 20 == dots) rc.setIndicatorDot(bl.translate(j, i), 0, 0, 0);
-                    dots++;
+                    rc.setIndicatorDot(bl.translate(j, i), 0, 0, 0);
                 } else if ((water_mask0 >>> (i * FE_MASK_WIDTH + j + 1) & 1) > 0) {
-                    if (rc.getRoundNum() % 20 == dots) rc.setIndicatorDot(bl.translate(j, i), 0, 0, 255);
-                    dots++;
+                    rc.setIndicatorDot(bl.translate(j, i), 0, 0, 255);
                 }
             }
         }
-        System.out.println("Dots: " + dots);
 
         bl = (rc.getLocation()).translate(-4, -4 + FE_MASK_HEIGHT);
         for (int i = 2; i-- > 0;) {
             for (int j = FE_MASK_WIDTH; j-- > 0;) {
                 if (Clock.getBytecodesLeft() < 1000) break;
                 if ((wall_mask1 >>> (i * FE_MASK_WIDTH + j) & 1) > 0) {
-                    if (rc.getRoundNum() % 20 == dots) rc.setIndicatorDot(bl.translate(j, i), 0, 0, 0);
-                    dots++;
+                    rc.setIndicatorDot(bl.translate(j, i), 0, 0, 0);
                 } else if ((water_mask1 >>> (i * FE_MASK_WIDTH + j) & 1) > 0) {
-                    if (rc.getRoundNum() % 20 == dots) rc.setIndicatorDot(bl.translate(j, i), 0, 0, 255);
-                    dots++;
+                    rc.setIndicatorDot(bl.translate(j, i), 0, 0, 255);
                 }
             }
         }

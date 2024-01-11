@@ -34,7 +34,9 @@ public abstract class Robot {
 
     public void post_turn() throws GameActionException {
         sc.updateSymmetry();
-        System.out.println(rc.readSharedArray(Channels.SYMMETRY));
+        if (rc.getRoundNum() % 50 == 0) {
+            System.out.println("Symmetry: " + sc.getSymmetry());
+        }
     }
 
     abstract void run() throws GameActionException;
