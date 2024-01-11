@@ -135,13 +135,15 @@ public class Duck extends Robot {
             for (int i = targets.length; i-- > 0;) {
                 MapLocation loc = targets[i].m;
                 int d = loc.distanceSquaredTo(myloc);
-                if (d < bestd) {
+                if ((d < bestd) && (d <= 81)) {
                     bestd = d;
                     bestloc = loc;
                 }
             }
-            rc.setIndicatorString("Hunting enemy: " + bestloc);
-            return bestloc;
+            if (bestloc != null) {
+                rc.setIndicatorString("Hunting enemy: " + bestloc);
+                return bestloc;
+            }
         }
 
         MapLocation[] flags = communications.getflags();
