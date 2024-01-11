@@ -1,4 +1,4 @@
-package initialBot;
+package microbaseline;
 import battlecode.common.*;
 
 public class MapTracker {

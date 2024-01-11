@@ -1,4 +1,4 @@
-package initialBot;
+package microbaseline;
 import battlecode.common.*;
 
 public class AttackMicro {
@@ -6,10 +6,8 @@ public class AttackMicro {
     RobotController rc;
     RobotInfo[] friends = null;
     RobotInfo[] enemies = null;
-    Communications comms;
-    public AttackMicro(Robot r) {
-        this.rc = r.rc;
-        this.comms = r.communications;
+    public AttackMicro(RobotController rc) {
+        this.rc = rc;
     }
 
     public boolean runMicro() throws GameActionException {
@@ -17,23 +15,8 @@ public class AttackMicro {
         friends = rc.senseNearbyRobots(-1, myteam);
         enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         if (enemies.length == 0) return false;
-        addBestTarget();
         maneuver();
         return true;
-    }
-
-    // Finds the enemy closest to a flag, and marks it in comms.
-    public void addBestTarget() throws GameActionException {
-        boolean hasFlag = false;
-        MapLocation bestloc = enemies[0].location;
-        for (int i = enemies.length; i-- > 0;) {
-            if (enemies[i].hasFlag) {
-                bestloc = enemies[i].location;
-                hasFlag = true;
-                break;
-            }
-        }
-        comms.addAttackTarget(bestloc, hasFlag);
     }
 
     void maneuver() throws GameActionException {
@@ -105,7 +88,7 @@ public class AttackMicro {
         RobotInfo bestenemy = null;
         int besthealth = 1 << 30;
         for (int i = enemies.length; i-- > 0;) {
-            if ((enemies[i].health < besthealth) && (rc.canAttack(enemies[i].location))) {
+            if (enemies[i].health < besthealth) {
                 bestenemy = enemies[i];
                 besthealth = enemies[i].health;
             }
@@ -119,9 +102,8 @@ public class AttackMicro {
     class MicroTarget {
         int minDistToEnemy = 100000;
         int minDistToAlly = 100000;
-        int healersVisionRange = 0;
-        int enemiesAttackRange = 0;
-        int enemiesVisionRange = 0;
+        int launchersAttackRange = 0;
+        int launchersVisionRange = 0;
         boolean canMove;
         int canLandHit;
         MapLocation nloc;
@@ -135,44 +117,33 @@ public class AttackMicro {
         
         void addEnemy(RobotInfo r) throws GameActionException {
             int dist = r.location.distanceSquaredTo(nloc);
+            if (dist < minDistToEnemy) minDistToEnemy = dist;
+            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) launchersAttackRange++;
+            if (dist <= GameConstants.VISION_RADIUS_SQUARED) launchersVisionRange++;
             if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
                 canLandHit = 1;
             }
-            if (r.hasFlag) return;
-            if (dist < minDistToEnemy) minDistToEnemy = dist;
-            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) enemiesAttackRange++;
-            if (dist <= GameConstants.VISION_RADIUS_SQUARED) enemiesVisionRange++;            
         } 
 
         
         void addAlly(RobotInfo r) throws GameActionException {
             if (!canMove) return;
-            if (r.hasFlag) return;
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
-            if (d <= GameConstants.ATTACK_RADIUS_SQUARED) healersVisionRange++;
         }
 
         boolean inRange() {
             return minDistToEnemy <= GameConstants.ATTACK_RADIUS_SQUARED;
         }
 
-        int attackScore() {
-            return (Math.max(enemiesAttackRange - healersVisionRange / 2, 0) - canLandHit);
-        }
-
-        int visionScore() {
-            return (Math.max(enemiesVisionRange - healersVisionRange / 2, 0) - canLandHit);
-        }
-
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
 
-            if (attackScore() < mt.attackScore()) return true;
-            if (attackScore() > mt.attackScore()) return false;
+            if (launchersAttackRange - canLandHit < mt.launchersAttackRange - mt.canLandHit) return true;
+            if (launchersAttackRange - canLandHit > mt.launchersAttackRange - mt.canLandHit) return false;
 
-            if (visionScore() < mt.visionScore()) return true;
-            if (visionScore() > mt.visionScore()) return false;
+            if (launchersVisionRange - canLandHit < mt.launchersVisionRange - mt.canLandHit) return true;
+            if (launchersVisionRange - canLandHit > mt.launchersVisionRange - mt.canLandHit) return false;
             
             if (canLandHit > mt.canLandHit) return true;
             if (canLandHit < mt.canLandHit) return false;
