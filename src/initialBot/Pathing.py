@@ -2,7 +2,7 @@ import math
 
 MASK_WIDTH = 9
 MASK_HEIGHT = 7
-CLASS_NAME = "Pathing"
+CLASS_NAME = "OptimalPathing"
 RSQR = 20
 COST_OF_WATER = 3  # 2 actual turns, one for filling, and one for moving. +1 accounts for crumbs and base cooldown cost
 
@@ -35,7 +35,7 @@ def printPathing():
         cp.print("MapTracker mt;")
         cp.print("RobotController rc;")
         cp.print("static int H, W;")
-        cp.print("public Pathing(Robot robot) {")
+        cp.print(f"public {CLASS_NAME}(Robot robot) {{")
         with cp:
             cp.print("this.rc = robot.rc;")
             cp.print("this.mt = robot.mt;")
@@ -56,6 +56,7 @@ def moveTo():
     # that this is necessary. Also, using more masks may generalize better if we ever use full-map pathing.
     loverflow = 0b111111110111111110111111110111111110111111110111111110111111110
     roverflow = 0b011111111011111111011111111011111111011111111011111111011111111
+    cp.print(f"if (rc.getMovementCooldownTurns() >= 10) return;")
     cp.print(f"long loverflow = {hex(loverflow)}L;")
     cp.print(f"long roverflow = {hex(roverflow)}L;")
     cp.print("long passible0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0);")
@@ -162,6 +163,7 @@ def moveTo():
     # You can also use a switch statement here, but it doesn't help you too much. Maybe 100 bytecode saved.
     # The only squares that should be active in best are those which
     # Are part of the optimal path. Hence, we can simply choose any of them.
+    cp.print(f"if (rc.getMovementCooldownTurns() >= 10) return;")
     cp.print(f"long best = back0[idx] & {hex(adjacency_mask)}L;")
     for key, value in mp.items():
         cp.print(
