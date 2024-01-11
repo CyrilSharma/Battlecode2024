@@ -140,6 +140,10 @@ public class Duck extends Robot {
     void explore() throws GameActionException {
         // This is just here to test out pathing.
         // We'll add some exploration logic here eventually.
+        MapLocation[] crumbs = this.rc.senseNearbyCrumbs(-1);
+        if (crumbs.length > 0) {
+            path.moveTo(crumbs[0]);
+        }
         if (exploreTarget == null) {
             MapLocation[] targets = {
                 new MapLocation(0, 0),
@@ -150,6 +154,9 @@ public class Duck extends Robot {
             };
             int idx = rng.nextInt(targets.length);
             exploreTarget = targets[idx];
+            if(rng.nextInt(2) == 1) {
+                exploreTarget = new MapLocation(rng.nextInt(rc.getMapWidth()), rng.nextInt(rc.getMapHeight()));
+            }
         }
         rc.setIndicatorString("Exploring: " + exploreTarget);
         path.moveTo(exploreTarget);
