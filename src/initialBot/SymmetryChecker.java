@@ -53,6 +53,7 @@ class SymmetryChecker {
         if (!rc.isSpawned()) return;
 
         int status = rc.readSharedArray(Channels.SYMMETRY);
+        Team opponentTeam = rc.getTeam().opponent();
         MapLocation s = null;
         MapLocation[] spawns = rc.getAllySpawnLocations();
         for (int i = Math.min(spawns.length, 20); i-- > 0;) {
@@ -61,17 +62,20 @@ class SymmetryChecker {
             s = getHSym(m);
             if (rc.canSenseLocation(s)) {
                 MapInfo e = rc.senseMapInfo(s);
-                if (!e.isSpawnZone()) status |= 1;
+                if (!e.isSpawnZone() || e.getTeamTerritory() != opponentTeam)
+                    status |= 1;
             }
             s = getVSym(m);
             if (rc.canSenseLocation(s)) {
                 MapInfo e = rc.senseMapInfo(s);
-                if (!e.isSpawnZone()) status |= 2;
+                if (!e.isSpawnZone() || e.getTeamTerritory() != opponentTeam)
+                    status |= 2;
             }
             s = getRSym(m);
             if (rc.canSenseLocation(s)) {
                 MapInfo e = rc.senseMapInfo(s);
-                if (!e.isSpawnZone()) status |= 4;
+                if (!e.isSpawnZone() || e.getTeamTerritory() != opponentTeam)
+                    status |= 4;
             }
         }
 
