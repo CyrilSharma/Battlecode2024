@@ -191,7 +191,7 @@ public class Duck extends Robot {
                 int score = targets[i].score;
                 int d = loc.distanceSquaredTo(myloc);
                 // Find closest unmanned target.
-                if ((d < bestd) && (d < 900)) { // && (score < 5)) {
+                if ((d < bestd)) { // && (score < 5)) {
                     bestd = d;
                     bestloc = loc;
                     idx = i;

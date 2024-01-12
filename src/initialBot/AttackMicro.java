@@ -131,11 +131,13 @@ public class AttackMicro {
     }
 
     public int dmgScore(int level) throws GameActionException {
-        return 2 * (100 + SkillType.ATTACK.getSkillEffect(level));
+        return 2 * ((100 + SkillType.ATTACK.getSkillEffect(level)) * 100 / 
+                    (100 - SkillType.ATTACK.getCooldown(level)));
     }
 
     public int healScore(int level) throws GameActionException {
-        return (100 + SkillType.ATTACK.getSkillEffect(level));
+        return (100 + SkillType.HEAL.getSkillEffect(level)) * 100 /
+                    (100 - SkillType.HEAL.getCooldown(level));
     }
 
     // Choose best candidate for maneuvering in close encounters.
