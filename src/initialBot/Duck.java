@@ -9,7 +9,7 @@ import initialBot.Communications.AttackTarget;
 public class Duck extends Robot {
     Pathing path;
     MapLocation exploreTarget;
-    MapLocation target;
+    MapLocation attackTarget;
     AttackMicro am;
     public Duck(RobotController rc) {
         super(rc);
@@ -26,11 +26,63 @@ public class Duck extends Robot {
         considerTrap();
 
         // boolean shouldheal = true;
-        if (ranFlagMicro()) {}
+        if (huntFlag()) {}
+        else if (ranFlagMicro()) {}
         else if (am.runMicro()) {}
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
+    }
+
+    public boolean huntFlag() throws GameActionException {
+        if (communications.order != 4) return false;
+        System.out.println("I'm the flag hunter!");
+        MapLocation[] eflags = communications.get_flags(false);
+        MapLocation myloc = rc.getLocation();
+        MapLocation bestloc = null;
+        int bestd = 1 << 30;
+        if (eflags.length != 0) {
+            for (int i = eflags.length; i-- > 0;) {
+                int d = eflags[i].distanceSquaredTo(myloc);
+                if (d < bestd) {
+                    bestd = d;
+                    bestloc = eflags[i];
+                }
+            }
+            if (bestloc != null) {
+                path.moveTo(bestloc);
+                return true;
+            }
+        }
+        if (sc.getSymmetry() != -1) {
+            MapLocation[] allies = rc.getAllySpawnLocations();
+            for (int i = Math.min(10, allies.length); i-- > 0;) {
+                MapLocation loc = sc.getSymLoc(allies[i]);
+                int d = loc.distanceSquaredTo(myloc);
+                if (d < bestd) {
+                    bestd = d;
+                    bestloc = loc;
+                }
+            }
+            path.moveTo(bestloc);
+            return true;
+        }
+        MapLocation[] flags = rc.senseBroadcastFlagLocations();
+        if (flags.length != 0) {
+            for (int i = Math.min(10, flags.length); i-- > 0;) {
+                MapLocation loc = flags[i];
+                int d = loc.distanceSquaredTo(myloc);
+                if ((d < bestd) && (myloc.distanceSquaredTo(loc) > 4)) {
+                    bestd = d;
+                    bestloc = loc;
+                }
+            }
+            if (bestloc != null) {
+                path.moveTo(bestloc);
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean guardFlag() throws GameActionException {
@@ -45,7 +97,7 @@ public class Duck extends Robot {
     public void tryHeal() throws GameActionException {
         int besthealth = -1;
         RobotInfo bestfriend = null;
-        RobotInfo[] friends = am.friends;
+        RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
         for (int i = friends.length; i-- > 0;) {
             if ((friends[i].health > besthealth) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
@@ -141,7 +193,7 @@ public class Duck extends Robot {
                 break;
             }
         }
-        FlagInfo[] flags = rc.senseNearbyFlags(9, rc.getTeam());
+        FlagInfo[] flags = rc.senseNearbyFlags(2, rc.getTeam());
         if (flags.length != 0) shouldbuild = true;
         if (!shouldbuild) return;
 
@@ -188,26 +240,32 @@ public class Duck extends Robot {
     }
 
     public MapLocation getHuntTarget() throws GameActionException {
+        if ((rc.getRoundNum() % 5) == 0) attackTarget = null;
+        if (attackTarget != null) return attackTarget;
+
         int bestd = 1 << 30;
         MapLocation bestloc = null;
         MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
         if (targets.length != 0) {
             int idx = -1;
+            int bestscore = 0;
             for (int i = targets.length; i-- > 0;) {
                 MapLocation loc = targets[i].m;
                 int score = targets[i].score;
                 int d = loc.distanceSquaredTo(myloc);
                 // Find closest unmanned target.
-                if ((d < bestd)) { // && (score < 5)) {
+                if ((d < bestd) && (score < 3)) {
                     bestd = d;
                     bestloc = loc;
+                    bestscore = score;
                     idx = i;
                 }
             }
             if (bestloc != null) {
-                rc.setIndicatorString("Hunting enemy: " + bestloc);
+                System.out.println("Hunting enemy: " + bestloc + ", score: " + bestscore);
                 communications.markAttackTarget(idx);
+                attackTarget = bestloc;
                 return bestloc;
             }
         }

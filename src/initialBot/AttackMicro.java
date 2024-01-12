@@ -16,14 +16,28 @@ public class AttackMicro {
         Team myteam = rc.getTeam();
         friends = rc.senseNearbyRobots(-1, myteam);
         enemies = rc.senseNearbyRobots(-1, myteam.opponent());
-        if (enemies.length == 0) return false;
+        if (!close() && (enemies.length == 0)) return false;
         addBestTarget();
         maneuver();
         return true;
     }
 
+    public boolean close() throws GameActionException {
+        return false;
+        // MapLocation myloc = rc.getLocation();
+        // AttackTarget[] targets = comms.getAttackTargets();
+        // int bestd = 1 << 30;
+        // for (int i = targets.length; i-- > 0;) {
+        //     MapLocation targetloc = targets[i].m;
+        //     int d = targetloc.distanceSquaredTo(myloc);
+        //     if (d < bestd) bestd = d;
+        // }
+        // return (bestd <= 64);
+    }
+
     // Finds the enemy closest to a flag, and marks it in comms.
     public void addBestTarget() throws GameActionException {
+        if (enemies.length == 0) return;
         boolean hasFlag = false;
         MapLocation bestloc = enemies[0].location;
         for (int i = enemies.length; i-- > 0;) {
@@ -128,9 +142,10 @@ public class AttackMicro {
     class MicroTarget {
         int minDistToEnemy = 100000;
         int minDistToAlly = 100000;
-        int healersVisionRange = 0;
-        int enemiesAttackRange = 0;
-        int enemiesVisionRange = 0;
+        int healInVisionRange = 0;
+        int dmgInAttackRange = 0;
+        int dmgInVisionRange = 0;
+        int friendsNearby = 0;
         boolean canMove;
         int canLandHit;
         MapLocation nloc;
@@ -145,12 +160,12 @@ public class AttackMicro {
         void addEnemy(RobotInfo r) throws GameActionException {
             int dist = r.location.distanceSquaredTo(nloc);
             if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
-                canLandHit = 1;
+                canLandHit = 6;
             }
             if (r.hasFlag) return;
             if (dist < minDistToEnemy) minDistToEnemy = dist;
-            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) enemiesAttackRange++;
-            if (dist <= GameConstants.VISION_RADIUS_SQUARED) enemiesVisionRange++;            
+            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) dmgInAttackRange += 6;
+            if (dist <= GameConstants.VISION_RADIUS_SQUARED) dmgInVisionRange += 6;            
         } 
 
         
@@ -159,7 +174,8 @@ public class AttackMicro {
             if (r.hasFlag) return;
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
-            if (d <= GameConstants.ATTACK_RADIUS_SQUARED) healersVisionRange++;
+            if (d <= GameConstants.ATTACK_RADIUS_SQUARED) healInVisionRange += 2;
+            if (d <= 2) friendsNearby += 1;
         }
 
         boolean inRange() {
@@ -167,30 +183,37 @@ public class AttackMicro {
         }
 
         int attackScore() {
-            return (Math.max(enemiesAttackRange - healersVisionRange / 2, 0) - canLandHit);
+            return (Math.max(dmgInAttackRange - healInVisionRange, 0) - canLandHit);
         }
 
         int visionScore() {
-            return (Math.max(enemiesVisionRange - healersVisionRange / 2, 0) - canLandHit);
+            return (Math.max(dmgInVisionRange - healInVisionRange, 0) - canLandHit);
         }
 
+        // If I can't move don't waste computation.
+        // If something can attack me GET AWAY.
+        // If I'm a
+        // Tie-break on net damage received, first.
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
-
-            if (attackScore() < mt.attackScore()) return true;
-            if (attackScore() > mt.attackScore()) return false;
-
-            if (visionScore() < mt.visionScore()) return true;
-            if (visionScore() > mt.visionScore()) return false;
-            
-            if (canLandHit > mt.canLandHit) return true;
-            if (canLandHit < mt.canLandHit) return false;
-
-            if (minDistToAlly < mt.minDistToAlly) return true;
-            if (minDistToAlly > mt.minDistToAlly) return false;
-
-            if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
-            else return minDistToEnemy <= mt.minDistToEnemy;
+            if (rc.getHealth() < (GameConstants.DEFAULT_HEALTH / 4)) {
+                if (dmgInAttackRange < mt.dmgInAttackRange) return true;
+                if (dmgInAttackRange > mt.dmgInAttackRange) return false;
+                return minDistToEnemy > mt.minDistToEnemy;
+            } else {
+                if (attackScore() < mt.attackScore()) return true;
+                if (attackScore() > mt.attackScore()) return false;
+                if (3 * visionScore() < 2 * visionScore()) return true;
+                if (2 * visionScore() > 3 * visionScore()) return false;
+                return friendsNearby < mt.friendsNearby;
+            }
         }
     }
 }
+
+// If I have decent health - 
+//  If I have an attack, and there's nothing in range, there's no rush, let them come to you.
+//  If I have an attack, and something's in range, attack it, then back away to some safe location.
+//  If I can't attack something, stay where I am or move to a sparser (but still safe) location.
+// Otherwise -
+//  Backup to a safe location.
