@@ -59,13 +59,33 @@ public class Duck extends Robot {
     }
 
     void spawn() throws GameActionException {
+        AttackTarget[] targets = communications.getAttackTargets();
         MapLocation[] spawns = rc.getAllySpawnLocations();
-        int st = rng.nextInt(spawns.length);
-        for (int i = spawns.length; i-- > 0;) {
-            MapLocation loc = spawns[(i + st) % spawns.length];
-            if (rc.canSpawn(loc)) {
-                rc.spawn(loc);
-                break;
+        if (targets.length == 0) {
+            int st = rng.nextInt(spawns.length);
+            for (int i = spawns.length; i-- > 0;) {
+                MapLocation loc = spawns[(i + st) % spawns.length];
+                if (rc.canSpawn(loc)) {
+                    rc.spawn(loc);
+                    break;
+                }
+            }
+        } else {
+            int bestd = 1 << 30;
+            MapLocation bestloc = null;
+            for (int i = spawns.length; i-- > 0;) {
+                MapLocation loc = spawns[i];
+                for (int j = targets.length; j-- > 0;) {
+                    MapLocation tloc =  targets[j].m;
+                    int d = tloc.distanceSquaredTo(loc);
+                    if (d < bestd) {
+                        bestd = d;
+                        bestloc = loc;
+                    }
+                }
+            }
+            if (rc.canSpawn(bestloc)) {
+                rc.spawn(bestloc);
             }
         }
         mt.run();
@@ -101,6 +121,10 @@ public class Duck extends Robot {
         // Become complex.
         if (rc.canBuyGlobal(GlobalUpgrade.ACTION)) {
             rc.buyGlobal(GlobalUpgrade.ACTION);
+        } else if (rc.canBuyGlobal(GlobalUpgrade.HEALING)) {
+            rc.buyGlobal(GlobalUpgrade.HEALING);
+        } else if (rc.canBuyGlobal(GlobalUpgrade.CAPTURING)) {
+            rc.buyGlobal(GlobalUpgrade.HEALING);
         }
     }
 
@@ -112,7 +136,7 @@ public class Duck extends Robot {
         MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
         for (int i = targets.length; i-- > 0;) {
-            if (myloc.distanceSquaredTo(targets[i].m) <= 16) {
+            if (myloc.distanceSquaredTo(targets[i].m) <= 9) {
                 shouldbuild = true;
                 break;
             }
@@ -122,7 +146,7 @@ public class Duck extends Robot {
         if (!shouldbuild) return;
 
 
-        MapInfo[] infos = rc.senseNearbyMapInfos(9);
+        MapInfo[] infos = rc.senseNearbyMapInfos(2);
         for (int i = infos.length; i-- > 0;) {
             if (infos[i].getTrapType() != TrapType.NONE) return;
         }

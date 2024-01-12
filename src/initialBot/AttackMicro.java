@@ -42,11 +42,20 @@ public class AttackMicro {
         canAttack = rc.isActionReady();
 
         // Needs 1k Bytecode.
-        int count = 0;
         MicroTarget[] microtargets = new MicroTarget[9];
-        for (Direction dir: Direction.values()) { 
-            microtargets[count++] = new MicroTarget(dir);
-        }
+
+        // It's important that the center location is first.
+        microtargets[0] = new MicroTarget(Direction.CENTER);
+
+        microtargets[1] = new MicroTarget(Direction.NORTH);
+        microtargets[2] = new MicroTarget(Direction.NORTHEAST);
+        microtargets[3] = new MicroTarget(Direction.NORTHWEST);
+        microtargets[4] = new MicroTarget(Direction.EAST);
+        microtargets[5] = new MicroTarget(Direction.WEST);
+        microtargets[6] = new MicroTarget(Direction.SOUTH);
+        microtargets[7] = new MicroTarget(Direction.SOUTHEAST);
+        microtargets[8] = new MicroTarget(Direction.SOUTHWEST);
+
 
         int iters = 0;
         RobotInfo[] robots = friends;
