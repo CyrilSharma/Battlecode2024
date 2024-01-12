@@ -131,7 +131,7 @@ public class AttackMicro {
     }
 
     public int dmgScore(int level) throws GameActionException {
-        return 4 * (100 + SkillType.ATTACK.getSkillEffect(level));
+        return 2 * (100 + SkillType.ATTACK.getSkillEffect(level));
     }
 
     public int healScore(int level) throws GameActionException {

@@ -8,12 +8,13 @@ import initialBot.Communications.AttackTarget;
 
 public class Duck extends Robot {
     Pathing path;
-    MapLocation exploreTarget;
+    Exploration exploration;
     MapLocation target;
     AttackMicro am;
     public Duck(RobotController rc) {
         super(rc);
         path = new Pathing(this);
+        exploration = new Exploration(this);
         am = new AttackMicro(this);
     }
 
@@ -132,21 +133,27 @@ public class Duck extends Robot {
         // In the future this may have some fancier logic
         // I.e if barrier still in place, try adding traps to barrier.
         // If attack targets are set, try adding traps near them... 
+        int acceptabledist = 0;
         boolean shouldbuild = false;
+        FlagInfo[] flags = rc.senseNearbyFlags(2, rc.getTeam());
+        if (flags.length != 0) {
+            shouldbuild = true;
+            acceptabledist = 9;
+        }
+
         MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
         for (int i = targets.length; i-- > 0;) {
             if (myloc.distanceSquaredTo(targets[i].m) <= 9) {
                 shouldbuild = true;
+                acceptabledist = 1;
                 break;
             }
         }
-        FlagInfo[] flags = rc.senseNearbyFlags(9, rc.getTeam());
-        if (flags.length != 0) shouldbuild = true;
+
+
         if (!shouldbuild) return;
-
-
-        MapInfo[] infos = rc.senseNearbyMapInfos(2);
+        MapInfo[] infos = rc.senseNearbyMapInfos(acceptabledist);
         for (int i = infos.length; i-- > 0;) {
             if (infos[i].getTrapType() != TrapType.NONE) return;
         }
@@ -162,24 +169,9 @@ public class Duck extends Robot {
     }
 
     void explore() throws GameActionException {
-        // This is just here to test out pathing.
-        // We'll add some exploration logic here eventually.
-        if (exploreTarget == null) {
-            MapLocation[] targets = {
-                new MapLocation(0, 0),
-                new MapLocation(0, rc.getMapHeight()),
-                new MapLocation(rc.getMapWidth(), 0),
-                new MapLocation(rc.getMapWidth(), rc.getMapHeight()),
-                new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2)
-            };
-            int idx = rng.nextInt(targets.length);
-            exploreTarget = targets[idx];
-        }
+        MapLocation exploreTarget = exploration.tryExplore();
         rc.setIndicatorString("Exploring: " + exploreTarget);
-        path.moveTo(exploreTarget);
-        if (rc.canSenseLocation(exploreTarget)) {
-            exploreTarget = null;
-        }
+        if (exploreTarget != null) path.moveTo(exploreTarget);
     }
 
     public void hunt() throws GameActionException {
@@ -199,7 +191,7 @@ public class Duck extends Robot {
                 int score = targets[i].score;
                 int d = loc.distanceSquaredTo(myloc);
                 // Find closest unmanned target.
-                if ((d < bestd)) { // && (score < 5)) {
+                if ((d < bestd) && (d < 900)) { // && (score < 5)) {
                     bestd = d;
                     bestloc = loc;
                     idx = i;
