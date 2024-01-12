@@ -104,7 +104,7 @@ public class Duck extends Robot {
         } else if (rc.canBuyGlobal(GlobalUpgrade.HEALING)) {
             rc.buyGlobal(GlobalUpgrade.HEALING);
         } else if (rc.canBuyGlobal(GlobalUpgrade.CAPTURING)) {
-            rc.buyGlobal(GlobalUpgrade.HEALING);
+            rc.buyGlobal(GlobalUpgrade.CAPTURING);
         }
     }
 
