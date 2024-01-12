@@ -1,6 +1,7 @@
-package initialBot;
+package jan11;
 import battlecode.common.*;
-import initialBot.Communications.AttackTarget;
+import jan11.Communications.AttackTarget;
+
 
 /*
  * in the future we may want to diversify this class into the multiple specializations.
@@ -8,13 +9,12 @@ import initialBot.Communications.AttackTarget;
 
 public class Duck extends Robot {
     Pathing path;
-    Exploration exploration;
+    MapLocation exploreTarget;
     MapLocation target;
     AttackMicro am;
     public Duck(RobotController rc) {
         super(rc);
         path = new Pathing(this);
-        exploration = new Exploration(this);
         am = new AttackMicro(this);
     }
 
@@ -60,33 +60,13 @@ public class Duck extends Robot {
     }
 
     void spawn() throws GameActionException {
-        AttackTarget[] targets = communications.getAttackTargets();
         MapLocation[] spawns = rc.getAllySpawnLocations();
-        if (targets.length == 0) {
-            int st = rng.nextInt(spawns.length);
-            for (int i = spawns.length; i-- > 0;) {
-                MapLocation loc = spawns[(i + st) % spawns.length];
-                if (rc.canSpawn(loc)) {
-                    rc.spawn(loc);
-                    break;
-                }
-            }
-        } else {
-            int bestd = 1 << 30;
-            MapLocation bestloc = null;
-            for (int i = spawns.length; i-- > 0;) {
-                MapLocation loc = spawns[i];
-                for (int j = targets.length; j-- > 0;) {
-                    MapLocation tloc =  targets[j].m;
-                    int d = tloc.distanceSquaredTo(loc);
-                    if (d < bestd) {
-                        bestd = d;
-                        bestloc = loc;
-                    }
-                }
-            }
-            if (rc.canSpawn(bestloc)) {
-                rc.spawn(bestloc);
+        int st = rng.nextInt(spawns.length);
+        for (int i = spawns.length; i-- > 0;) {
+            MapLocation loc = spawns[(i + st) % spawns.length];
+            if (rc.canSpawn(loc)) {
+                rc.spawn(loc);
+                break;
             }
         }
         mt.run();
@@ -122,10 +102,6 @@ public class Duck extends Robot {
         // Become complex.
         if (rc.canBuyGlobal(GlobalUpgrade.ACTION)) {
             rc.buyGlobal(GlobalUpgrade.ACTION);
-        } else if (rc.canBuyGlobal(GlobalUpgrade.HEALING)) {
-            rc.buyGlobal(GlobalUpgrade.HEALING);
-        } else if (rc.canBuyGlobal(GlobalUpgrade.CAPTURING)) {
-            rc.buyGlobal(GlobalUpgrade.CAPTURING);
         }
     }
 
@@ -133,27 +109,21 @@ public class Duck extends Robot {
         // In the future this may have some fancier logic
         // I.e if barrier still in place, try adding traps to barrier.
         // If attack targets are set, try adding traps near them... 
-        int acceptabledist = 0;
         boolean shouldbuild = false;
-        FlagInfo[] flags = rc.senseNearbyFlags(2, rc.getTeam());
-        if (flags.length != 0) {
-            shouldbuild = true;
-            acceptabledist = 9;
-        }
-
         MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
         for (int i = targets.length; i-- > 0;) {
-            if (myloc.distanceSquaredTo(targets[i].m) <= 9) {
+            if (myloc.distanceSquaredTo(targets[i].m) <= 16) {
                 shouldbuild = true;
-                acceptabledist = 1;
                 break;
             }
         }
-
-
+        FlagInfo[] flags = rc.senseNearbyFlags(9, rc.getTeam());
+        if (flags.length != 0) shouldbuild = true;
         if (!shouldbuild) return;
-        MapInfo[] infos = rc.senseNearbyMapInfos(acceptabledist);
+
+
+        MapInfo[] infos = rc.senseNearbyMapInfos(9);
         for (int i = infos.length; i-- > 0;) {
             if (infos[i].getTrapType() != TrapType.NONE) return;
         }
@@ -169,9 +139,24 @@ public class Duck extends Robot {
     }
 
     void explore() throws GameActionException {
-        MapLocation exploreTarget = exploration.tryExplore();
+        // This is just here to test out pathing.
+        // We'll add some exploration logic here eventually.
+        if (exploreTarget == null) {
+            MapLocation[] targets = {
+                new MapLocation(0, 0),
+                new MapLocation(0, rc.getMapHeight()),
+                new MapLocation(rc.getMapWidth(), 0),
+                new MapLocation(rc.getMapWidth(), rc.getMapHeight()),
+                new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2)
+            };
+            int idx = rng.nextInt(targets.length);
+            exploreTarget = targets[idx];
+        }
         rc.setIndicatorString("Exploring: " + exploreTarget);
-        if (exploreTarget != null) path.moveTo(exploreTarget);
+        path.moveTo(exploreTarget);
+        if (rc.canSenseLocation(exploreTarget)) {
+            exploreTarget = null;
+        }
     }
 
     public void hunt() throws GameActionException {
@@ -191,7 +176,7 @@ public class Duck extends Robot {
                 int score = targets[i].score;
                 int d = loc.distanceSquaredTo(myloc);
                 // Find closest unmanned target.
-                if ((d < bestd) && (d < 900)) { // && (score < 5)) {
+                if ((d < bestd)) { // && (score < 5)) {
                     bestd = d;
                     bestloc = loc;
                     idx = i;
@@ -214,21 +199,8 @@ public class Duck extends Robot {
                     bestloc = loc;
                 }
             }
-            boolean dealt_with = false;
-            if (rc.canSenseLocation(bestloc)) {
-                FlagInfo[] nearbyflags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
-                for (FlagInfo flag: nearbyflags) {
-                    if (flag.getLocation() != bestloc) continue;
-                    if (flag.isPickedUp()) {
-                        dealt_with = true;
-                        break;
-                    }
-                }
-            }
-            if (!dealt_with) {
-                rc.setIndicatorString("Hunting flag: " + bestloc);
-                return bestloc;
-            }
+            rc.setIndicatorString("Hunting flag: " + bestloc);
+            return bestloc;
         }
 
         flags = rc.senseBroadcastFlagLocations();
