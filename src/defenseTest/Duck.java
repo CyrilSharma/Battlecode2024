@@ -124,7 +124,12 @@ public class Duck extends Robot {
                                 if (rc.canBuild(TrapType.EXPLOSIVE, place)) rc.build(TrapType.EXPLOSIVE, place);
                             } else {
                                 if (((place.x + place.y) & 1) == 1) {
-                                    if (rc.canBuild(TrapType.EXPLOSIVE, place)) rc.build(TrapType.EXPLOSIVE, place);
+                                    if((((place.x + place.y) >> 1) & 1) == 1) {
+                                        if (rc.canBuild(TrapType.EXPLOSIVE, place)) rc.build(TrapType.EXPLOSIVE, place);
+                                    }
+                                    else {
+                                        if (rc.canBuild(TrapType.WATER, place)) rc.build(TrapType.WATER, place);
+                                    }
                                 } else {
                                     if (rc.canDig(place)) rc.dig(place);
                                 }
