@@ -174,8 +174,9 @@ def moveTo():
                     rc.fill(rc.getLocation().add({key}));
                 }}
             }} else {{
-                rc.move({key}); return; 
+                rc.move({key}); 
             }}
+            return;
         }}
     
 """

@@ -8,9 +8,19 @@ public class AttackMicro {
     RobotInfo[] friends = null;
     RobotInfo[] enemies = null;
     Communications comms;
+    int[] healscores;
+    int[] dmgscores;
     public AttackMicro(Robot r) {
         this.rc = r.rc;
         this.comms = r.communications;
+        healscores = new int[6];
+        dmgscores = new int[6];
+        for (int i = 0; i < 6; i++) {
+            healscores[i] = (100 + SkillType.HEAL.getSkillEffect(i)) * 100 /
+                    (100 - SkillType.HEAL.getCooldown(i));
+            dmgscores[i] = 2 * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100 /
+                    (100 - SkillType.ATTACK.getCooldown(i));
+        }
     }
 
     public boolean runMicro() throws GameActionException {
@@ -42,7 +52,7 @@ public class AttackMicro {
         while (tryAttack()) ;
 
         canAttack = rc.isActionReady();
-        mydmg = dmgScore(rc.getLevel(SkillType.ATTACK));
+        mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
 
         // Needs 1k Bytecode.
         MicroTarget[] microtargets = new MicroTarget[9];
@@ -130,16 +140,6 @@ public class AttackMicro {
         return false;
     }
 
-    public int dmgScore(int level) throws GameActionException {
-        return 2 * ((100 + SkillType.ATTACK.getSkillEffect(level)) * 100 / 
-                    (100 - SkillType.ATTACK.getCooldown(level)));
-    }
-
-    public int healScore(int level) throws GameActionException {
-        return (100 + SkillType.HEAL.getSkillEffect(level)) * 100 /
-                    (100 - SkillType.HEAL.getCooldown(level));
-    }
-
     // Choose best candidate for maneuvering in close encounters.
     class MicroTarget {
         int minDistToEnemy = 100000;
@@ -166,7 +166,7 @@ public class AttackMicro {
             if (r.hasFlag) return;
             if (dist < minDistToEnemy) minDistToEnemy = dist;
 
-            int dmg = dmgScore(r.attackLevel);
+            int dmg = dmgscores[r.attackLevel];
             if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) dmgAttackRange += dmg;
             if (dist <= GameConstants.VISION_RADIUS_SQUARED) dmgVisionRange += dmg;            
         } 
@@ -178,7 +178,7 @@ public class AttackMicro {
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                healVisionRange += healScore(r.healLevel);
+                healVisionRange += healscores[r.healLevel];
             }
         }
 

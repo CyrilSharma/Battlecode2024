@@ -59,7 +59,7 @@ public class NeighborTracker {
         hasLaunchersNear = ((enemy_launcher_mask0 | enemy_launcher_mask1) > 0);
         hasCarriersNear = ((enemy_carrier_mask0 | enemy_carrier_mask1) > 0);
         int end = Clock.getBytecodesLeft();
-        System.out.println("Tracker Used: " + (initial - end - 200));
+        // System.out.println("Tracker Used: " + (initial - end - 200));
     }
 
 

@@ -170,8 +170,9 @@ public class OptimalPathing {
                     rc.fill(rc.getLocation().add(Direction.NORTHWEST));
                 }
             } else {
-                rc.move(Direction.NORTHWEST); return; 
+                rc.move(Direction.NORTHWEST); 
             }
+            return;
         }
     
 
@@ -182,8 +183,9 @@ public class OptimalPathing {
                     rc.fill(rc.getLocation().add(Direction.NORTH));
                 }
             } else {
-                rc.move(Direction.NORTH); return; 
+                rc.move(Direction.NORTH); 
             }
+            return;
         }
     
 
@@ -194,8 +196,9 @@ public class OptimalPathing {
                     rc.fill(rc.getLocation().add(Direction.NORTHEAST));
                 }
             } else {
-                rc.move(Direction.NORTHEAST); return; 
+                rc.move(Direction.NORTHEAST); 
             }
+            return;
         }
     
 
@@ -206,8 +209,9 @@ public class OptimalPathing {
                     rc.fill(rc.getLocation().add(Direction.EAST));
                 }
             } else {
-                rc.move(Direction.EAST); return; 
+                rc.move(Direction.EAST); 
             }
+            return;
         }
     
 
@@ -218,8 +222,9 @@ public class OptimalPathing {
                     rc.fill(rc.getLocation().add(Direction.WEST));
                 }
             } else {
-                rc.move(Direction.WEST); return; 
+                rc.move(Direction.WEST); 
             }
+            return;
         }
     
 
@@ -230,8 +235,9 @@ public class OptimalPathing {
                     rc.fill(rc.getLocation().add(Direction.SOUTHWEST));
                 }
             } else {
-                rc.move(Direction.SOUTHWEST); return; 
+                rc.move(Direction.SOUTHWEST); 
             }
+            return;
         }
     
 
@@ -242,8 +248,9 @@ public class OptimalPathing {
                     rc.fill(rc.getLocation().add(Direction.SOUTH));
                 }
             } else {
-                rc.move(Direction.SOUTH); return; 
+                rc.move(Direction.SOUTH); 
             }
+            return;
         }
     
 
@@ -254,8 +261,9 @@ public class OptimalPathing {
                     rc.fill(rc.getLocation().add(Direction.SOUTHEAST));
                 }
             } else {
-                rc.move(Direction.SOUTHEAST); return; 
+                rc.move(Direction.SOUTHEAST); 
             }
+            return;
         }
     
 
