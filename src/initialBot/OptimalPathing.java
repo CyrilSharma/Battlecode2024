@@ -171,7 +171,6 @@ public class OptimalPathing {
                 bestDir = Direction.NORTHWEST;
                 bestDist = d;
             }
-            
         }
     
 
@@ -182,7 +181,6 @@ public class OptimalPathing {
                 bestDir = Direction.NORTH;
                 bestDist = d;
             }
-            
         }
     
 
@@ -193,7 +191,6 @@ public class OptimalPathing {
                 bestDir = Direction.NORTHEAST;
                 bestDist = d;
             }
-            
         }
     
 
@@ -204,7 +201,6 @@ public class OptimalPathing {
                 bestDir = Direction.EAST;
                 bestDist = d;
             }
-            
         }
     
 
@@ -215,7 +211,6 @@ public class OptimalPathing {
                 bestDir = Direction.WEST;
                 bestDist = d;
             }
-            
         }
     
 
@@ -226,7 +221,6 @@ public class OptimalPathing {
                 bestDir = Direction.SOUTHWEST;
                 bestDist = d;
             }
-            
         }
     
 
@@ -237,7 +231,6 @@ public class OptimalPathing {
                 bestDir = Direction.SOUTH;
                 bestDist = d;
             }
-            
         }
     
 
@@ -262,6 +255,7 @@ public class OptimalPathing {
             } else {
                 rc.move(bestDir);
             }
+            return;
         }
 
 

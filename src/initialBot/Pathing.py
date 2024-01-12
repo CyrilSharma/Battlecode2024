@@ -178,7 +178,6 @@ def moveTo():
                 bestDir = {key};
                 bestDist = d;
             }}
-            
         }}
     
 """

@@ -14,8 +14,8 @@ public strictfp class RobotPlayer {
                 robot.run();
                 robot.post_turn();
             } catch (GameActionException e) {
-                System.out.println("Exception = ");
-                e.printStackTrace();
+                // System.out.println("Exception = ");
+                // e.printStackTrace();
             } finally {
                 Clock.yield();
             }
