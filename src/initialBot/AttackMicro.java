@@ -2,6 +2,7 @@ package initialBot;
 import battlecode.common.*;
 
 public class AttackMicro {
+    int mydmg;
     boolean canAttack;
     RobotController rc;
     RobotInfo[] friends = null;
@@ -38,8 +39,10 @@ public class AttackMicro {
 
     void maneuver() throws GameActionException {
         rc.setIndicatorString("Maneuvering");
-        if (rc.isActionReady()) tryAttack();
+        while (tryAttack()) ;
+
         canAttack = rc.isActionReady();
+        mydmg = dmgScore(rc.getLevel(SkillType.ATTACK));
 
         // Needs 1k Bytecode.
         MicroTarget[] microtargets = new MicroTarget[9];
@@ -107,10 +110,11 @@ public class AttackMicro {
             enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
         rc.setIndicatorString("ITERS: " + iters);
-        if (rc.isActionReady()) tryAttack();
+        while (tryAttack()) ;
     }
 
-    public void tryAttack() throws GameActionException {
+    public boolean tryAttack() throws GameActionException {
+        if (!rc.isActionReady()) return false;
         RobotInfo bestenemy = null;
         int besthealth = 1 << 30;
         for (int i = enemies.length; i-- > 0;) {
@@ -121,16 +125,26 @@ public class AttackMicro {
         }
         if ((bestenemy != null) && (rc.canAttack(bestenemy.location))) {
             rc.attack(bestenemy.location);
+            return true;
         }
+        return false;
+    }
+
+    public int dmgScore(int level) throws GameActionException {
+        return 4 * (100 + SkillType.ATTACK.getSkillEffect(level));
+    }
+
+    public int healScore(int level) throws GameActionException {
+        return (100 + SkillType.ATTACK.getSkillEffect(level));
     }
 
     // Choose best candidate for maneuvering in close encounters.
     class MicroTarget {
         int minDistToEnemy = 100000;
         int minDistToAlly = 100000;
-        int healersVisionRange = 0;
-        int enemiesAttackRange = 0;
-        int enemiesVisionRange = 0;
+        int healVisionRange = 0;
+        int dmgAttackRange = 0;
+        int dmgVisionRange = 0;
         boolean canMove;
         int canLandHit;
         MapLocation nloc;
@@ -145,12 +159,14 @@ public class AttackMicro {
         void addEnemy(RobotInfo r) throws GameActionException {
             int dist = r.location.distanceSquaredTo(nloc);
             if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
-                canLandHit = 1;
+                canLandHit = mydmg;
             }
             if (r.hasFlag) return;
             if (dist < minDistToEnemy) minDistToEnemy = dist;
-            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) enemiesAttackRange++;
-            if (dist <= GameConstants.VISION_RADIUS_SQUARED) enemiesVisionRange++;            
+
+            int dmg = dmgScore(r.attackLevel);
+            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) dmgAttackRange += dmg;
+            if (dist <= GameConstants.VISION_RADIUS_SQUARED) dmgVisionRange += dmg;            
         } 
 
         
@@ -159,7 +175,9 @@ public class AttackMicro {
             if (r.hasFlag) return;
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
-            if (d <= GameConstants.ATTACK_RADIUS_SQUARED) healersVisionRange++;
+            if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
+                healVisionRange += healScore(r.healLevel);
+            }
         }
 
         boolean inRange() {
@@ -167,11 +185,11 @@ public class AttackMicro {
         }
 
         int attackScore() {
-            return (Math.max(enemiesAttackRange - healersVisionRange / 2, 0) - canLandHit);
+            return (Math.max(dmgAttackRange - healVisionRange, 0) - canLandHit);
         }
 
         int visionScore() {
-            return (Math.max(enemiesVisionRange - healersVisionRange / 2, 0) - canLandHit);
+            return (Math.max(dmgVisionRange - healVisionRange, 0) - canLandHit);
         }
 
         boolean isBetterThan(MicroTarget mt) {
