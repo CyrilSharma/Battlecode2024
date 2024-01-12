@@ -164,8 +164,11 @@ public class OptimalPathing {
         if (rc.getMovementCooldownTurns() >= 10) return;
         long best = back0[idx] & 0x70381c0000000L;
         if ((best & 0x1000000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.NORTHWEST))) {
-                rc.fill(rc.getLocation().add(Direction.NORTHWEST));
+            MapLocation loc = rc.getLocation().add(Direction.NORTHWEST);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(rc.getLocation().add(Direction.NORTHWEST));
+                }
             } else {
                 rc.move(Direction.NORTHWEST); return; 
             }
@@ -173,8 +176,11 @@ public class OptimalPathing {
     
 
         if ((best & 0x2000000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.NORTH))) {
-                rc.fill(rc.getLocation().add(Direction.NORTH));
+            MapLocation loc = rc.getLocation().add(Direction.NORTH);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(rc.getLocation().add(Direction.NORTH));
+                }
             } else {
                 rc.move(Direction.NORTH); return; 
             }
@@ -182,8 +188,11 @@ public class OptimalPathing {
     
 
         if ((best & 0x4000000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.NORTHEAST))) {
-                rc.fill(rc.getLocation().add(Direction.NORTHEAST));
+            MapLocation loc = rc.getLocation().add(Direction.NORTHEAST);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(rc.getLocation().add(Direction.NORTHEAST));
+                }
             } else {
                 rc.move(Direction.NORTHEAST); return; 
             }
@@ -191,8 +200,11 @@ public class OptimalPathing {
     
 
         if ((best & 0x20000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.EAST))) {
-                rc.fill(rc.getLocation().add(Direction.EAST));
+            MapLocation loc = rc.getLocation().add(Direction.EAST);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(rc.getLocation().add(Direction.EAST));
+                }
             } else {
                 rc.move(Direction.EAST); return; 
             }
@@ -200,8 +212,11 @@ public class OptimalPathing {
     
 
         if ((best & 0x8000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.WEST))) {
-                rc.fill(rc.getLocation().add(Direction.WEST));
+            MapLocation loc = rc.getLocation().add(Direction.WEST);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(rc.getLocation().add(Direction.WEST));
+                }
             } else {
                 rc.move(Direction.WEST); return; 
             }
@@ -209,8 +224,11 @@ public class OptimalPathing {
     
 
         if ((best & 0x40000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.SOUTHWEST))) {
-                rc.fill(rc.getLocation().add(Direction.SOUTHWEST));
+            MapLocation loc = rc.getLocation().add(Direction.SOUTHWEST);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(rc.getLocation().add(Direction.SOUTHWEST));
+                }
             } else {
                 rc.move(Direction.SOUTHWEST); return; 
             }
@@ -218,8 +236,11 @@ public class OptimalPathing {
     
 
         if ((best & 0x80000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.SOUTH))) {
-                rc.fill(rc.getLocation().add(Direction.SOUTH));
+            MapLocation loc = rc.getLocation().add(Direction.SOUTH);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(rc.getLocation().add(Direction.SOUTH));
+                }
             } else {
                 rc.move(Direction.SOUTH); return; 
             }
@@ -227,8 +248,11 @@ public class OptimalPathing {
     
 
         if ((best & 0x100000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.SOUTHEAST))) {
-                rc.fill(rc.getLocation().add(Direction.SOUTHEAST));
+            MapLocation loc = rc.getLocation().add(Direction.SOUTHEAST);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(rc.getLocation().add(Direction.SOUTHEAST));
+                }
             } else {
                 rc.move(Direction.SOUTHEAST); return; 
             }

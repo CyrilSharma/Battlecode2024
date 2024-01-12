@@ -168,8 +168,11 @@ def moveTo():
     for key, value in mp.items():
         cp.print(
             f"""if ((best & {hex(value)}L) > 0) {{
-            if (rc.canFill(rc.getLocation().add({key}))) {{
-                rc.fill(rc.getLocation().add({key}));
+            MapLocation loc = rc.getLocation().add({key});
+            if (rc.senseMapInfo(loc).isWater()) {{
+                if (rc.canFill(loc)) {{
+                    rc.fill(rc.getLocation().add({key}));
+                }}
             }} else {{
                 rc.move({key}); return; 
             }}
