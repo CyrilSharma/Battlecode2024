@@ -13,9 +13,9 @@ public class AttackMicro {
     public AttackMicro(Robot r) {
         this.rc = r.rc;
         this.comms = r.communications;
-        healscores = new int[6];
-        dmgscores = new int[6];
-        for (int i = 0; i < 6; i++) {
+        healscores = new int[7];
+        dmgscores = new int[7];
+        for (int i = 0; i < 7; i++) {
             healscores[i] = (100 + SkillType.HEAL.getSkillEffect(i)) * 100 /
                     (100 - SkillType.HEAL.getCooldown(i));
             dmgscores[i] = 2 * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100 /
@@ -144,7 +144,7 @@ public class AttackMicro {
     class MicroTarget {
         int minDistToEnemy = 100000;
         int minDistToAlly = 100000;
-        int healVisionRange = 0;
+        int healAttackRange = 0;
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
         boolean canMove;
@@ -178,7 +178,7 @@ public class AttackMicro {
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                healVisionRange += healscores[r.healLevel];
+                healAttackRange += healscores[r.healLevel];
             }
         }
 
@@ -187,15 +187,18 @@ public class AttackMicro {
         }
 
         int attackScore() {
-            return (Math.max(dmgAttackRange - healVisionRange, 0) - canLandHit);
+            return (Math.max(dmgAttackRange - healAttackRange, 0) - canLandHit);
         }
 
         int visionScore() {
-            return (Math.max(dmgVisionRange - healVisionRange, 0) - canLandHit);
+            return (Math.max(dmgVisionRange - healAttackRange, 0) - canLandHit);
         }
 
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
+            if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
+                return minDistToEnemy > mt.minDistToEnemy;
+            }
 
             if (attackScore() < mt.attackScore()) return true;
             if (attackScore() > mt.attackScore()) return false;
