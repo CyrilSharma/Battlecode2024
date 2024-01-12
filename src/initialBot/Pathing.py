@@ -163,24 +163,40 @@ def moveTo():
     # You can also use a switch statement here, but it doesn't help you too much. Maybe 100 bytecode saved.
     # The only squares that should be active in best are those which
     # Are part of the optimal path. Hence, we can simply choose any of them.
-    cp.print(f"if (rc.getMovementCooldownTurns() >= 10) return;")
-    cp.print(f"long best = back0[idx] & {hex(adjacency_mask)}L;")
+    cp.print("Direction bestDir = null;")
+    cp.print("int bestDist = -1;")
+
+
+
+    cp.print("long best = back0[idx];")
     for key, value in mp.items():
         cp.print(
             f"""if ((best & {hex(value)}L) > 0) {{
-            MapLocation loc = rc.getLocation().add({key});
-            if (rc.senseMapInfo(loc).isWater()) {{
-                if (rc.canFill(loc)) {{
-                    rc.fill(rc.getLocation().add({key}));
-                }}
-            }} else {{
-                rc.move({key}); 
+            MapLocation loc = rc.adjacentLocation({key});
+            int d = target.distanceSquaredTo(loc);
+            if (bestDir == null || (d < bestDist)) {{
+                bestDir = {key};
+                bestDist = d;
             }}
-            return;
         }}
     
 """
         )
+
+    cp.print("""
+        if (bestDir != null) {
+            MapLocation loc = rc.adjacentLocation(bestDir);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(loc);
+                }
+            } else {
+                rc.move(bestDir);
+            }
+        }
+
+""")
+    
 
 
 def advance_reachable(mask_name, walls):

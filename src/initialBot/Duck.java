@@ -19,9 +19,18 @@ public class Duck extends Robot {
     }
 
     void run() throws GameActionException {
+        // if (rc.getRoundNum() == 300) {
+        //     rc.resign();
+        // }
         if (rc.getRoundNum() == 1) communications.establishOrder();
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
+        // if (true) {
+        //     // System.out.println("here");
+        //     // rc.setIndicatorString("adjflkasdjflsak");
+        //     path.moveTo(new MapLocation(3,3));
+        //     // return true;
+        // }
         updateFlags();
         purchaseGlobal();
         considerTrap();
@@ -46,7 +55,7 @@ public class Duck extends Robot {
     public void tryHeal() throws GameActionException {
         int besthealth = -1;
         RobotInfo bestfriend = null;
-        RobotInfo[] friends = am.friends;
+        RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
         for (int i = friends.length; i-- > 0;) {
             if ((friends[i].health > besthealth) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
