@@ -17,9 +17,12 @@ public class AttackMicro {
         dmgscores = new int[7];
         for (int i = 0; i < 7; i++) {
             healscores[i] = (100 + SkillType.HEAL.getSkillEffect(i)) * 100 /
-                    (100 - SkillType.HEAL.getCooldown(i));
+                    (100 + SkillType.HEAL.getCooldown(i));
             dmgscores[i] = 2 * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100 /
-                    (100 - SkillType.ATTACK.getCooldown(i));
+                    (100 + SkillType.ATTACK.getCooldown(i));
+            
+            // System.out.println("heal (" + i + "): " + healscores[i]);
+            // System.out.println("dmg1 (" + i + "): " + dmgscores[i]);
         }
     }
 
