@@ -21,22 +21,22 @@ public class Exploration {
         if (target == null) reset();
 
         // Mine water aggressively.
-        MapLocation myloc = rc.getLocation();
-        for (Direction d: Direction.values()) {
-            if (rc.canFill(myloc.add(d))) {
-                rc.fill(myloc.add(d));
-            }
-        }
+        // MapLocation myloc = rc.getLocation();
+        // for (Direction d: Direction.values()) {
+        //     if (rc.canFill(myloc.add(d))) {
+        //         rc.fill(myloc.add(d));
+        //     }
+        // }
 
         // Seek crumbs.
         MapLocation[] crumbs = this.rc.senseNearbyCrumbs(-1);
         if (crumbs.length > 0) return crumbs[0];
 
         // Seek water.
-        MapInfo[] infos = this.rc.senseNearbyMapInfos(-1);
-        for (MapInfo m: infos) {
-            if (m.isWater()) return m.getMapLocation();
-        }
+        // MapInfo[] infos = this.rc.senseNearbyMapInfos(-1);
+        // for (MapInfo m: infos) {
+        //     if (m.isWater()) return m.getMapLocation();
+        // }
 
         // If we don't make progress reset.
         if (rc.getLocation().distanceSquaredTo(target) >= minDist) {

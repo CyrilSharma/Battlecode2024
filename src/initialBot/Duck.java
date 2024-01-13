@@ -89,12 +89,12 @@ public class Duck extends Robot {
     public boolean trainBuilder() throws GameActionException {
         for(Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
-            if(rc.canFill(rc.getLocation().add(dir))) {
+            if (rc.canFill(rc.getLocation().add(dir))) {
                 rc.fill(loc);
                 return true;
             }
         }
-        for(Direction dir : directions) {
+        for (Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
             if(rc.canDig(rc.getLocation().add(dir))) {
                 rc.dig(loc);
@@ -280,7 +280,6 @@ public class Duck extends Robot {
         FlagInfo[] flags = rc.senseNearbyFlags(2, rc.getTeam());
         if (flags.length != 0) {
             shouldbuild = true;
-            acceptabledist = 9;
         }
 
         MapLocation myloc = rc.getLocation();
@@ -288,19 +287,12 @@ public class Duck extends Robot {
         for (int i = targets.length; i-- > 0;) {
             if (myloc.distanceSquaredTo(targets[i].m) <= 9 || (rc.getCrumbs() > 1000 && myloc.distanceSquaredTo(targets[i].m) <= 16)) {
                 shouldbuild = true;
-                acceptabledist = 1;
                 break;
             }
         }
 
 
         if (!shouldbuild) return;
-        /*
-        MapInfo[] infos = rc.senseNearbyMapInfos(acceptabledist);
-        for (int i = infos.length; i-- > 0;) {
-            if (infos[i].getTrapType() != TrapType.NONE) return;
-        }
-         */
         if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
             rc.build(TrapType.EXPLOSIVE, myloc);
             return;

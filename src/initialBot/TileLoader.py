@@ -86,6 +86,7 @@ def load_tiles():
 
     for key, value in mp.items():
         cp.print(f"if (!rc.canMove({key})) {{ blocked += {hex(value)}L;}}")
+    cp.print("blocked ^= (blocked & t_water_mask0);")
 
     # Will need fancier code to support different mask sizes.
     for tile in TILES:
