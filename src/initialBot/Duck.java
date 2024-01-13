@@ -281,10 +281,27 @@ public class Duck extends Robot {
 
     void considerTrap() throws GameActionException {
         MapLocation myloc = rc.getLocation();
-        if (!rc.canBuild(TrapType.EXPLOSIVE, myloc)) return;
         RobotInfo[] enemies = rc.senseNearbyRobots(13, rc.getTeam().opponent());
-        if (enemies.length >= 12 || (rc.getLevel(SkillType.BUILD) > 4 && enemies.length >= 4)) {
-            rc.build(TrapType.EXPLOSIVE, myloc);
+        if (enemies.length >= 6 || (rc.getLevel(SkillType.BUILD) > 4 && enemies.length >= 4)) {
+            int bestd = 1 << 30;
+            MapLocation bestloc = null;
+            for (Direction d: directions) {
+                MapLocation loc = myloc.add(d);
+                if (!rc.canBuild(TrapType.EXPLOSIVE, loc)) continue;
+                int dist = 0;
+                for (RobotInfo e: enemies) {
+                    dist += loc.distanceSquaredTo(e.location);
+                }
+                if (dist < bestd) {
+                    bestd = dist;
+                    bestloc = loc;
+                }
+            }
+
+            if (bestloc == null) return;
+            if (rc.canBuild(TrapType.EXPLOSIVE, bestloc)) {
+                rc.build(TrapType.EXPLOSIVE, bestloc);
+            }
         }
     }
 
