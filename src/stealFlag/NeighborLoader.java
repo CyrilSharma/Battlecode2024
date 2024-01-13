@@ -1,4 +1,4 @@
-package defenseTest;
+package stealFlag;
 import battlecode.common.GameActionException;
 import battlecode.common.RobotInfo;
 

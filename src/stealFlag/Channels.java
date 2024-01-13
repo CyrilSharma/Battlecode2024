@@ -1,4 +1,4 @@
-package defenseTest;
+package stealFlag;
 
 public class Channels {
     static int SYMMETRY = 0;

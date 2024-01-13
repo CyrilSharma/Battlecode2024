@@ -1,4 +1,4 @@
-package defenseTest;
+package stealFlag;
 import battlecode.common.*;
 
 public class GreedyPath {

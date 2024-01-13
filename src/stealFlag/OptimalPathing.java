@@ -1,4 +1,4 @@
-package defenseTest;
+package stealFlag;
 import battlecode.common.*;
 public class OptimalPathing {
     MapTracker mt;
@@ -161,79 +161,103 @@ public class OptimalPathing {
             idx = nidx;
         }
         
-        if (rc.getMovementCooldownTurns() >= 10) return;
-        long best = back0[idx] & 0x70381c0000000L;
+        Direction bestDir = null;
+        int bestDist = -1;
+        long best = back0[idx];
         if ((best & 0x1000000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.NORTHWEST))) {
-                rc.fill(rc.getLocation().add(Direction.NORTHWEST));
-            } else {
-                rc.move(Direction.NORTHWEST); return; 
+            MapLocation loc = rc.adjacentLocation(Direction.NORTHWEST);
+            int d = target.distanceSquaredTo(loc);
+            if (bestDir == null || (d < bestDist)) {
+                bestDir = Direction.NORTHWEST;
+                bestDist = d;
             }
         }
     
 
         if ((best & 0x2000000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.NORTH))) {
-                rc.fill(rc.getLocation().add(Direction.NORTH));
-            } else {
-                rc.move(Direction.NORTH); return; 
+            MapLocation loc = rc.adjacentLocation(Direction.NORTH);
+            int d = target.distanceSquaredTo(loc);
+            if (bestDir == null || (d < bestDist)) {
+                bestDir = Direction.NORTH;
+                bestDist = d;
             }
         }
     
 
         if ((best & 0x4000000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.NORTHEAST))) {
-                rc.fill(rc.getLocation().add(Direction.NORTHEAST));
-            } else {
-                rc.move(Direction.NORTHEAST); return; 
+            MapLocation loc = rc.adjacentLocation(Direction.NORTHEAST);
+            int d = target.distanceSquaredTo(loc);
+            if (bestDir == null || (d < bestDist)) {
+                bestDir = Direction.NORTHEAST;
+                bestDist = d;
             }
         }
     
 
         if ((best & 0x20000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.EAST))) {
-                rc.fill(rc.getLocation().add(Direction.EAST));
-            } else {
-                rc.move(Direction.EAST); return; 
+            MapLocation loc = rc.adjacentLocation(Direction.EAST);
+            int d = target.distanceSquaredTo(loc);
+            if (bestDir == null || (d < bestDist)) {
+                bestDir = Direction.EAST;
+                bestDist = d;
             }
         }
     
 
         if ((best & 0x8000000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.WEST))) {
-                rc.fill(rc.getLocation().add(Direction.WEST));
-            } else {
-                rc.move(Direction.WEST); return; 
+            MapLocation loc = rc.adjacentLocation(Direction.WEST);
+            int d = target.distanceSquaredTo(loc);
+            if (bestDir == null || (d < bestDist)) {
+                bestDir = Direction.WEST;
+                bestDist = d;
             }
         }
     
 
         if ((best & 0x40000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.SOUTHWEST))) {
-                rc.fill(rc.getLocation().add(Direction.SOUTHWEST));
-            } else {
-                rc.move(Direction.SOUTHWEST); return; 
+            MapLocation loc = rc.adjacentLocation(Direction.SOUTHWEST);
+            int d = target.distanceSquaredTo(loc);
+            if (bestDir == null || (d < bestDist)) {
+                bestDir = Direction.SOUTHWEST;
+                bestDist = d;
             }
         }
     
 
         if ((best & 0x80000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.SOUTH))) {
-                rc.fill(rc.getLocation().add(Direction.SOUTH));
-            } else {
-                rc.move(Direction.SOUTH); return; 
+            MapLocation loc = rc.adjacentLocation(Direction.SOUTH);
+            int d = target.distanceSquaredTo(loc);
+            if (bestDir == null || (d < bestDist)) {
+                bestDir = Direction.SOUTH;
+                bestDist = d;
             }
         }
     
 
         if ((best & 0x100000000L) > 0) {
-            if (rc.canFill(rc.getLocation().add(Direction.SOUTHEAST))) {
-                rc.fill(rc.getLocation().add(Direction.SOUTHEAST));
-            } else {
-                rc.move(Direction.SOUTHEAST); return; 
+            MapLocation loc = rc.adjacentLocation(Direction.SOUTHEAST);
+            int d = target.distanceSquaredTo(loc);
+            if (bestDir == null || (d < bestDist)) {
+                bestDir = Direction.SOUTHEAST;
+                bestDist = d;
             }
+            
         }
     
+
+        
+        if (bestDir != null) {
+            MapLocation loc = rc.adjacentLocation(bestDir);
+            if (rc.senseMapInfo(loc).isWater()) {
+                if (rc.canFill(loc)) {
+                    rc.fill(loc);
+                }
+            } else {
+                rc.move(bestDir);
+            }
+            return;
+        }
+
 
     }
 }

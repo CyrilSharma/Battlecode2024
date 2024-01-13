@@ -1,4 +1,4 @@
-package defenseTest;
+package stealFlag;
 import java.util.Random;
 import battlecode.common.*;
 
@@ -35,9 +35,9 @@ public abstract class Robot {
 
     public void post_turn() throws GameActionException {
         sc.updateSymmetry();
-        if (rc.getRoundNum() % 50 == 0) {
-            System.out.println("Symmetry: " + sc.getSymmetry());
-        }
+        // if (rc.getRoundNum() % 50 == 0) {
+        //     System.out.println("Symmetry: " + sc.getSymmetry());
+        // }
     }
 
     abstract void run() throws GameActionException;

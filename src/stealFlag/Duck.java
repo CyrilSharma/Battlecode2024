@@ -1,6 +1,6 @@
-package defenseTest;
+package stealFlag;
 import battlecode.common.*;
-import defenseTest.Communications.AttackTarget;
+import stealFlag.Communications.AttackTarget;
 
 /*
  * in the future we may want to diversify this class into the multiple specializations.
@@ -8,29 +8,42 @@ import defenseTest.Communications.AttackTarget;
 
 public class Duck extends Robot {
     Pathing path;
-    MapLocation exploreTarget;
+    Exploration exploration;
     MapLocation target;
     AttackMicro am;
+    Heist H;
     MapLocation[] spawnCenters;
-    int lastSeen;
+    boolean heist = false;
     public Duck(RobotController rc) {
         super(rc);
         path = new Pathing(this);
+        exploration = new Exploration(this);
         am = new AttackMicro(this);
+        H = new Heist(this);
     }
 
     void run() throws GameActionException {
+        // if (rc.getRoundNum() == 300) {
+        //     rc.resign();
+        // }
         if (rc.getRoundNum() == 1) communications.establishOrder();
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
+        // if (true) {
+        //     // System.out.println("here");
+        //     // rc.setIndicatorString("adjflkasdjflsak");
+        //     path.moveTo(new MapLocation(3,3));
+        //     // return true;
+        // }
         updateFlags();
         purchaseGlobal();
         considerTrap();
-
+        if (H.needHeist()) heist = true;
         // boolean shouldheal = true;
         if (ranFlagMicro()) {}
-        else if (isBuilder() && rc.getRoundNum() > 20) trainBuilder();
+        else if (builder()) {}
         else if (am.runMicro()) {}
+        else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
@@ -38,9 +51,10 @@ public class Duck extends Robot {
 
     public boolean isBuilder() throws GameActionException {
         MapInfo mi = rc.senseMapInfo(rc.getLocation());
-        return (communications.order >= 3 && communications.order < 7 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
+        return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
     }
     public boolean trainBuilder() throws GameActionException {
+        if(!isBuilder()) return false;
         for(Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
             if(rc.canFill(rc.getLocation().add(dir))) {
@@ -58,8 +72,13 @@ public class Duck extends Robot {
         return false;
     }
 
+    public boolean builder() throws GameActionException {
+        if(isBuilder()) return trainBuilder();
+
+        return false;
+    }
+
     public boolean guardFlag() throws GameActionException {
-        /*
         if (communications.order >= 3) return false;
         //MapLocation[] fflags = communications.get_flags(true);
         if (spawnCenters == null) {
@@ -85,73 +104,34 @@ public class Duck extends Robot {
             path.moveTo(fl);
             return true;
         }
-        if(rc.getRoundNum() > 5){
-            if (rc.getLevel(SkillType.BUILD) < 4) {
-                MapLocation[] ml = rc.getAllLocationsWithinRadiusSquared(rc.getLocation(), 9);
-                int dist = 10000000;
-                MapLocation bestLoc = null;
-                for (MapLocation m : ml) if(rc.canSenseLocation(m)){
-                    MapInfo mi = rc.senseMapInfo(m);
-                    if(!mi.isSpawnZone() && !mi.isSpawnZone()) {
-                        if(rc.getLocation().distanceSquaredTo(m) < dist) {
-                            dist = rc.getLocation().distanceSquaredTo(m);
-                            bestLoc = m;
-                        }
+        if (rc.getLocation().distanceSquaredTo(fl) > 2) {
+            path.moveTo(fl);
+        }
+        else {
+            for (Direction dir : directions) {
+                MapLocation place = rc.getLocation().add(dir);
+                if (!rc.canSenseLocation(place)) continue;
+                MapInfo mi = rc.senseMapInfo(place);
+                if (mi.getTrapType() == TrapType.NONE && rc.getRoundNum() > 200) {
+                    if (rc.getCrumbs() > 1500 && place.distanceSquaredTo(fl) == 2 || place.distanceSquaredTo(fl) == 0) {
+                        if (rc.canBuild(TrapType.STUN, place)) rc.build(TrapType.STUN, place);
                     }
-                }
-                if (dist > 2) {
-                    path.moveTo(bestLoc);
-                }
-                for(Direction dir : directions) {
-                    MapLocation loc = rc.getLocation().add(dir);
-                    if(rc.canDig(rc.getLocation().add(dir))) {
-                        rc.dig(loc);
-                    }
-                    if(rc.canFill(rc.getLocation().add(dir))) {
-                        rc.fill(loc);
+                    else if (((place.x + place.y) & 1) == ((fl.x + fl.y) & 1)) {
+                        if (rc.canDig(place)) rc.dig(place);
                     }
                 }
             }
-            else {
-                if (rc.getLocation().distanceSquaredTo(fl) > 2) {
-                    path.moveTo(fl);
-                }
-                else {
-                    for (Direction dir : directions) {
-                        MapLocation place = rc.getLocation().add(dir);
-                        if (!rc.canSenseLocation(place)) continue;
-                        MapInfo mi = rc.senseMapInfo(place);
-                        if (mi.getTrapType() == TrapType.NONE) {
-                            if (place.distanceSquaredTo(fl) == 2 || place.distanceSquaredTo(fl) == 0) {
-                                if (rc.canBuild(TrapType.STUN, place)) rc.build(TrapType.STUN, place);
-                            }
-                            else if (((place.x + place.y) & 1) == ((fl.x + fl.y) & 1)) {
-                                if (rc.canDig(place)) rc.dig(place);
-                            }
-                        }
-                    }
-                    Direction df = rc.getLocation().directionTo(fl);
-                    df = df.rotateRight();
-                    if (rc.canMove(df)) rc.move(df);
-                }
-                FlagInfo[] fi = rc.senseNearbyFlags(-1);
-                for (FlagInfo ff : fi) {
-                    if (ff.getLocation().distanceSquaredTo(rc.getLocation()) <= 2) {
-                        lastSeen = rc.getRoundNum();
-                    }
-                }
-                if (rc.getRoundNum() - lastSeen > 150) communications.order = 1000;
-            }
+            Direction df = rc.getLocation().directionTo(fl);
+            df = df.rotateRight();
+            if (rc.canMove(df)) rc.move(df);
         }
         return true;
-         */
-        return false;
     }
 
     public void tryHeal() throws GameActionException {
         int besthealth = -1;
         RobotInfo bestfriend = null;
-        RobotInfo[] friends = am.friends;
+        RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
         for (int i = friends.length; i-- > 0;) {
             if ((friends[i].health > besthealth) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
@@ -165,13 +145,33 @@ public class Duck extends Robot {
     }
 
     void spawn() throws GameActionException {
+        AttackTarget[] targets = communications.getAttackTargets();
         MapLocation[] spawns = rc.getAllySpawnLocations();
-        int st = rng.nextInt(spawns.length);
-        for (int i = spawns.length; i-- > 0;) {
-            MapLocation loc = spawns[(i + st) % spawns.length];
-            if (rc.canSpawn(loc)) {
-                rc.spawn(loc);
-                break;
+        if (targets.length == 0) {
+            int st = rng.nextInt(spawns.length);
+            for (int i = spawns.length; i-- > 0;) {
+                MapLocation loc = spawns[(i + st) % spawns.length];
+                if (rc.canSpawn(loc)) {
+                    rc.spawn(loc);
+                    break;
+                }
+            }
+        } else {
+            int bestd = 1 << 30;
+            MapLocation bestloc = null;
+            for (int i = spawns.length; i-- > 0;) {
+                MapLocation loc = spawns[i];
+                for (int j = targets.length; j-- > 0;) {
+                    MapLocation tloc =  targets[j].m;
+                    int d = tloc.distanceSquaredTo(loc);
+                    if (d < bestd) {
+                        bestd = d;
+                        bestloc = loc;
+                    }
+                }
+            }
+            if (rc.canSpawn(bestloc)) {
+                rc.spawn(bestloc);
             }
         }
         mt.run();
@@ -215,33 +215,36 @@ public class Duck extends Robot {
     }
 
     void considerTrap() throws GameActionException {
+        if(rc.getLevel(SkillType.BUILD) < 6) return;
         // In the future this may have some fancier logic
         // I.e if barrier still in place, try adding traps to barrier.
-        // If attack targets are set, try adding traps near them...
-        if(rc.getLevel(SkillType.BUILD) < 6) {
-            RobotInfo[] al = rc.senseNearbyRobots(-1, rc.getTeam());
-            for (RobotInfo r : al) {
-                if (r.getBuildLevel() >= 5) return;
-            }
-        }
+        // If attack targets are set, try adding traps near them... 
+        int acceptabledist = 0;
         boolean shouldbuild = false;
+        FlagInfo[] flags = rc.senseNearbyFlags(2, rc.getTeam());
+        if (flags.length != 0) {
+            shouldbuild = true;
+            acceptabledist = 9;
+        }
+
         MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
         for (int i = targets.length; i-- > 0;) {
-            if (myloc.distanceSquaredTo(targets[i].m) <= 16) {
+            if (myloc.distanceSquaredTo(targets[i].m) <= 9) {
                 shouldbuild = true;
+                acceptabledist = 1;
                 break;
             }
         }
-        FlagInfo[] flags = rc.senseNearbyFlags(9, rc.getTeam());
-        if (flags.length != 0) shouldbuild = true;
+
+
         if (!shouldbuild) return;
-
-
-        MapInfo[] infos = rc.senseNearbyMapInfos(9);
+        /*
+        MapInfo[] infos = rc.senseNearbyMapInfos(acceptabledist);
         for (int i = infos.length; i-- > 0;) {
             if (infos[i].getTrapType() != TrapType.NONE) return;
         }
+         */
         if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
             rc.build(TrapType.EXPLOSIVE, myloc);
             return;
@@ -254,31 +257,9 @@ public class Duck extends Robot {
     }
 
     void explore() throws GameActionException {
-        // This is just here to test out pathing.
-        // We'll add some exploration logic here eventually.
-        MapLocation[] crumbs = this.rc.senseNearbyCrumbs(-1);
-        if (crumbs.length > 0) {
-            path.moveTo(crumbs[0]);
-        }
-        if (exploreTarget == null) {
-            MapLocation[] targets = {
-                new MapLocation(0, 0),
-                new MapLocation(0, rc.getMapHeight()),
-                new MapLocation(rc.getMapWidth(), 0),
-                new MapLocation(rc.getMapWidth(), rc.getMapHeight()),
-                new MapLocation(rc.getMapWidth() / 2, rc.getMapHeight() / 2)
-            };
-            int idx = rng.nextInt(targets.length);
-            exploreTarget = targets[idx];
-            if(rng.nextInt(2) == 1) {
-                exploreTarget = new MapLocation(rng.nextInt(rc.getMapWidth()), rng.nextInt(rc.getMapHeight()));
-            }
-        }
+        MapLocation exploreTarget = exploration.tryExplore();
         rc.setIndicatorString("Exploring: " + exploreTarget);
-        path.moveTo(exploreTarget);
-        if (rc.canSenseLocation(exploreTarget)) {
-            exploreTarget = null;
-        }
+        if (exploreTarget != null) path.moveTo(exploreTarget);
     }
 
     public void hunt() throws GameActionException {

@@ -1,4 +1,4 @@
-package defenseTest;
+package stealFlag;
 import battlecode.common.*;
 public class Pathing {
     MapTracker mt;
@@ -42,7 +42,7 @@ public class Pathing {
                     turnsWithoutProgress = 0;
                 } else turnsWithoutProgress++;
             }
-            if (turnsWithoutProgress >= 15) {
+            if (turnsWithoutProgress >= 11) {
                 gp.shouldBug = true;
                 turnsWithoutProgress = 0;
                 bestDistance = 0;
