@@ -1,4 +1,4 @@
-package stealFlag;
+package initialBot;
 import battlecode.common.*;
 
 public class Heist {
@@ -33,7 +33,7 @@ public class Heist {
     }
 
     public boolean needHeist() throws GameActionException {
-        if (communications.order >= 6 && communications.order <= 15 && rc.getRoundNum() % 300 <= 10) {
+        if (communications.order >= 9 && communications.order <= 15 && rc.getRoundNum() % 300 <= 10) {
             int v = rc.getRoundNum() / 300;
             goal = spawnCenters[v % 3];
             MapLocation[] fi = communications.get_flags(false);

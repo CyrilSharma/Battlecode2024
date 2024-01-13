@@ -13,12 +13,14 @@ public class Duck extends Robot {
     AttackMicro am;
     MapLocation[] spawnCenters;
     boolean putDefenses;
+    Heist H;
     int lastSeen;
     public Duck(RobotController rc) {
         super(rc);
         path = new Pathing(this);
         exploration = new Exploration(this);
         am = new AttackMicro(this);
+        H = new Heist(this);
         getSpawnCenters();
         putDefenses = false;
         lastSeen = 0;
@@ -45,6 +47,7 @@ public class Duck extends Robot {
         if (ranFlagMicro()) {}
         else if (builder()) {}
         else if (am.runMicro()) {}
+        else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
@@ -282,7 +285,7 @@ public class Duck extends Robot {
         MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
         for (int i = targets.length; i-- > 0;) {
-            if (myloc.distanceSquaredTo(targets[i].m) <= 9) {
+            if (myloc.distanceSquaredTo(targets[i].m) <= 9 || (rc.getCrumbs() > 1000 && myloc.distanceSquaredTo(targets[i].m) <= 16)) {
                 shouldbuild = true;
                 acceptabledist = 1;
                 break;
