@@ -54,15 +54,20 @@ def moveTo():
     # We could probably get away with 1 mask, if we're willing to discard squares
     # in the opposite direction of the target. We have so much bytecode tho, that I don't know
     # that this is necessary. Also, using more masks may generalize better if we ever use full-map pathing.
+
+    start = 1 << (4 * MASK_WIDTH + 4)
     loverflow = 0b111111110111111110111111110111111110111111110111111110111111110
     roverflow = 0b011111111011111111011111111011111111011111111011111111011111111
     cp.print(f"if (rc.getMovementCooldownTurns() >= 10) return;")
     cp.print(f"long loverflow = {hex(loverflow)}L;")
     cp.print(f"long roverflow = {hex(roverflow)}L;")
-    cp.print("long passible0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0);")
-    cp.print("long passible1 = ~(mt.wall_mask1 | mt.water_mask1);")
-
-    start = 1 << (4 * MASK_WIDTH + 4)
+    cp.print(f"long water_mask0 = mt.water_mask0;")
+    cp.print(f"long water_mask1 = mt.water_mask1;")
+    cp.print("long passible0 = ~(mt.adjblocked | mt.wall_mask0);")
+    cp.print("long passible1 = ~(mt.wall_mask1);")
+    cp.print("long clear0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0);")
+    cp.print("long clear1 = ~(mt.wall_mask1 | mt.water_mask1);")
+    cp.print(f"long temp = 0;")
 
     # Compute all squares we can reach in 10 iterations.
     cp.print(f"long reach0 = {start}L;")
@@ -149,11 +154,11 @@ def moveTo():
         adjacency_mask |= value
 
     # From the optimal reachable square(s) propogate backwards until you hit the start square.
+    cp.print("int idx = 0;")
     cp.print(f"long[] back0 = \u007b{', '.join(['0'] * (COST_OF_WATER + 1))}\u007d;")
     cp.print(f"long[] back1 = \u007b{', '.join(['0'] * (COST_OF_WATER + 1))}\u007d;")
     cp.print("back0[0] = targetsqrs0 & reach0;")
     cp.print("back1[0] = targetsqrs1 & reach1;")
-    cp.print("int idx = 0;")
     cp.print(f"while ((back0[idx] & {hex(adjacency_mask)}L) == 0) {{")
     with cp:
         advance_reachable2("back", True)
@@ -207,20 +212,20 @@ def advance_reachable(mask_name, walls):
     cp.print(
         f"{mask_name}1 = ({mask_name}1 | (({mask_name}1 << 1) & loverflow) | (({mask_name}1 >> 1) & roverflow));"
     )
+    cp.print(f"temp = {mask_name}0;")
     cp.print(
         f"{mask_name}0 = ({mask_name}0 | ({mask_name}0 << {MASK_WIDTH}) |"
         + f" ({mask_name}0 >> {MASK_WIDTH}) | ({mask_name}1 << {shift})){' & passible0' if walls else ''};"
     )
     cp.print(
         f"{mask_name}1 = ({mask_name}1 | ({mask_name}1 << {MASK_WIDTH}) |"
-        + f" ({mask_name}1 >> {MASK_WIDTH}) | ({mask_name}0 >> {shift})){' & passible1' if walls else ''};"
+        + f" ({mask_name}1 >> {MASK_WIDTH}) | (temp >> {shift})){' & passible1' if walls else ''};"
     )
 
 
 def advance_reachable2(mask_name, walls):
     shift = MASK_WIDTH * (MASK_HEIGHT - 1)
-    cp.print(f"int mask = 0b{'1' * int(math.log2(COST_OF_WATER + 1))};")
-    cp.print(f"int nidx = (idx + 1) & mask;")
+    cp.print(f"int nidx = (idx + 1) % {COST_OF_WATER + 1};")
     cp.print(f"long water0 = {mask_name}0[nidx];")
     cp.print(f"long water1 = {mask_name}1[nidx];")
     cp.print(
@@ -229,7 +234,7 @@ def advance_reachable2(mask_name, walls):
     cp.print(
         f"{mask_name}1[nidx] = ({mask_name}1[idx] | (({mask_name}1[idx] << 1) & loverflow) | (({mask_name}1[idx] >> 1) & roverflow));"
     )
-    cp.print(f"long temp = {mask_name}0[nidx];")
+    cp.print(f"temp = {mask_name}0[nidx];")
     cp.print(
         f"{mask_name}0[nidx] = ({mask_name}0[nidx] | ({mask_name}0[nidx] << {MASK_WIDTH}) |"
         + f" ({mask_name}0[nidx] >> {MASK_WIDTH}) | ({mask_name}1[nidx] << {shift}));"
@@ -241,16 +246,16 @@ def advance_reachable2(mask_name, walls):
 
     if walls:
         cp.print(
-            f"{mask_name}0[(idx + 3) & mask] = ({mask_name}0[nidx] & mt.water_mask0);"
+            f"{mask_name}0[(idx + {COST_OF_WATER}) % {COST_OF_WATER + 1}] = ({mask_name}0[nidx] & water_mask0);"
         )
         cp.print(
-            f"{mask_name}0[nidx] = water0 | {mask_name}0[idx] | ({mask_name}0[nidx] & passible0);"
+            f"{mask_name}0[nidx] = water0 | ({mask_name}0[nidx] & clear0);"
         )
         cp.print(
-            f"{mask_name}1[(idx + 3) & mask] = ({mask_name}1[nidx] & mt.water_mask1);"
+            f"{mask_name}1[(idx + {COST_OF_WATER}) % {COST_OF_WATER + 1}] = ({mask_name}1[nidx] & water_mask1);"
         )
         cp.print(
-            f"{mask_name}1[nidx] = water1 | {mask_name}1[idx] | ({mask_name}1[nidx] & passible1);"
+            f"{mask_name}1[nidx] = water1 | ({mask_name}1[nidx] & clear1);"
         )
 
     cp.print("idx = nidx;")

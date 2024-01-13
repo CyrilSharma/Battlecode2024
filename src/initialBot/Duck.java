@@ -13,12 +13,14 @@ public class Duck extends Robot {
     AttackMicro am;
     MapLocation[] spawnCenters;
     boolean putDefenses;
+    Heist H;
     int lastSeen;
     public Duck(RobotController rc) {
         super(rc);
         path = new Pathing(this);
         exploration = new Exploration(this);
         am = new AttackMicro(this);
+        H = new Heist(this);
         getSpawnCenters();
         putDefenses = false;
         lastSeen = 0;
@@ -45,6 +47,7 @@ public class Duck extends Robot {
         if (ranFlagMicro()) {}
         else if (builder()) {}
         else if (am.runMicro()) {}
+        else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
@@ -74,12 +77,12 @@ public class Duck extends Robot {
     public boolean trainBuilder() throws GameActionException {
         for(Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
-            if(rc.canFill(rc.getLocation().add(dir))) {
+            if (rc.canFill(rc.getLocation().add(dir))) {
                 rc.fill(loc);
                 return true;
             }
         }
-        for(Direction dir : directions) {
+        for (Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
             if(rc.canDig(rc.getLocation().add(dir))) {
                 rc.dig(loc);

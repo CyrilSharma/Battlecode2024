@@ -197,6 +197,7 @@ public class TileLoader {
         if (!rc.canMove(Direction.SOUTHWEST)) { blocked += 0x40000000L;}
         if (!rc.canMove(Direction.SOUTH)) { blocked += 0x80000000L;}
         if (!rc.canMove(Direction.SOUTHEAST)) { blocked += 0x100000000L;}
+        blocked ^= (blocked & t_water_mask0);
         mt.water_mask1 = t_water_mask1;
         mt.water_mask0 = t_water_mask0;
         mt.wall_mask1 = t_wall_mask1;
