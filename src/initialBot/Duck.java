@@ -11,6 +11,7 @@ public class Duck extends Robot {
     Exploration exploration;
     MapLocation target;
     AttackMicro am;
+    MapLocation[] spawnCenters;
     public Duck(RobotController rc) {
         super(rc);
         path = new Pathing(this);
@@ -37,17 +38,88 @@ public class Duck extends Robot {
 
         // boolean shouldheal = true;
         if (ranFlagMicro()) {}
+        else if (builder()) {}
         else if (am.runMicro()) {}
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
     }
 
+    public boolean isBuilder() throws GameActionException {
+        MapInfo mi = rc.senseMapInfo(rc.getLocation());
+        return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
+    }
+    public boolean trainBuilder() throws GameActionException {
+        if(!isBuilder()) return false;
+        for(Direction dir : directions) {
+            MapLocation loc = rc.getLocation().add(dir);
+            if(rc.canFill(rc.getLocation().add(dir))) {
+                rc.fill(loc);
+                return true;
+            }
+        }
+        for(Direction dir : directions) {
+            MapLocation loc = rc.getLocation().add(dir);
+            if(rc.canDig(rc.getLocation().add(dir))) {
+                rc.dig(loc);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean builder() throws GameActionException {
+        if(isBuilder()) return trainBuilder();
+
+        return false;
+    }
+
     public boolean guardFlag() throws GameActionException {
         if (communications.order >= 3) return false;
-        MapLocation[] fflags = communications.get_flags(true);
-        if ((communications.order < fflags.length)) {
-            path.moveTo(fflags[communications.order]);
+        //MapLocation[] fflags = communications.get_flags(true);
+        if (spawnCenters == null) {
+            spawnCenters = new MapLocation[3];
+            int ind = 0;
+            MapLocation[] sp = rc.getAllySpawnLocations();
+            for (MapLocation m : sp) {
+                int cnt = 0;
+                for (MapLocation x : sp) {
+                    if(x.isAdjacentTo(m) && !x.equals(m)) {
+                        cnt++;
+                    }
+                }
+                if (cnt == 8) spawnCenters[ind++] = m;
+                if (ind == 3) break;
+            }
+        }
+        MapLocation[] fflags = spawnCenters;
+        if(fflags.length <= communications.order) return false;
+        MapLocation fl = fflags[communications.order];
+        rc.setIndicatorString("i am defending " + fl);
+        if (rc.getLocation().distanceSquaredTo(fl) > 2) {
+            path.moveTo(fl);
+            return true;
+        }
+        if (rc.getLocation().distanceSquaredTo(fl) > 2) {
+            path.moveTo(fl);
+        }
+        else {
+            for (Direction dir : directions) {
+                MapLocation place = rc.getLocation().add(dir);
+                if (!rc.canSenseLocation(place)) continue;
+                MapInfo mi = rc.senseMapInfo(place);
+                if (mi.getTrapType() == TrapType.NONE && rc.getRoundNum() > 200) {
+                    if (rc.getCrumbs() > 1500 && place.distanceSquaredTo(fl) == 2 || place.distanceSquaredTo(fl) == 0) {
+                        if (rc.canBuild(TrapType.STUN, place)) rc.build(TrapType.STUN, place);
+                    }
+                    else if (((place.x + place.y) & 1) == ((fl.x + fl.y) & 1)) {
+                        if (rc.canDig(place)) rc.dig(place);
+                    }
+                }
+            }
+            Direction df = rc.getLocation().directionTo(fl);
+            df = df.rotateRight();
+            if (rc.canMove(df)) rc.move(df);
         }
         return true;
     }
@@ -139,6 +211,7 @@ public class Duck extends Robot {
     }
 
     void considerTrap() throws GameActionException {
+        if(rc.getLevel(SkillType.BUILD) < 6) return;
         // In the future this may have some fancier logic
         // I.e if barrier still in place, try adding traps to barrier.
         // If attack targets are set, try adding traps near them... 
@@ -162,10 +235,12 @@ public class Duck extends Robot {
 
 
         if (!shouldbuild) return;
+        /*
         MapInfo[] infos = rc.senseNearbyMapInfos(acceptabledist);
         for (int i = infos.length; i-- > 0;) {
             if (infos[i].getTrapType() != TrapType.NONE) return;
         }
+         */
         if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
             rc.build(TrapType.EXPLOSIVE, myloc);
             return;

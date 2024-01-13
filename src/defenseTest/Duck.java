@@ -29,7 +29,7 @@ public class Duck extends Robot {
 
         // boolean shouldheal = true;
         if (ranFlagMicro()) {}
-        //else if (isBuilder() && rc.getRoundNum() > 20) trainBuilder();
+        else if (isBuilder() && rc.getRoundNum() > 20) trainBuilder();
         else if (am.runMicro()) {}
         else if (guardFlag()) {}
         else seekTarget();
@@ -37,7 +37,8 @@ public class Duck extends Robot {
     }
 
     public boolean isBuilder() throws GameActionException {
-        return (communications.order >= 3 && communications.order < 8 && rc.getLevel(SkillType.BUILD) < 6);
+        MapInfo mi = rc.senseMapInfo(rc.getLocation());
+        return (communications.order >= 3 && communications.order < 7 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
     }
     public boolean trainBuilder() throws GameActionException {
         for(Direction dir : directions) {
@@ -58,6 +59,7 @@ public class Duck extends Robot {
     }
 
     public boolean guardFlag() throws GameActionException {
+        /*
         if (communications.order >= 3) return false;
         //MapLocation[] fflags = communications.get_flags(true);
         if (spawnCenters == null) {
@@ -83,8 +85,8 @@ public class Duck extends Robot {
             path.moveTo(fl);
             return true;
         }
-        if(rc.getRoundNum() > 50){
-            if (rc.getLevel(SkillType.BUILD) < 6) {
+        if(rc.getRoundNum() > 5){
+            if (rc.getLevel(SkillType.BUILD) < 4) {
                 MapLocation[] ml = rc.getAllLocationsWithinRadiusSquared(rc.getLocation(), 9);
                 int dist = 10000000;
                 MapLocation bestLoc = null;
@@ -120,19 +122,11 @@ public class Duck extends Robot {
                         if (!rc.canSenseLocation(place)) continue;
                         MapInfo mi = rc.senseMapInfo(place);
                         if (mi.getTrapType() == TrapType.NONE) {
-                            if (place.distanceSquaredTo(fl) <= 2) {
-                                if (rc.canBuild(TrapType.EXPLOSIVE, place)) rc.build(TrapType.EXPLOSIVE, place);
-                            } else {
-                                if (((place.x + place.y) & 1) == 1) {
-                                    if((((place.x + place.y) >> 1) & 1) == 1) {
-                                        if (rc.canBuild(TrapType.EXPLOSIVE, place)) rc.build(TrapType.EXPLOSIVE, place);
-                                    }
-                                    else {
-                                        if (rc.canBuild(TrapType.WATER, place)) rc.build(TrapType.WATER, place);
-                                    }
-                                } else {
-                                    if (rc.canDig(place)) rc.dig(place);
-                                }
+                            if (place.distanceSquaredTo(fl) == 2 || place.distanceSquaredTo(fl) == 0) {
+                                if (rc.canBuild(TrapType.STUN, place)) rc.build(TrapType.STUN, place);
+                            }
+                            else if (((place.x + place.y) & 1) == ((fl.x + fl.y) & 1)) {
+                                if (rc.canDig(place)) rc.dig(place);
                             }
                         }
                     }
@@ -150,6 +144,8 @@ public class Duck extends Robot {
             }
         }
         return true;
+         */
+        return false;
     }
 
     public void tryHeal() throws GameActionException {
@@ -222,14 +218,12 @@ public class Duck extends Robot {
         // In the future this may have some fancier logic
         // I.e if barrier still in place, try adding traps to barrier.
         // If attack targets are set, try adding traps near them...
-        /*
         if(rc.getLevel(SkillType.BUILD) < 6) {
             RobotInfo[] al = rc.senseNearbyRobots(-1, rc.getTeam());
             for (RobotInfo r : al) {
                 if (r.getBuildLevel() >= 5) return;
             }
         }
-         */
         boolean shouldbuild = false;
         MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
