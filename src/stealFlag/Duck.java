@@ -129,6 +129,7 @@ public class Duck extends Robot {
     }
 
     public void tryHeal() throws GameActionException {
+        if (rc.getID() % 5 == 0 && rc.getExperience(SkillType.HEAL) >= SkillType.HEAL.getExperience(4) - 5) return;
         int besthealth = -1;
         RobotInfo bestfriend = null;
         RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
