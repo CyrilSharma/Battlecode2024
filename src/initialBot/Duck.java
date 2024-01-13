@@ -289,7 +289,6 @@ public class Duck extends Robot {
                 for (RobotInfo e: enemies) {
                     dist += loc.distanceSquaredTo(e.location);
                 }
-                dist /= enemies.length;
                 if (dist < bestd) {
                     bestd = dist;
                     bestloc = loc;
