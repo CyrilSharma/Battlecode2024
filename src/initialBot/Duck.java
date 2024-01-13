@@ -184,13 +184,14 @@ public class Duck extends Robot {
     }
 
     public void tryHeal() throws GameActionException {
-        int besthealth = -1;
+        int besthealth = 1001;
         RobotInfo bestfriend = null;
         RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
         for (int i = friends.length; i-- > 0;) {
-            if ((friends[i].health > besthealth) && rc.canHeal(friends[i].location)) {
+            int score = friends[i].health - 100 * friends[i].buildLevel;
+            if ((score < besthealth) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
-                besthealth = friends[i].health;
+                besthealth = score;
             }
         }
 
