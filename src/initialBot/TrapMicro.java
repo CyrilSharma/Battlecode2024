@@ -53,7 +53,7 @@ public class TrapMicro {
         if (microtargets[7].isBetterThan(best)) best = microtargets[7];
         if (microtargets[8].isBetterThan(best)) best = microtargets[8];
 
-        if (best.enemyDamageScore >= 750 * 7) {
+        if (best.enemyDamageScore >= 500 * 5) {
             rc.build(TrapType.EXPLOSIVE, best.nloc);
         }
 
@@ -75,7 +75,7 @@ public class TrapMicro {
                 enemyDamageScore += 500;
             }
             if (dist <= 5){
-                enemyDamageScore += 200;
+                enemyDamageScore += 250;
             }
         } 
 

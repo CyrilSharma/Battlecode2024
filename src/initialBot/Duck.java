@@ -21,6 +21,7 @@ public class Duck extends Robot {
         path = new Pathing(this);
         exploration = new Exploration(this);
         am = new AttackMicro(this);
+        tm = new TrapMicro(this);
         H = new Heist(this);
         getSpawnCenters();
         putDefenses = false;
@@ -280,28 +281,33 @@ public class Duck extends Robot {
     }
 
     void considerTrap() throws GameActionException {
-        MapLocation myloc = rc.getLocation();
+        if (rc.getLevel(SkillType.BUILD) > 4) {
+            tm.placeTrap();
+            return;
+        }
+        // still have a fail-safe where regular bots can place traps
         RobotInfo[] enemies = rc.senseNearbyRobots(13, rc.getTeam().opponent());
-        if (enemies.length >= 6 || (rc.getLevel(SkillType.BUILD) > 4 && enemies.length >= 4)) {
-            int bestd = 1 << 30;
-            MapLocation bestloc = null;
-            for (Direction d: directions) {
-                MapLocation loc = myloc.add(d);
-                if (!rc.canBuild(TrapType.EXPLOSIVE, loc)) continue;
-                int dist = 0;
-                for (RobotInfo e: enemies) {
-                    dist += loc.distanceSquaredTo(e.location);
-                }
-                if (dist < bestd) {
-                    bestd = dist;
-                    bestloc = loc;
-                }
-            }
+        if (enemies.length >= 9) {
+            tm.placeTrap();
+            // int bestd = 1 << 30;
+            // MapLocation bestloc = null;
+            // for (Direction d: directions) {
+            //     MapLocation loc = myloc.add(d);
+            //     if (!rc.canBuild(TrapType.EXPLOSIVE, loc)) continue;
+            //     int dist = 0;
+            //     for (RobotInfo e: enemies) {
+            //         dist += loc.distanceSquaredTo(e.location);
+            //     }
+            //     if (dist < bestd) {
+            //         bestd = dist;
+            //         bestloc = loc;
+            //     }
+            // }
 
-            if (bestloc == null) return;
-            if (rc.canBuild(TrapType.EXPLOSIVE, bestloc)) {
-                rc.build(TrapType.EXPLOSIVE, bestloc);
-            }
+            // if (bestloc == null) return;
+            // if (rc.canBuild(TrapType.EXPLOSIVE, bestloc)) {
+            //     rc.build(TrapType.EXPLOSIVE, bestloc);
+            // }
         }
     }
 
