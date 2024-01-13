@@ -67,22 +67,10 @@ public class Duck extends Robot {
     }
 
     public boolean shouldTrainBuilder() throws GameActionException {
-        if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
         MapInfo mi = rc.senseMapInfo(rc.getLocation());
-        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 4 && !mi.isSpawnZone());
-        else if (rc.getRoundNum() > 1000) {
-            return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
-        }
-        else return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
-    }
-    public boolean isBuilder() {
-        if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
-        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) >= 4);
-        else if (rc.getRoundNum() > 1000) {
-            return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6);
-        }
-        return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) == 6);
-    }
+        return (communications.order >= 3 && communications.order < 8 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
+}
+
     public boolean trainBuilder() throws GameActionException {
         for(Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
@@ -103,13 +91,12 @@ public class Duck extends Robot {
 
     public boolean builder() throws GameActionException {
         if(shouldTrainBuilder()) return trainBuilder();
-        if (!isBuilder()) return false;
         if(!putDefenses) return putInitialDefenses();
         return false;
     }
 
     public boolean putInitialDefenses() throws GameActionException {
-        if(communications.order >= 6) {
+        if(communications.order < 3 || communications.order >= 6) {
             putDefenses = true;
             return false;
         }
@@ -268,39 +255,11 @@ public class Duck extends Robot {
     }
 
     void considerTrap() throws GameActionException {
-        if(rc.getLevel(SkillType.BUILD) < 4 || !putDefenses) return;
-        // In the future this may have some fancier logic
-        // I.e if barrier still in place, try adding traps to barrier.
-        // If attack targets are set, try adding traps near them... 
-        int acceptabledist = 0;
-        boolean shouldbuild = false;
-        FlagInfo[] flags = rc.senseNearbyFlags(2, rc.getTeam());
-        if (flags.length != 0) {
-            shouldbuild = true;
-            acceptabledist = 9;
-        }
-
         MapLocation myloc = rc.getLocation();
-        AttackTarget[] targets = communications.getAttackTargets();
-        for (int i = targets.length; i-- > 0;) {
-            if (myloc.distanceSquaredTo(targets[i].m) <= 9) {
-                shouldbuild = true;
-                acceptabledist = 1;
-                break;
-            }
-        }
-
-
-        if (!shouldbuild) return;
-        /*
-        MapInfo[] infos = rc.senseNearbyMapInfos(acceptabledist);
-        for (int i = infos.length; i-- > 0;) {
-            if (infos[i].getTrapType() != TrapType.NONE) return;
-        }
-         */
-        if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
+        if (!rc.canBuild(TrapType.EXPLOSIVE, myloc)) return;
+        RobotInfo[] enemies = rc.senseNearbyRobots(13, rc.getTeam().opponent());
+        if (enemies.length >= 12 || (rc.getLevel(SkillType.BUILD) > 4 && enemies.length >= 4)) {
             rc.build(TrapType.EXPLOSIVE, myloc);
-            return;
         }
     }
 
