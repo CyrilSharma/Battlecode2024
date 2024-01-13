@@ -28,10 +28,6 @@ public class Exploration {
         //     }
         // }
 
-        // Seek crumbs.
-        MapLocation[] crumbs = this.rc.senseNearbyCrumbs(-1);
-        if (crumbs.length > 0) return crumbs[0];
-
         // Seek water.
         // MapInfo[] infos = this.rc.senseNearbyMapInfos(-1);
         // for (MapInfo m: infos) {

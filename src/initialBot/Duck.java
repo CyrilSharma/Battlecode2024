@@ -42,6 +42,7 @@ public class Duck extends Robot {
         updateFlags();
         purchaseGlobal();
         considerTrap();
+        collectCrumbs();
 
         // boolean shouldheal = true;
         if (ranFlagMicro()) {}
@@ -51,6 +52,24 @@ public class Duck extends Robot {
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
+    }
+
+    public void collectCrumbs() throws GameActionException{
+        // Seek crumbs.
+        MapLocation[] crumbs = rc.senseNearbyCrumbs(-1);
+        int best = 0;
+        MapLocation bestLocation = null;
+        for (int i = 0; i < crumbs.length; i++) {
+            int c = rc.senseMapInfo(crumbs[i]).getCrumbs();
+            if (c > best) {
+                best = c;
+                bestLocation = crumbs[i];
+            }
+        }
+        if (bestLocation != null) {
+            path.moveTo(bestLocation);
+        }
+
     }
 
     public void getSpawnCenters() {
