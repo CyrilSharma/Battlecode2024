@@ -11,6 +11,7 @@ public class Duck extends Robot {
     Exploration exploration;
     MapLocation target;
     AttackMicro am;
+    TrapMicro tm;
     MapLocation[] spawnCenters;
     boolean putDefenses;
     Heist H;
@@ -33,18 +34,13 @@ public class Duck extends Robot {
         if (rc.getRoundNum() == 1) communications.establishOrder();
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
-        // if (true) {
-        //     // System.out.println("here");
-        //     // rc.setIndicatorString("adjflkasdjflsak");
-        //     path.moveTo(new MapLocation(3,3));
-        //     // return true;
-        // }
         updateFlags();
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
+        putInitialDefenses();
 
-        // boolean shouldheal = true;
+        // // boolean shouldheal = true;
         if (ranFlagMicro()) {}
         else if (builder()) {}
         else if (am.runMicro()) {}
@@ -91,14 +87,19 @@ public class Duck extends Robot {
     public boolean shouldTrainBuilder() throws GameActionException {
         MapInfo mi = rc.senseMapInfo(rc.getLocation());
         return (communications.order >= 3 && communications.order < 8 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
-}
+    }
 
     public boolean trainBuilder() throws GameActionException {
+        // returns true if the builder is next to water, (or will be because of digging) so that it stays there
+        boolean nextToWater = false;
         for(Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
-            if (rc.canFill(rc.getLocation().add(dir))) {
+            if (rc.canFill(loc)) {
                 rc.fill(loc);
-                return true;
+                return false;
+            } 
+            if (rc.canSenseLocation(loc) && rc.senseMapInfo(loc).isWater()) {
+                nextToWater = true;
             }
         }
         for (Direction dir : directions) {
@@ -108,17 +109,19 @@ public class Duck extends Robot {
                 return true;
             }
         }
-        return false;
+        return nextToWater;
     }
 
     public boolean builder() throws GameActionException {
-        if(shouldTrainBuilder()) return trainBuilder();
-        if(!putDefenses) return putInitialDefenses();
+        if(shouldTrainBuilder()) {
+            return trainBuilder();
+        }
         return false;
     }
 
     public boolean putInitialDefenses() throws GameActionException {
-        if(communications.order < 3 || communications.order >= 6) {
+        if (putDefenses) return true;
+        if (communications.order < 3 || communications.order >= 6) {
             putDefenses = true;
             return false;
         }
