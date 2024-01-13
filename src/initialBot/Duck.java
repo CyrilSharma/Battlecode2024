@@ -20,7 +20,7 @@ public class Duck extends Robot {
     }
 
     void run() throws GameActionException {
-        // if (rc.getRoundNum() == 300) {
+        // if (rc.getRoundNum() == 500) {
         //     rc.resign();
         // }
         if (rc.getRoundNum() == 1) communications.establishOrder();
@@ -125,17 +125,19 @@ public class Duck extends Robot {
     }
 
     public void tryHeal() throws GameActionException {
-        int besthealth = -1;
+        int bestscore = -1;
         RobotInfo bestfriend = null;
         RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
         for (int i = friends.length; i-- > 0;) {
-            if ((friends[i].health > besthealth) && rc.canHeal(friends[i].location)) {
+            int xplevel = friends[i].attackLevel + friends[i].buildLevel + friends[i].healLevel;
+            int score = xplevel + friends[i].health / 100;
+            if ((score > bestscore) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
-                besthealth = friends[i].health;
+                bestscore = friends[i].health;
             }
         }
 
-        if ((bestfriend != null) && (rc.canHeal(bestfriend.location))) {
+        if (bestfriend != null) {
             rc.heal(bestfriend.location);
         }
     }
@@ -211,40 +213,51 @@ public class Duck extends Robot {
     }
 
     void considerTrap() throws GameActionException {
-        if(rc.getLevel(SkillType.BUILD) < 6) return;
-        // In the future this may have some fancier logic
-        // I.e if barrier still in place, try adding traps to barrier.
-        // If attack targets are set, try adding traps near them... 
-        int acceptabledist = 0;
-        boolean shouldbuild = false;
-        FlagInfo[] flags = rc.senseNearbyFlags(2, rc.getTeam());
-        if (flags.length != 0) {
-            shouldbuild = true;
-            acceptabledist = 9;
-        }
-
         MapLocation myloc = rc.getLocation();
-        AttackTarget[] targets = communications.getAttackTargets();
-        for (int i = targets.length; i-- > 0;) {
-            if (myloc.distanceSquaredTo(targets[i].m) <= 9) {
-                shouldbuild = true;
-                acceptabledist = 1;
-                break;
+        if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
+            // don't build next to a wall
+            for (int i = 0; i < directions.length; i++) {
+                MapLocation loc = myloc.add(directions[i]);
+                if (rc.canSenseLocation(loc) && rc.senseMapInfo(loc).isWall()){
+                    return;
+                }
+            }
+            RobotInfo[] closeEnemies = rc.senseNearbyRobots(10, rc.getTeam().opponent());
+            // RobotInfo[] enemies = rc.senseNearbyRobots(20, rc.getTeam().opponent());
+            // RobotInfo[] friends = rc.senseNearbyRobots(20, rc.getTeam());
+            // a trap is effective when
+            // a) there are a lot of enemies nearby
+            // b) you are likely to lose the interaction/have to retreat
+            // c) you have a high builder skill level, so the trap is cheap
+            if (closeEnemies.length >= 4) { // part a
+                if (rc.getLevel(SkillType.BUILD) > 4) { // part b and c
+                    rc.build(TrapType.EXPLOSIVE, myloc);
+                }
             }
         }
+    }
 
+    int situationScore(RobotInfo[] enemies, RobotInfo[] friends) {
+        // assess how likely you are to win the interaction
+        // more positive = more likely to win
+        long enemyHealth = 0;
+        long enemyDPS = 0;
+        long friendHealth = 0;
+        long friendDPS = 0;
+        for (int i = enemies.length; i-- > 0;) {
+            enemyHealth += enemies[i].health;
+            enemyDPS += getDPS(enemies[i]);
+        }
+        for (int i = friends.length; i-- > 0;) {
+            friendHealth += friends[i].health;
+            friendDPS += getDPS(friends[i]);
+        }
+        System.out.println("length " + friends.length + " friend health: " + friendHealth + " friend dps: " + friendDPS + " enemy health: " + enemyHealth + " enemy dps: " + enemyDPS + " length" + enemies.length);
+        return (int)((float)friendHealth/(float)enemyDPS - (float)enemyHealth/(float)friendDPS);
+    }
 
-        if (!shouldbuild) return;
-        /*
-        MapInfo[] infos = rc.senseNearbyMapInfos(acceptabledist);
-        for (int i = infos.length; i-- > 0;) {
-            if (infos[i].getTrapType() != TrapType.NONE) return;
-        }
-         */
-        if (rc.canBuild(TrapType.EXPLOSIVE, myloc)) {
-            rc.build(TrapType.EXPLOSIVE, myloc);
-            return;
-        }
+    int getDPS(RobotInfo r) {
+        return am.dmgscores[r.attackLevel] * 75 / 200;
     }
 
     void seekTarget() throws GameActionException {
