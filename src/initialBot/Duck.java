@@ -127,29 +127,13 @@ public class Duck extends Robot {
     }
 
     public void tryHeal() throws GameActionException {
-        // int heal_level = rc.getLevel(SkillType.HEAL);
-        // int attack_level = rc.getLevel(SkillType.ATTACK);
-        // if ((communications.order % 5 == 0)) {
-        //     if (attack_level < 3) {
-        //         if ((heal_level == 2)) {
-        //             int xp_required = SkillType.HEAL.getExperience(3);
-        //             int xp_current = rc.getExperience(SkillType.HEAL);
-        //             if (xp_required - xp_current < 5) return;
-        //         }
-        //     }
-        // }
-        int bestscore = -1;
-        int besthealth = -1;
+        int besthealth = 1 << 30;
         RobotInfo bestfriend = null;
         RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
         for (int i = friends.length; i-- > 0;) {
-            int health = friends[i].health;
-            int score = friends[i].getAttackLevel() + friends[i].getHealLevel() + 2*friends[i].getBuildLevel();
-            if (((score > bestscore) || ((score == bestscore) && (health > besthealth)))
-                && rc.canHeal(friends[i].location)) {
+            if ((friends[i].health < besthealth) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
-                bestscore = score;
-                besthealth = health;
+                besthealth = friends[i].health;
             }
         }
 
