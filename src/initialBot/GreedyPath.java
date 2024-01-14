@@ -14,6 +14,7 @@ public class GreedyPath {
             Direction.SOUTHWEST,
             Direction.WEST,
             Direction.NORTHWEST,
+            Direction.CENTER // Just in case.
     };
 
     public GreedyPath(RobotController rc) {
