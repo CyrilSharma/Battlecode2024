@@ -1,2 +1,0 @@
-This is a spot to specify what feature you added in this bot.
-I think this will be a good organizational feature for us.

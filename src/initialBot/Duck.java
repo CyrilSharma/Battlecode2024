@@ -86,8 +86,21 @@ public class Duck extends Robot {
     }
 
     public boolean shouldTrainBuilder() throws GameActionException {
+        if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
         MapInfo mi = rc.senseMapInfo(rc.getLocation());
-        return (communications.order >= 3 && communications.order < 8 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
+        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 4 && !mi.isSpawnZone());
+        else if (rc.getRoundNum() > 1000) {
+            return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
+        }
+        else return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
+    }
+    public boolean isBuilder() {
+        if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
+        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) >= 4);
+        else if (rc.getRoundNum() > 1000) {
+            return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6);
+        }
+        return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) == 6);
     }
 
     public boolean trainBuilder() throws GameActionException {
@@ -114,9 +127,9 @@ public class Duck extends Robot {
     }
 
     public boolean builder() throws GameActionException {
-        if(shouldTrainBuilder()) {
-            return trainBuilder();
-        }
+        if(shouldTrainBuilder()) return trainBuilder();
+        if (!isBuilder()) return false;
+        if(!putDefenses) return putInitialDefenses();
         return false;
     }
 
@@ -281,7 +294,7 @@ public class Duck extends Robot {
     }
 
     void considerTrap() throws GameActionException {
-        if (rc.getLevel(SkillType.BUILD) > 4) {
+        if (rc.getLevel(SkillType.BUILD) >= 4) {
             tm.placeTrap();
             return;
         }
