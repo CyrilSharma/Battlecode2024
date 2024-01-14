@@ -195,7 +195,7 @@ def moveTo():
                 if (rc.canFill(loc)) {
                     rc.fill(loc);
                 }
-            } else {
+            } else if (rc.canMove(bestDir) {
                 rc.move(bestDir);
             }
         }
