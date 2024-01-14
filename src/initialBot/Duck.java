@@ -163,10 +163,9 @@ public class Duck extends Robot {
     }
 
     public boolean guardFlag() throws GameActionException {
-        if (communications.order >= 3) return false;
-        //MapLocation[] fflags = communications.get_flags(true);
         MapLocation[] fflags = spawnCenters;
-        if(fflags.length <= communications.order) return false;
+        if (fflags.length <= communications.order) return false;
+        if (communications.flagdead) return false;
         MapLocation fl = fflags[communications.order];
         rc.setIndicatorString("i am defending " + fl);
         RobotInfo[] r = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
@@ -214,7 +213,9 @@ public class Duck extends Robot {
                     lastSeen = rc.getRoundNum();
                 }
             }
-            if (rc.getRoundNum() - lastSeen > 150) communications.order = 1000;
+            if (rc.getRoundNum() - lastSeen > 150) {
+                communications.flagdead = true;
+            }
         }
         return true;
     }
@@ -239,7 +240,21 @@ public class Duck extends Robot {
     void spawn() throws GameActionException {
         AttackTarget[] targets = communications.getAttackTargets();
         MapLocation[] spawns = rc.getAllySpawnLocations();
-        if (targets.length == 0) {
+
+        int bestd = 1 << 30;
+        MapLocation bestloc = null;
+        for (int i = spawns.length; i-- > 0;) {
+            MapLocation loc = spawns[i];
+            for (int j = targets.length; j-- > 0;) {
+                MapLocation tloc =  targets[j].m;
+                int d = tloc.distanceSquaredTo(loc);
+                if ((d < bestd) && (rc.canSpawn(loc))) {
+                    bestd = d;
+                    bestloc = loc;
+                }
+            }
+        }
+        if ((bestloc == null) || bestd >= 144) {
             int st = rng.nextInt(spawns.length);
             for (int i = spawns.length; i-- > 0;) {
                 MapLocation loc = spawns[(i + st) % spawns.length];
@@ -248,23 +263,8 @@ public class Duck extends Robot {
                     break;
                 }
             }
-        } else {
-            int bestd = 1 << 30;
-            MapLocation bestloc = null;
-            for (int i = spawns.length; i-- > 0;) {
-                MapLocation loc = spawns[i];
-                for (int j = targets.length; j-- > 0;) {
-                    MapLocation tloc =  targets[j].m;
-                    int d = tloc.distanceSquaredTo(loc);
-                    if (d < bestd) {
-                        bestd = d;
-                        bestloc = loc;
-                    }
-                }
-            }
-            if (rc.canSpawn(bestloc)) {
-                rc.spawn(bestloc);
-            }
+        } else if (rc.canSpawn(bestloc)) {
+            rc.spawn(bestloc);
         }
         mt.run();
     }

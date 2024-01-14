@@ -3,6 +3,7 @@ import battlecode.common.*;
 
 public class Communications {
     int order;
+    boolean flagdead = false;
     RobotController rc;
     public Communications(RobotController rc) {
         this.rc = rc;
