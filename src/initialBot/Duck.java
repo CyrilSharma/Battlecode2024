@@ -39,7 +39,6 @@ public class Duck extends Robot {
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
-        putInitialDefenses();
 
         // // boolean shouldheal = true;
         if (ranFlagMicro()) {}
@@ -134,7 +133,6 @@ public class Duck extends Robot {
     }
 
     public boolean putInitialDefenses() throws GameActionException {
-        if (putDefenses) return true;
         if (communications.order < 3 || communications.order >= 6) {
             putDefenses = true;
             return false;
@@ -161,7 +159,7 @@ public class Duck extends Robot {
             }
             if(cnt == 4) putDefenses = true;
         }
-        return putDefenses;
+        return true;
     }
 
     public boolean guardFlag() throws GameActionException {
