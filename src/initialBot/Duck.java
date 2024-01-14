@@ -171,11 +171,26 @@ public class Duck extends Robot {
         if(fflags.length <= communications.order) return false;
         MapLocation fl = fflags[communications.order];
         rc.setIndicatorString("i am defending " + fl);
+        RobotInfo[] r = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
+        MapLocation closest = null;
+        int dist = 1000000;
+        for (RobotInfo rob : r) {
+            if(rob.hasFlag) {
+                if (rc.canAttack(rob.location)) rc.attack(rob.location);
+                path.moveTo(rob.location);
+                break;
+            }
+            if (rc.getLocation().distanceSquaredTo(rob.location) < dist) {
+                dist = rc.getLocation().distanceSquaredTo(rob.location);
+                closest = rob.location;
+            }
+        }
         if (rc.getLocation().distanceSquaredTo(fl) > 2) {
             path.moveTo(fl);
             return true;
         }
         else {
+            if (closest != null && rc.canAttack(closest)) rc.attack(closest);
             for (Direction dir : directions) {
                 MapLocation place = rc.getLocation().add(dir);
                 if (!rc.canSenseLocation(place)) continue;
@@ -429,8 +444,8 @@ public class Duck extends Robot {
             MapLocation myloc = rc.getLocation();
             int bestdist = 1 << 30;
             MapLocation bestloc = null;
-            MapLocation[] locs = rc.getAllySpawnLocations();
-            for (int i = Math.min(locs.length, 10); i-- > 0; ) {
+            MapLocation[] locs = spawnCenters;
+            for (int i = 3; i-- > 0; ) {
                 MapLocation m = locs[i];
                 int d = m.distanceSquaredTo(myloc);
                 if (d < bestdist) {
