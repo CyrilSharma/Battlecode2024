@@ -128,38 +128,7 @@ public class Duck extends Robot {
     public boolean builder() throws GameActionException {
         if(shouldTrainBuilder()) return trainBuilder();
         if (!isBuilder()) return false;
-        if(!putDefenses) return putInitialDefenses();
         return false;
-    }
-
-    public boolean putInitialDefenses() throws GameActionException {
-        if (communications.order < 3 || communications.order >= 6) {
-            putDefenses = true;
-            return false;
-        }
-        MapLocation g = spawnCenters[communications.order - 3];
-        if (rc.getLocation().distanceSquaredTo(g) > 0) path.moveTo(g);
-        else {
-            int cnt = 0;
-            for (Direction dir : directions) {
-                MapLocation place = rc.getLocation().add(dir);
-                if (!rc.canSenseLocation(place)) continue;
-                MapInfo mi = rc.senseMapInfo(place);
-                if (place.distanceSquaredTo(g) == 2 || place.distanceSquaredTo(g) == 0) {
-                    if (mi.getTrapType() == TrapType.STUN) cnt++;
-                }
-                if (mi.getTrapType() == TrapType.NONE) {
-                    if (place.distanceSquaredTo(g) == 2) {
-                        if (rc.canBuild(TrapType.STUN, place)) {
-                            rc.build(TrapType.STUN, place);
-                            cnt++;
-                        }
-                    }
-                }
-            }
-            if(cnt == 4) putDefenses = true;
-        }
-        return true;
     }
 
     public boolean guardFlag() throws GameActionException {
@@ -188,21 +157,6 @@ public class Duck extends Robot {
         }
         else {
             if (closest != null && rc.canAttack(closest)) rc.attack(closest);
-            for (Direction dir : directions) {
-                MapLocation place = rc.getLocation().add(dir);
-                if (!rc.canSenseLocation(place)) continue;
-                MapInfo mi = rc.senseMapInfo(place);
-                if (mi.getTrapType() == TrapType.NONE && rc.getRoundNum() > 250) {
-                    if (place.distanceSquaredTo(fl) == 2) {
-                        if (rc.canBuild(TrapType.STUN, place)) rc.build(TrapType.STUN, place);
-                    }
-                    /*
-                    else if (((place.x + place.y) & 1) == ((fl.x + fl.y) & 1) && rc.getRoundNum() < 200) {
-                        if (rc.canDig(place)) rc.dig(place);
-                    }
-                    */
-                }
-            }
             Direction df = rc.getLocation().directionTo(fl);
             df = df.rotateRight();
             if (df == Direction.CENTER) df = directions[rng.nextInt(8)];
