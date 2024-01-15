@@ -45,7 +45,8 @@ def printLoader():
 
 def load_tiles():
     cp.print(f"int diff = {-(VISION//2)};")
-    cp.print(f"int offset = mt.rc.getLocation().translate(diff, diff).hashCode();")
+    cp.print("MapLocation myloc = mt.rc.getLocation();")
+    cp.print(f"int offset = myloc.translate(diff, diff).hashCode();")
     nmasks = (VISION * VISION + BITS_PER_MASK - 1) // BITS_PER_MASK
     for tile in TILES:
         for i in range(nmasks):
@@ -53,20 +54,24 @@ def load_tiles():
     cp.print(f"long blocked = 0;")
 
     cp.print(f"MapInfo[] infos = mt.rc.senseNearbyMapInfos();")
-    cp.print("for (int j = infos.length; j-- > 0; ) {")
+    cp.print(f"for (int diffx = {-(VISION//2)}; diffx <= {(VISION//2)}; diffx++) {{")
     with cp:
-        name = "m"
-        cp.print(f"MapInfo {name} = infos[j];")
-        cp.print(f"if ({name}.isWater()) {{")
+        cp.print(f"for (int diffy = {-(VISION//2)}; diffy <= {(VISION//2)}; diffy++) {{")
         with cp:
-            tile = "water"
-            load_switch(f"t_{tile}_mask")
-        cp.print(f"}} else if ({name}.isWall()) {{")
-        with cp:
-            tile = "wall"
-            load_switch(f"t_{tile}_mask")
-        cp.print("}")
+            name = "m"
+            cp.print(f"MapLocation {name} = myloc.translate(diffx, diffy);")
+            # cp.print(f"MapInfo {name} = infos[j];")
+            cp.print(f"if (rc.canSenseLocation({name}) && rc.senseMapInfo({name}).isWater()) {{")
+            with cp:
+                tile = "water"
+                load_switch(f"t_{tile}_mask")
+            cp.print(f"}} else if (!rc.onTheMap({name}) || (rc.canSenseLocation({name}) && rc.senseMapInfo({name}).isWall())) {{")
+            with cp:
+                tile = "wall"
+                load_switch(f"t_{tile}_mask")
+            cp.print("}")
 
+        cp.print("}")
     cp.print("}")
     cp.print()
 
@@ -97,7 +102,7 @@ def load_tiles():
 
 
 def load_switch(mask):
-    cp.print("switch (m.getMapLocation().hashCode() - offset) {")
+    cp.print("switch (m.hashCode() - offset) {")
     with cp:
         for idx in range(VISION * VISION):
             y = idx // 9

@@ -37,9 +37,9 @@ public class Duck extends Robot {
         if (rc.getRoundNum() >= 1800) tryLevelUp();
         considerTrap();
         collectCrumbs();
+        builder();
 
         if (ranFlagMicro()) {}
-        else if (builder()) {}
         else if (am.runMicro()) {}
         else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
@@ -104,32 +104,26 @@ public class Duck extends Robot {
         return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) == 6);
     }
 
-    public boolean trainBuilder() throws GameActionException {
+    public void trainBuilder() throws GameActionException {
         // returns true if the builder is next to water, (or will be because of digging) so that it stays there
-        boolean nextToWater = false;
         for(Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
             if (rc.canFill(loc)) {
                 rc.fill(loc);
-            }
-            if (rc.canSenseLocation(loc) && rc.senseMapInfo(loc).isWater()) {
-                nextToWater = true;
             }
         }
         for (Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
             if(rc.canDig(rc.getLocation().add(dir))) {
                 rc.dig(loc);
-                return true;
             }
         }
-        return nextToWater;
     }
 
-    public boolean builder() throws GameActionException {
-        if(shouldTrainBuilder()) return trainBuilder();
-        if (!isBuilder()) return false;
-        return false;
+    public void builder() throws GameActionException {
+        if(shouldTrainBuilder()) {
+            trainBuilder();
+        }
     }
 
     public boolean guardFlag() throws GameActionException {

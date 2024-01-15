@@ -57,7 +57,7 @@ class SymmetryChecker {
         MapLocation s = null;
         MapLocation[] spawns = rc.getAllySpawnLocations();
         for (int i = Math.min(spawns.length, 20); i-- > 0;) {
-            if (Clock.getBytecodesLeft() < 2000) break;
+            if (Clock.getBytecodesLeft() < 3000) break;
             MapLocation m = spawns[i];
             s = getHSym(m);
             if (rc.canSenseLocation(s)) {
@@ -78,7 +78,6 @@ class SymmetryChecker {
                     status |= 4;
             }
         }
-
         MapInfo mi = null;
         MapInfo[] infos = rc.senseNearbyMapInfos();
         for (int i = infos.length; i-- > 0;) {
