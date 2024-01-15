@@ -37,6 +37,7 @@ public class Duck extends Robot {
         if (!rc.isSpawned()) return;
         updateFlags();
         purchaseGlobal();
+        if (rc.getRoundNum() >= 1800) tryLevelUp();
         considerTrap();
         collectCrumbs();
 
@@ -48,6 +49,11 @@ public class Duck extends Robot {
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
+    }
+
+    public void tryLevelUp() throws GameActionException {
+        if (rc.getLevel(SkillType.HEAL) > 3 || rc.getLevel(SkillType.ATTACK) > 3) return;
+        trainBuilder();
     }
 
     public void collectCrumbs() throws GameActionException{
@@ -109,8 +115,7 @@ public class Duck extends Robot {
             MapLocation loc = rc.getLocation().add(dir);
             if (rc.canFill(loc)) {
                 rc.fill(loc);
-                return false;
-            } 
+            }
             if (rc.canSenseLocation(loc) && rc.senseMapInfo(loc).isWater()) {
                 nextToWater = true;
             }

@@ -137,6 +137,9 @@ public class AttackMicro {
                 besthealth = enemies[i].health;
             }
         }
+        for (int i = enemies.length; i-- > 0;) {
+            if (enemies[i].hasFlag && rc.canAttack(enemies[i].location)) bestenemy = enemies[i];
+        }
         if ((bestenemy != null) && (rc.canAttack(bestenemy.location))) {
             rc.attack(bestenemy.location);
             return true;
