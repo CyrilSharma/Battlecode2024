@@ -131,36 +131,6 @@ public class Duck extends Robot {
         return false;
     }
 
-    public boolean putInitialDefenses() throws GameActionException {
-        if (communications.order < 3 || communications.order >= 6) {
-            putDefenses = true;
-            return false;
-        }
-        MapLocation g = spawnCenters[communications.order - 3];
-        if (rc.getLocation().distanceSquaredTo(g) > 0) path.moveTo(g);
-        else {
-            int cnt = 0;
-            for (Direction dir : directions) {
-                MapLocation place = rc.getLocation().add(dir);
-                if (!rc.canSenseLocation(place)) continue;
-                MapInfo mi = rc.senseMapInfo(place);
-                if (place.distanceSquaredTo(g) == 2 || place.distanceSquaredTo(g) == 0) {
-                    if (mi.getTrapType() == TrapType.STUN) cnt++;
-                }
-                if (mi.getTrapType() == TrapType.NONE) {
-                    if (place.distanceSquaredTo(g) == 2) {
-                        if (rc.canBuild(TrapType.STUN, place)) {
-                            rc.build(TrapType.STUN, place);
-                            cnt++;
-                        }
-                    }
-                }
-            }
-            if(cnt == 4) putDefenses = true;
-        }
-        return true;
-    }
-
     public boolean guardFlag() throws GameActionException {
         MapLocation[] fflags = spawnCenters;
         if (fflags.length <= communications.order) return false;
