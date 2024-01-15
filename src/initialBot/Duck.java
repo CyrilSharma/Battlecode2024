@@ -131,36 +131,6 @@ public class Duck extends Robot {
         return false;
     }
 
-    public boolean putInitialDefenses() throws GameActionException {
-        if (communications.order < 3 || communications.order >= 6) {
-            putDefenses = true;
-            return false;
-        }
-        MapLocation g = spawnCenters[communications.order - 3];
-        if (rc.getLocation().distanceSquaredTo(g) > 0) path.moveTo(g);
-        else {
-            int cnt = 0;
-            for (Direction dir : directions) {
-                MapLocation place = rc.getLocation().add(dir);
-                if (!rc.canSenseLocation(place)) continue;
-                MapInfo mi = rc.senseMapInfo(place);
-                if (place.distanceSquaredTo(g) == 2 || place.distanceSquaredTo(g) == 0) {
-                    if (mi.getTrapType() == TrapType.STUN) cnt++;
-                }
-                if (mi.getTrapType() == TrapType.NONE) {
-                    if (place.distanceSquaredTo(g) == 2) {
-                        if (rc.canBuild(TrapType.STUN, place)) {
-                            rc.build(TrapType.STUN, place);
-                            cnt++;
-                        }
-                    }
-                }
-            }
-            if(cnt == 4) putDefenses = true;
-        }
-        return true;
-    }
-
     public boolean guardFlag() throws GameActionException {
         MapLocation[] fflags = spawnCenters;
         if (fflags.length <= communications.order) return false;
@@ -450,12 +420,9 @@ public class Duck extends Robot {
             rc.pickupFlag(floc);
             communications.delete_flag(floc, false);
         } else {
-             // To prevent everyone rushing a flag at once.
-            int id = rc.getID();
-            RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
-            for (int i = friends.length; i-- > 0;) {
-                if (friends[i].ID > id) return false;
-            }
+            // RUSH THE FLAG ALL AT ONCE. 
+            MapLocation myloc = rc.getLocation();
+            if (myloc.distanceSquaredTo(floc) > 16) return false;
             path.moveTo(floc);
         }
         return true;
