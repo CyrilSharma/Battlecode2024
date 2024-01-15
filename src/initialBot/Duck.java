@@ -37,9 +37,9 @@ public class Duck extends Robot {
         if (rc.getRoundNum() >= 1800) tryLevelUp();
         considerTrap();
         collectCrumbs();
+        ranFlagMicro();
 
-        if (ranFlagMicro()) {}
-        else if (builder()) {}
+        if (builder()) {}
         else if (am.runMicro()) {}
         else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
