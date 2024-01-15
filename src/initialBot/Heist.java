@@ -33,8 +33,8 @@ public class Heist {
     }
 
     public boolean needHeist() throws GameActionException {
-        if (communications.order >= 9 && communications.order <= 15 && rc.getRoundNum() % 300 <= 10) {
-            int v = rc.getRoundNum() / 300;
+        if (communications.order >= 9 && communications.order <= 20 && rc.getRoundNum() % 200 <= 10) {
+            int v = rc.getRoundNum() / 200;
             goal = spawnCenters[v % 3];
             MapLocation[] fi = communications.get_flags(false);
             if (fi.length != 0) {
@@ -56,22 +56,22 @@ public class Heist {
             int dx = goal2.x - goal.x;
             int dy = goal2.y - goal.y;
             if(v % 2 == 0) {
-                goal1 = new MapLocation(goal.x + (dx > 0 ? -4 : 4), goal2.y + (dy > 0 ? 7 : -7));
+                goal1 = new MapLocation(goal.x, goal2.y + (dy > 0 ? 7 : -7));
             }
             else {
-                goal1 = new MapLocation(goal2.x + (dx > 0 ? 7 : -7), goal.y + (dy > 0 ? -4 : 4));
+                goal1 = new MapLocation(goal2.x + (dx > 0 ? 7 : -7), goal.y);
             }
             goal1 = new MapLocation(Math.min(rc.getMapWidth(), Math.max(0, goal1.x)), Math.min(rc.getMapHeight(), Math.max(0, goal1.y)));
             heist = true;
             cur = 0;
         }
-        if (rc.getRoundNum() % 300 > 200 || rc.hasFlag()) heist = false;
+        if (rc.getRoundNum() % 200 > (rc.getMapHeight() + rc.getMapWidth() + 20) || rc.hasFlag()) heist = false;
         return heist;
     }
 
     public void runHeist() throws GameActionException{
         rc.setIndicatorString("heisting " + goal + ", " + goal1 + ", " + goal2);
-        if (rc.getRoundNum() % 300 <= 50) path.moveTo(goal);
+        if (rc.getRoundNum() % 300 <= 30) path.moveTo(goal);
         else {
             if (cur == 0 && rc.getLocation().distanceSquaredTo(goal1) < 10) cur = 1;
             if (cur == 0) path.moveTo(goal1);
