@@ -34,22 +34,27 @@ public class Duck extends Robot {
         if (!rc.isSpawned()) return;
         updateFlags();
         purchaseGlobal();
-        if (rc.getRoundNum() >= 1800) tryLevelUp();
         considerTrap();
         collectCrumbs();
         ranFlagMicro();
 
         if (builder()) {}
         else if (am.runMicro()) {}
+        else if (tryLevelUp()) {}
         else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
     }
 
-    public void tryLevelUp() throws GameActionException {
-        if (rc.getLevel(SkillType.HEAL) > 3 || rc.getLevel(SkillType.ATTACK) > 3) return;
+    public boolean tryLevelUp() throws GameActionException {
+        if ((rc.getRoundNum() < 1800) ||
+            (rc.getLevel(SkillType.BUILD) == 6) ||
+            (rc.getLevel(SkillType.HEAL) < 3) || 
+            (rc.getLevel(SkillType.ATTACK) < 3) ||
+            (rc.getRoundNum() % 5 != 0)) return false;
         trainBuilder();
+        return true;
     }
 
     public void collectCrumbs() throws GameActionException{
@@ -322,7 +327,7 @@ public class Duck extends Robot {
                 int score = targets[i].score;
                 int d = loc.distanceSquaredTo(myloc);
                 // Find closest unmanned target.
-                if ((d < bestd)) { //  && (d < 36)) { // && (score < 5)) {
+                if ((d < bestd) && (d < 9)) { // && (score < 5)) {
                     bestd = d;
                     bestloc = loc;
                     idx = i;

@@ -36,22 +36,16 @@ public class Heist {
         if (communications.order >= 9 && communications.order <= 20 && rc.getRoundNum() % 200 <= 10) {
             int v = rc.getRoundNum() / 200;
             goal = spawnCenters[v % 3];
-            MapLocation[] fi = communications.get_flags(false);
-            if (fi.length != 0) {
-                goal2 = fi[v % fi.length];
-            }
+            MapLocation s = spawnCenters[v % 3];
+            if (sc.getSymLoc(s) != null) goal2 = sc.getSymLoc(s);
             else {
-                MapLocation s = spawnCenters[v % 3];
-                if(sc.getSymLoc(s) != null) goal2 = sc.getSymLoc(s);
-                else {
-                    int status = rc.readSharedArray(Channels.SYMMETRY);
-                    MapLocation[] pos = new MapLocation[3];
-                    int ind = 0;
-                    if ((status & 1) == 0) pos[ind++] = sc.getHSym(s);
-                    if (((status >> 1) & 1) == 0) pos[ind++] = sc.getVSym(s);
-                    if (((status >> 2) & 1) == 0) pos[ind++] = sc.getRSym(s);
-                    goal2 = pos[v % ind];
-                }
+                int status = rc.readSharedArray(Channels.SYMMETRY);
+                MapLocation[] pos = new MapLocation[3];
+                int ind = 0;
+                if ((status & 1) == 0) pos[ind++] = sc.getHSym(s);
+                if (((status >> 1) & 1) == 0) pos[ind++] = sc.getVSym(s);
+                if (((status >> 2) & 1) == 0) pos[ind++] = sc.getRSym(s);
+                goal2 = pos[v % ind];
             }
             int dx = goal2.x - goal.x;
             int dy = goal2.y - goal.y;
