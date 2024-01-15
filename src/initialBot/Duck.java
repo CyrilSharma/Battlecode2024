@@ -324,7 +324,7 @@ public class Duck extends Robot {
                 int score = targets[i].score;
                 int d = loc.distanceSquaredTo(myloc);
                 // Find closest unmanned target.
-                if ((d < bestd)) { // && (score < 5)) {
+                if ((d < bestd) && (d < 36)) { // && (score < 5)) {
                     bestd = d;
                     bestloc = loc;
                     idx = i;
@@ -337,28 +337,25 @@ public class Duck extends Robot {
             }
         }
 
+        boolean dealt_with = false;
+        FlagInfo[] nearbyflags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
+        for (FlagInfo flag: nearbyflags) {
+            if (flag.isPickedUp()) {
+                dealt_with = true;
+                break;
+            }
+        }
         MapLocation[] flags = communications.get_flags(false);
         if (flags.length != 0) {
             for (int i = flags.length; i-- > 0;) {
                 MapLocation loc = flags[i];
                 int d = loc.distanceSquaredTo(myloc);
-                if (d < bestd) {
+                if ((d < bestd) && (!dealt_with || !rc.canSenseLocation(loc))) {
                     bestd = d;
                     bestloc = loc;
                 }
             }
-            boolean dealt_with = false;
-            if (rc.canSenseLocation(bestloc)) {
-                FlagInfo[] nearbyflags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
-                for (FlagInfo flag: nearbyflags) {
-                    if (flag.getLocation() != bestloc) continue;
-                    if (flag.isPickedUp()) {
-                        dealt_with = true;
-                        break;
-                    }
-                }
-            }
-            if (!dealt_with) {
+            if (bestloc != null) {
                 rc.setIndicatorString("Hunting flag: " + bestloc);
                 return bestloc;
             }
@@ -369,13 +366,15 @@ public class Duck extends Robot {
             for (int i = Math.min(10, flags.length); i-- > 0;) {
                 MapLocation loc = flags[i];
                 int d = loc.distanceSquaredTo(myloc);
-                if (d < bestd && myloc.distanceSquaredTo(loc) > 4) {
+                if ((d < bestd) && (!dealt_with || !rc.canSenseLocation(loc))) {
                     bestd = d;
                     bestloc = loc;
                 }
             }
-            rc.setIndicatorString("Hunting Approximate flag: " + bestloc);
-            return bestloc;
+            if (bestloc != null) {
+                rc.setIndicatorString("Hunting Approximate flag: " + bestloc);
+                return bestloc;
+            }
         }
 
         if (sc.getSymmetry() != -1) {
