@@ -128,7 +128,6 @@ public class Duck extends Robot {
     public boolean builder() throws GameActionException {
         if(shouldTrainBuilder()) return trainBuilder();
         if (!isBuilder()) return false;
-        if(!putDefenses) return putInitialDefenses();
         return false;
     }
 
@@ -188,21 +187,6 @@ public class Duck extends Robot {
         }
         else {
             if (closest != null && rc.canAttack(closest)) rc.attack(closest);
-            for (Direction dir : directions) {
-                MapLocation place = rc.getLocation().add(dir);
-                if (!rc.canSenseLocation(place)) continue;
-                MapInfo mi = rc.senseMapInfo(place);
-                if (mi.getTrapType() == TrapType.NONE && rc.getRoundNum() > 250) {
-                    if (place.distanceSquaredTo(fl) == 2) {
-                        if (rc.canBuild(TrapType.STUN, place)) rc.build(TrapType.STUN, place);
-                    }
-                    /*
-                    else if (((place.x + place.y) & 1) == ((fl.x + fl.y) & 1) && rc.getRoundNum() < 200) {
-                        if (rc.canDig(place)) rc.dig(place);
-                    }
-                    */
-                }
-            }
             Direction df = rc.getLocation().directionTo(fl);
             df = df.rotateRight();
             if (df == Direction.CENTER) df = directions[rng.nextInt(8)];
