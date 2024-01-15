@@ -420,12 +420,9 @@ public class Duck extends Robot {
             rc.pickupFlag(floc);
             communications.delete_flag(floc, false);
         } else {
-             // To prevent everyone rushing a flag at once.
-            int id = rc.getID();
-            RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
-            for (int i = friends.length; i-- > 0;) {
-                if (friends[i].ID > id) return false;
-            }
+            // RUSH THE FLAG ALL AT ONCE. 
+            MapLocation myloc = rc.getLocation();
+            if (myloc.distanceSquaredTo(floc) > 16) return false;
             path.moveTo(floc);
         }
         return true;
