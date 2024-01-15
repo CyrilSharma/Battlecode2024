@@ -29,9 +29,6 @@ public class Duck extends Robot {
     }
 
     void run() throws GameActionException {
-        // if (rc.getRoundNum() == 300) {
-        //     rc.resign();
-        // }
         if (rc.getRoundNum() == 1) communications.establishOrder();
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
@@ -41,7 +38,6 @@ public class Duck extends Robot {
         considerTrap();
         collectCrumbs();
 
-        // // boolean shouldheal = true;
         if (ranFlagMicro()) {}
         else if (builder()) {}
         else if (am.runMicro()) {}
@@ -238,7 +234,7 @@ public class Duck extends Robot {
                 if (!rc.canSenseLocation(locs[i])) continue;
                 boolean found = false;
                 for (int j = flags.length; j-- > 0;) {
-                    if (flags[j].getLocation() == locs[i]) {
+                    if (flags[j].getLocation().equals(locs[i])) {
                         found = true;
                         break;
                     }
@@ -248,7 +244,9 @@ public class Duck extends Robot {
                 }
             }
             for (int j = flags.length; j-- > 0;) {
-                communications.log_flag(flags[j].getLocation(), friendly);
+                MapLocation floc = flags[j].getLocation();
+                if (!friendly && flags[j].isPickedUp()) continue;
+                communications.log_flag(floc, friendly);
             }
         }
     }
@@ -324,7 +322,7 @@ public class Duck extends Robot {
                 int score = targets[i].score;
                 int d = loc.distanceSquaredTo(myloc);
                 // Find closest unmanned target.
-                if ((d < bestd) && (d < 36)) { // && (score < 5)) {
+                if ((d < bestd)) { //  && (d < 36)) { // && (score < 5)) {
                     bestd = d;
                     bestloc = loc;
                     idx = i;
@@ -398,6 +396,8 @@ public class Duck extends Robot {
             // Not sure how well this works. Ideally we just move directly
             // Towards friendly territory.
             MapLocation myloc = rc.getLocation();
+            // Stop things from swarming around me.
+            communications.delete_flag(myloc, false);
             int bestdist = 1 << 30;
             MapLocation bestloc = null;
             MapLocation[] locs = spawnCenters;

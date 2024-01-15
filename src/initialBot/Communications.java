@@ -48,9 +48,7 @@ public class Communications {
             locs[ctr++] = dehashLocation(data);
         }
         MapLocation[] trim = new MapLocation[ctr];
-        for (int i = ctr; i-- > 0;) {
-            trim[i] = locs[i];
-        }
+        while (ctr-- > 0) trim[ctr] = locs[ctr];
         return trim;
     }
 
@@ -65,9 +63,7 @@ public class Communications {
         }
 
         AttackTarget[] trim = new AttackTarget[ctr];
-        for (int i = ctr; i-- > 0;) {
-            trim[i] = targets[i];
-        }
+        while (ctr-- > 0) trim[ctr] = targets[ctr];
         return trim;
     }
 
