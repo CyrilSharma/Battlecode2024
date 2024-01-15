@@ -74,7 +74,7 @@ public class AttackMicro {
         int iters = 0;
         RobotInfo[] robots = friends;
         for (int i = robots.length; i-- > 0;) {
-            if (Clock.getBytecodesLeft() < 2500) break;
+            if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
             microtargets[0].addAlly(r);
             microtargets[1].addAlly(r);
@@ -90,7 +90,7 @@ public class AttackMicro {
 
         robots = enemies;
         for (int i = robots.length; i-- > 0;) {
-            if (Clock.getBytecodesLeft() < 2500) break;
+            if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
             microtargets[0].addEnemy(r);
             microtargets[1].addEnemy(r);
