@@ -52,7 +52,7 @@ public class Duck extends Robot {
             (rc.getLevel(SkillType.BUILD) == 6) ||
             (rc.getLevel(SkillType.HEAL) < 3) || 
             (rc.getLevel(SkillType.ATTACK) < 3) ||
-            (rc.getRoundNum() % 5 != 0)) return false;
+            (rc.getRoundNum() % 20 != 0)) return false;
         trainBuilder();
         return true;
     }
