@@ -1,4 +1,4 @@
-package initialBot;
+package jan14;
 import battlecode.common.*;
 
 public class AttackMicro {
@@ -20,6 +20,9 @@ public class AttackMicro {
                     (100 + SkillType.HEAL.getCooldown(i));
             dmgscores[i] = 2 * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100 /
                     (100 + SkillType.ATTACK.getCooldown(i));
+            
+            // System.out.println("heal (" + i + "): " + healscores[i]);
+            // System.out.println("dmg1 (" + i + "): " + dmgscores[i]);
         }
     }
 
