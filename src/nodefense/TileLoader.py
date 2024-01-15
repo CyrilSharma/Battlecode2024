@@ -27,7 +27,7 @@ cp = ClassPrinter()
 
 
 def printLoader():
-    cp.print("package initialBot;")
+    cp.print("package nodefense;")
     cp.print("import battlecode.common.*;")
     cp.print(f"public class {CLASS_NAME} {{")
     with cp:
