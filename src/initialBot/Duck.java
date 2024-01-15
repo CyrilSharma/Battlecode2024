@@ -422,7 +422,7 @@ public class Duck extends Robot {
         } else {
             // RUSH THE FLAG ALL AT ONCE. 
             MapLocation myloc = rc.getLocation();
-            if (myloc.distanceSquaredTo(floc) > 16) return false;
+            if (myloc.distanceSquaredTo(floc) > 9) return false;
             path.moveTo(floc);
         }
         return true;

@@ -8,6 +8,7 @@ public class AttackMicro {
     RobotInfo[] friends = null;
     RobotInfo[] enemies = null;
     Communications comms;
+    MapTracker mt;
     int[] healscores;
     int[] dmgscores;
     public AttackMicro(Robot r) {
@@ -21,6 +22,7 @@ public class AttackMicro {
             dmgscores[i] = 2 * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100 /
                     (100 + SkillType.ATTACK.getCooldown(i));
         }
+        this.mt = r.mt;
     }
 
     public boolean runMicro() throws GameActionException {
@@ -48,7 +50,6 @@ public class AttackMicro {
     }
 
     void maneuver() throws GameActionException {
-        rc.setIndicatorString("Maneuvering");
         while (tryAttack()) ;
 
         canAttack = rc.isActionReady();
@@ -103,6 +104,9 @@ public class AttackMicro {
             iters++;
         }
 
+        // microtargets[0].displayHitMask();
+        // microtargets[0].displayHitMask();
+
         // Needs 1k Bytecode.
         MicroTarget best = microtargets[0];
         if (microtargets[1].isBetterThan(best)) best = microtargets[1];
@@ -119,7 +123,7 @@ public class AttackMicro {
             friends = rc.senseNearbyRobots(-1, myteam);
             enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
-        rc.setIndicatorString("ITERS: " + iters);
+        rc.setIndicatorString("Iters: " + iters);
         while (tryAttack()) ;
     }
 
@@ -142,6 +146,11 @@ public class AttackMicro {
 
     // Choose best candidate for maneuvering in close encounters.
     class MicroTarget {
+        // Debugging purposes only.
+        // long hits0 = 0;
+        // long hits1 = 0;
+        long close0 = 0;
+        long close1 = 0;
         int minDistToEnemy = 100000;
         int minDistToAlly = 100000;
         int healAttackRange = 0;
@@ -150,12 +159,69 @@ public class AttackMicro {
         boolean canMove;
         int canLandHit;
         MapLocation nloc;
+        MapLocation bl;
         Direction dir;
 
         MicroTarget(Direction dir) throws GameActionException {
-            nloc = rc.getLocation().add(dir);
+            MapLocation myloc = rc.getLocation();
+            nloc = myloc.add(dir);
+            bl = myloc.translate(-4, -4);
             canMove = rc.canMove(dir);
             this.dir = dir;
+            computeHitMask();
+        }
+
+        void displayHitMask() throws GameActionException {
+            rc.setIndicatorString("HitMask for " + dir);
+            Util.displayMask(rc, close0, close1);
+            // Util.displayMask(rc, hits0, hits1);
+            rc.setIndicatorDot(nloc, 255, 165, 0);
+        }
+
+        // It's not too much overhead I promise.
+        void computeHitMask() throws GameActionException {
+            long action0 = 0b000010000000111000001111100000111000000010000000000000000000000L;
+            long action1 = 0;
+            switch (dir) {
+                case NORTHEAST:     action0 <<= 10; action1 = 0b000001000; break;
+                case NORTH:         action0 <<= 9;  action1 = 0b000010000; break;
+                case NORTHWEST:     action0 <<= 8;  action1 = 0b000100000; break;
+                case EAST:          action0 <<= 1;  break;
+                case CENTER:        break;
+                case WEST:          action0 >>= 1;  break;
+                case SOUTHEAST:     action0 >>= 8;  break;
+                case SOUTH:         action0 >>= 9;  break;
+                case SOUTHWEST:     action0 >>= 10; break;
+            }
+
+            long passible0 = ~(mt.wall_mask0 | mt.water_mask0);
+            long passible1 = ~(mt.wall_mask1 | mt.water_mask1);
+            long loverflow = 0x7fbfdfeff7fbfdfeL;
+            long roverflow = 0x3fdfeff7fbfdfeffL;            
+            long t_close0 = (action0 & passible0);
+            long t_close1 = (action1 & passible1);;
+            long temp = 0;
+            for (int i = 1; i-- > 0;) {
+                t_close0 = (t_close0 | ((t_close0 << 1) & loverflow) | ((t_close0 >> 1) & roverflow));
+                t_close1 = (t_close1 | ((t_close1 << 1) & loverflow) | ((t_close1 >> 1) & roverflow));
+                temp = t_close0;
+                t_close0 = (t_close0 | (t_close0 << 9) | (t_close0 >> 9) | (t_close1 << 54)) & passible0;
+                t_close1 = (t_close1 | (t_close1 << 9) | (t_close1 >> 9) | (temp >> 54)) & passible1;
+            }
+            close0 = t_close0;
+            close1 = t_close1;
+        }
+
+        boolean canHitSoon(MapLocation loc) throws GameActionException {
+            int idx = (9 * (loc.y - bl.y)) + (loc.x - bl.x);
+            if (idx >= 63) {
+                // hits1 |= (close1 & (1L << (idx - 63)));
+                return ((close1 & (1L << (idx - 63))) != 0);
+            }
+            else {
+                // hits0 |= (close0 & (1L << idx));
+                return ((close0 & (1L << idx)) != 0);
+            }
         }
         
         void addEnemy(RobotInfo r) throws GameActionException {
@@ -168,9 +234,8 @@ public class AttackMicro {
 
             int dmg = dmgscores[r.attackLevel];
             if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) dmgAttackRange += dmg;
-            if (dist <= GameConstants.VISION_RADIUS_SQUARED) dmgVisionRange += dmg;            
-        } 
-
+            if (canHitSoon(r.location)) dmgVisionRange += dmg;            
+        }
         
         void addAlly(RobotInfo r) throws GameActionException {
             if (!canMove) return;
