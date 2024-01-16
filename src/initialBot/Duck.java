@@ -427,10 +427,21 @@ public class Duck extends Robot {
             rc.pickupFlag(floc);
             communications.delete_flag(floc, false);
         } else {
-            // RUSH THE FLAG ALL AT ONCE. 
-            MapLocation myloc = rc.getLocation();
-            if (myloc.distanceSquaredTo(floc) > 9) return false;
-            path.moveTo(floc);
+            if (rc.getRoundNum() % 50 < 20) {
+                // RUSH THE FLAG ALL AT ONCE.
+                MapLocation myloc = rc.getLocation();
+                if (myloc.distanceSquaredTo(floc) > 9) return false;
+                path.moveTo(floc);
+            }
+            else {
+                //only one guy go
+                int id = rc.getID();
+                RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
+                for (int i = friends.length; i-- > 0;) {
+                    if (friends[i].ID > id) return false;
+                }
+                path.moveTo(floc);
+            }
         }
         return true;
     }
