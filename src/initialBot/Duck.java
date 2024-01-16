@@ -297,28 +297,7 @@ public class Duck extends Robot {
     }
 
     public MapLocation getHuntTarget() throws GameActionException {
-        int bestd = 1 << 30;
-        MapLocation bestloc = null;
-        MapLocation myloc = rc.getLocation();
-        AttackTarget[] targets = communications.getAttackTargets();
-        if (targets.length != 0) {
-            int idx = -1;
-            for (int i = targets.length; i-- > 0;) {
-                MapLocation loc = targets[i].m;
-                int d = loc.distanceSquaredTo(myloc);
-                if ((d < bestd) && (d < 9)) { // && (score < 5)) {
-                    bestd = d;
-                    bestloc = loc;
-                    idx = i;
-                }
-            }
-            if (bestloc != null) {
-                rc.setIndicatorString("Hunting enemy: " + bestloc);
-                communications.markAttackTarget(idx);
-                return bestloc;
-            }
-        }
-
+        // Assume I can only see one enemy flag bc im lazy.
         boolean dealt_with = false;
         FlagInfo[] nearbyflags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
         for (FlagInfo flag: nearbyflags) {
@@ -327,71 +306,94 @@ public class Duck extends Robot {
                 break;
             }
         }
+
+        MapLocation myloc = rc.getLocation();
+        MapLocation bestflagloc = null;
         MapLocation[] flags = communications.get_flags(false);
         if (flags.length != 0) {
+            int bestd = 1 << 30;
             for (int i = flags.length; i-- > 0;) {
                 MapLocation loc = flags[i];
                 int d = loc.distanceSquaredTo(myloc);
                 if ((d < bestd) && (!dealt_with || !rc.canSenseLocation(loc))) {
                     bestd = d;
-                    bestloc = loc;
+                    bestflagloc = loc;
                 }
-            }
-            if (bestloc != null) {
-                rc.setIndicatorString("Hunting flag: " + bestloc);
-                return bestloc;
             }
         }
 
         flags = rc.senseBroadcastFlagLocations();
-        if (flags.length != 0) {
+        if ((bestflagloc == null) && (flags.length != 0)) {
+            int bestd = 1 << 30;
             for (int i = Math.min(10, flags.length); i-- > 0;) {
                 MapLocation loc = flags[i];
                 int d = loc.distanceSquaredTo(myloc);
                 if ((d < bestd) && (!dealt_with || !rc.canSenseLocation(loc))) {
                     bestd = d;
-                    bestloc = loc;
+                    bestflagloc = loc;
                 }
-            }
-            if (bestloc != null) {
-                rc.setIndicatorString("Hunting Approximate flag: " + bestloc);
-                return bestloc;
             }
         }
 
-        if (sc.getSymmetry() != -1) {
-            MapLocation[] allies = rc.getAllySpawnLocations();
-            for (int i = Math.min(10, allies.length); i-- > 0;) {
-                MapLocation loc = sc.getSymLoc(allies[i]);
+        if ((bestflagloc == null) && (sc.getSymmetry() != -1)) {
+            int bestd = 1 << 30;
+            for (int i = 3; i-- > 0;) {
+                MapLocation loc = sc.getSymLoc(spawnCenters[i]);
                 int d = loc.distanceSquaredTo(myloc);
-                if (d < bestd) {
+                if ((d < bestd) && (!rc.canSenseLocation(loc))) {
                     bestd = d;
-                    bestloc = loc;
+                    bestflagloc = loc;
                 }
             }
-            return bestloc;
         }
-
-        // When we capture all flags this actually happens pretty frequently.
-        // Especially considering we're ignoring attack targets now.
-        if (targets.length != 0) {
-            int idx = -1;
+        
+        MapLocation bestTarget = null;
+        AttackTarget[] targets = communications.getAttackTargets();
+        if ((targets.length != 0) && (bestflagloc != null)) {
+            // Solve a linear system to determine
+            // The perpendicular and parallel components of the target,
+            // Relative to the flaglocation.
+            // F points forward, to bestflagloc
+            // P points perpendicular to bestflagloc
+            // T points to the target
+            // pcomp is the component of V aligned with P
+            // fcomp is the component of V aligned with F
+            int bestf = 1 << 30;
+            int Fx = bestflagloc.x - myloc.x;
+            int Fy = bestflagloc.y - myloc.y;
+            int Fm = (int) Math.sqrt(Fx*Fx + Fy*Fy);
+            int Px = -Fy;
+            int Py = Fx;
+            int Pm = (int) Math.sqrt(Px*Px + Py*Py);
+            int det = Px*Fy - Py*Fx;
+            for (int i = targets.length; i-- > 0;) {
+                MapLocation loc = targets[i].m;
+                int Tx = loc.x - myloc.x;
+                int Ty = loc.y - myloc.y;
+                int pcomp = ((Tx*Fy - Ty*Fx) * Pm) / det;
+                int fcomp = ((Px*Ty - Py*Tx) * Fm) / det;
+                if ((fcomp < bestf) && (pcomp < 5)) {
+                    bestf = fcomp;
+                    bestTarget = loc;
+                }
+            }
+            rc.setIndicatorString("Hunting Lane Target: " + bestTarget);
+            return bestTarget;
+        } else if ((targets.length != 0)) {
+            int bestd = 1 << 30;
             for (int i = targets.length; i-- > 0;) {
                 MapLocation loc = targets[i].m;
                 int d = loc.distanceSquaredTo(myloc);
                 if (d < bestd) {
                     bestd = d;
-                    bestloc = loc;
-                    idx = i;
+                    bestTarget = loc;
                 }
             }
-            if (bestloc != null) {
-                rc.setIndicatorString("Hunting enemy: " + bestloc);
-                communications.markAttackTarget(idx);
-                return bestloc;
-            }
+            rc.setIndicatorString("Hunting Target: " + bestTarget);
+            return bestTarget;
         }
-        return null;
+        rc.setIndicatorString("Hunting Flag: " + bestflagloc);
+        return bestflagloc;
     }
 
     public boolean ranFlagMicro() throws GameActionException {
