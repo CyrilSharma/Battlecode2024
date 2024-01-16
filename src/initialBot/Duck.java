@@ -12,8 +12,9 @@ public class Duck extends Robot {
     MapLocation target;
     AttackMicro am;
     TrapMicro tm;
+    int spawnCenterIdx = 0;
     MapLocation[] spawnCenters;
-    boolean putDefenses;
+    MapLocation[] targetCenters;
     Heist H;
     int lastSeen;
     public Duck(RobotController rc) {
@@ -24,12 +25,12 @@ public class Duck extends Robot {
         tm = new TrapMicro(this);
         H = new Heist(this);
         getSpawnCenters();
-        putDefenses = false;
         lastSeen = 0;
     }
 
     void run() throws GameActionException {
         if (rc.getRoundNum() == 1) communications.establishOrder();
+        if (rc.getRoundNum() == GameConstants.SETUP_ROUNDS - 40)  computeTargetCenters();
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
         updateFlags();
@@ -45,6 +46,48 @@ public class Duck extends Robot {
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
+    }
+
+    // Compute the optimal matching spawn for each robot.
+    public void computeTargetCenters() throws GameActionException {
+        int d = 1 << 30;
+        int bestd = 1 << 30;
+        int bestidx = -1;
+
+        int s = 0;
+        int status = rc.readSharedArray(Channels.SYMMETRY);
+        if ((status & 1) == 0) s = 0;
+        else if ((status & 2) == 0) s = 1;
+        else if ((status & 4) == 0) s = 2;
+
+        targetCenters = new MapLocation[3];
+        if ((d = computeTargetDist(0, 1, 2, s)) < bestd) { bestd = d; bestidx = 0; }
+        if ((d = computeTargetDist(0, 2, 1, s)) < bestd) { bestd = d; bestidx = 1; }
+        if ((d = computeTargetDist(1, 0, 2, s)) < bestd) { bestd = d; bestidx = 2; }
+        if ((d = computeTargetDist(1, 2, 0, s)) < bestd) { bestd = d; bestidx = 3; }
+        if ((d = computeTargetDist(2, 0, 1, s)) < bestd) { bestd = d; bestidx = 4; }
+        if ((d = computeTargetDist(2, 1, 0, s)) < bestd) { bestd = d; bestidx = 5; }
+        switch (bestidx) {
+            case 0: saveAssignment(0, 1, 2, s); return;
+            case 1: saveAssignment(0, 2, 1, s); return;
+            case 2: saveAssignment(1, 0, 2, s); return;
+            case 3: saveAssignment(1, 2, 0, s); return;
+            case 4: saveAssignment(2, 0, 1, s); return;
+            case 5: saveAssignment(2, 1, 0, s); return;
+        }
+    }
+
+    public int computeTargetDist(int x, int y, int z, int s) throws GameActionException {
+        int dist = sc.getSymLoc(spawnCenters[x], s).distanceSquaredTo(spawnCenters[0]);
+        dist = Math.max(dist, sc.getSymLoc(spawnCenters[y], s).distanceSquaredTo(spawnCenters[1]));
+        dist = Math.max(dist, sc.getSymLoc(spawnCenters[z], s).distanceSquaredTo(spawnCenters[2]));
+        return dist;
+    }
+
+    public void saveAssignment(int x, int y, int z, int s) throws GameActionException {
+        targetCenters[0] = sc.getSymLoc(spawnCenters[x], s);
+        targetCenters[1] = sc.getSymLoc(spawnCenters[y], s);
+        targetCenters[2] = sc.getSymLoc(spawnCenters[z], s);
     }
 
     public boolean tryLevelUp() throws GameActionException {
@@ -94,19 +137,20 @@ public class Duck extends Robot {
     public boolean shouldTrainBuilder() throws GameActionException {
         if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
         MapInfo mi = rc.senseMapInfo(rc.getLocation());
-        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 4 && !mi.isSpawnZone());
-        else if (rc.getRoundNum() > 1000) {
-            return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
-        }
-        else return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
+        int order = communications.order;
+        int level = rc.getLevel(SkillType.BUILD);
+        if (rc.getRoundNum() < 300) return (order >= 3 && order < 6 && level < 4 && !mi.isSpawnZone());
+        else if (rc.getRoundNum() > 1000) return (order >= 3 && order < 9 && level < 6 && !mi.isSpawnZone());
+        else return (order >= 3 && order < 6 && level < 6 && !mi.isSpawnZone());
     }
+
     public boolean isBuilder() {
         if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
-        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) >= 4);
-        else if (rc.getRoundNum() > 1000) {
-            return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6);
-        }
-        return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) == 6);
+        int order = communications.order;
+        int level = rc.getLevel(SkillType.BUILD);
+        if (rc.getRoundNum() < 300) return (order >= 3 && order < 6 && level >= 4);
+        else if (rc.getRoundNum() > 1000) return (order >= 3 && order < 9 && level < 6);
+        return (order >= 3 && order < 6 && level == 6);
     }
 
     public boolean trainBuilder() throws GameActionException {
@@ -219,11 +263,15 @@ public class Duck extends Robot {
             for (int i = spawns.length; i-- > 0;) {
                 MapLocation loc = spawns[(i + st) % spawns.length];
                 if (rc.canSpawn(loc)) {
-                    rc.spawn(loc);
+                    bestloc = loc;
                     break;
                 }
             }
-        } else if (rc.canSpawn(bestloc)) {
+        }
+        if ((bestloc != null) && rc.canSpawn(bestloc)) {
+            if (spawnCenters[0].distanceSquaredTo(bestloc) < 4) spawnCenterIdx = 0;
+            else if (spawnCenters[1].distanceSquaredTo(bestloc) < 4) spawnCenterIdx = 1;
+            else if (spawnCenters[2].distanceSquaredTo(bestloc) < 4) spawnCenterIdx = 2;
             rc.spawn(bestloc);
         }
         mt.run();
@@ -297,59 +345,39 @@ public class Duck extends Robot {
     }
 
     public MapLocation getHuntTarget() throws GameActionException {
-        // Assume I can only see one enemy flag bc im lazy.
-        boolean dealt_with = false;
-        FlagInfo[] nearbyflags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
-        for (FlagInfo flag: nearbyflags) {
-            if (flag.isPickedUp()) {
-                dealt_with = true;
-                break;
-            }
-        }
-
         MapLocation myloc = rc.getLocation();
-        MapLocation bestflagloc = null;
-        MapLocation[] flags = communications.get_flags(false);
-        if (flags.length != 0) {
-            int bestd = 1 << 30;
-            for (int i = flags.length; i-- > 0;) {
-                MapLocation loc = flags[i];
-                int d = loc.distanceSquaredTo(myloc);
-                if ((d < bestd) && (!dealt_with || !rc.canSenseLocation(loc))) {
-                    bestd = d;
-                    bestflagloc = loc;
-                }
-            }
-        }
+        MapLocation bestflagloc = targetCenters[spawnCenterIdx];
+        // TODO: some condition for marking flags dead so we can avoid going here when it's dead.
 
-        flags = rc.senseBroadcastFlagLocations();
-        if ((bestflagloc == null) && (flags.length != 0)) {
-            int bestd = 1 << 30;
-            for (int i = Math.min(10, flags.length); i-- > 0;) {
-                MapLocation loc = flags[i];
-                int d = loc.distanceSquaredTo(myloc);
-                if ((d < bestd) && (!dealt_with || !rc.canSenseLocation(loc))) {
-                    bestd = d;
-                    bestflagloc = loc;
-                }
-            }
-        }
+        // MapLocation[] flags = communications.get_flags(false);
+        // if (flags.length != 0) {
+        //     for (int i = flags.length; i-- > 0;) {
+        //         MapLocation loc = flags[i];
+        //         int d = loc.distanceSquaredTo(myloc);
+        //         if ((d < bestd) && (!dealt_with || !rc.canSenseLocation(loc))) {
+        //             bestd = d;
+        //             bestflagloc = loc;
+        //         }
+        //     }
+        // }
 
-        if ((bestflagloc == null) && (sc.getSymmetry() != -1)) {
-            int bestd = 1 << 30;
-            for (int i = 3; i-- > 0;) {
-                MapLocation loc = sc.getSymLoc(spawnCenters[i]);
-                int d = loc.distanceSquaredTo(myloc);
-                if ((d < bestd) && (!rc.canSenseLocation(loc))) {
-                    bestd = d;
-                    bestflagloc = loc;
-                }
-            }
-        }
+        // flags = rc.senseBroadcastFlagLocations();
+        // if ((flags.length != 0)) {
+        //     for (int i = Math.min(10, flags.length); i-- > 0;) {
+        //         MapLocation loc = flags[i];
+        //         int d = loc.distanceSquaredTo(myloc);
+        //         if ((d < bestd) && (!dealt_with || !rc.canSenseLocation(loc))) {
+        //             bestd = d;
+        //             bestflagloc = loc;
+        //         }
+        //     }
+        // }
         
         MapLocation bestTarget = null;
         AttackTarget[] targets = communications.getAttackTargets();
-        if ((targets.length != 0) && (bestflagloc != null)) {
+        if ((targets.length != 0) &&
+            (bestflagloc != null) &&
+            (myloc.distanceSquaredTo(bestflagloc) > 144)) {
             // Solve a linear system to determine
             // The perpendicular and parallel components of the target,
             // Relative to the flaglocation.
@@ -372,20 +400,25 @@ public class Duck extends Robot {
                 int Ty = loc.y - myloc.y;
                 int pcomp = ((Tx*Fy - Ty*Fx) * Pm) / det;
                 int fcomp = ((Px*Ty - Py*Tx) * Fm) / det;
-                if ((fcomp < bestf) && (pcomp < 5)) {
+                if (((fcomp >= 0) && (fcomp < bestf) && (fcomp <= 10)) &&
+                    ((pcomp <= 3) && (pcomp >= -3))) {
                     bestf = fcomp;
                     bestTarget = loc;
+                    rc.setIndicatorString("Lane Target: " + bestTarget + " f: " + fcomp + " | " + " p: " + pcomp);
                 }
             }
-            rc.setIndicatorString("Hunting Lane Target: " + bestTarget);
-            return bestTarget;
-        } else if ((targets.length != 0)) {
-            int bestd = 1 << 30;
+            if (bestTarget != null) {
+                rc.setIndicatorLine(myloc, bestflagloc, 0, 255, 0);
+                rc.setIndicatorLine(myloc, bestTarget, 0, 0, 255);
+                return bestTarget;
+            }
+        } else if ((targets.length != 0) && (bestflagloc == null)) {
+            int bestdist = 1 << 30;
             for (int i = targets.length; i-- > 0;) {
                 MapLocation loc = targets[i].m;
                 int d = loc.distanceSquaredTo(myloc);
-                if (d < bestd) {
-                    bestd = d;
+                if (d < bestdist) {
+                    bestdist = d;
                     bestTarget = loc;
                 }
             }

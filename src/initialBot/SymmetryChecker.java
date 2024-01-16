@@ -37,6 +37,15 @@ class SymmetryChecker {
         }
     }
 
+    MapLocation getSymLoc(MapLocation m, int s) throws GameActionException {
+        switch (s) {
+            case 0: return getHSym(m);
+            case 1: return getVSym(m);
+            case 2: return getRSym(m);
+            default: return null;
+        }
+    }
+
     int getSymmetry() throws GameActionException {
         int status = rc.readSharedArray(Channels.SYMMETRY);
         switch (status & 0b111) {
