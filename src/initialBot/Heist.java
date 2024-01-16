@@ -33,7 +33,7 @@ public class Heist {
     }
 
     public boolean needHeist() throws GameActionException {
-        if (communications.order >= 9 && communications.order <= 20 && rc.getRoundNum() % 200 <= 10) {
+        if (communications.order >= 9 && communications.order <= 20 && rc.getRoundNum() % 200 <= 10 && rc.getRoundNum() >= 200) {
             int v = rc.getRoundNum() / 200;
             goal = spawnCenters[v % 3];
             MapLocation s = spawnCenters[v % 3];
@@ -65,7 +65,7 @@ public class Heist {
 
     public void runHeist() throws GameActionException{
         rc.setIndicatorString("heisting " + goal + ", " + goal1 + ", " + goal2);
-        if (rc.getRoundNum() % 300 <= 30) path.moveTo(goal);
+        if (rc.getRoundNum() % 200 <= 15) path.moveTo(goal);
         else {
             if (cur == 0 && rc.getLocation().distanceSquaredTo(goal1) < 10) cur = 1;
             if (cur == 0) path.moveTo(goal1);

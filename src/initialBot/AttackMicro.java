@@ -10,10 +10,15 @@ public class AttackMicro {
     Communications comms;
     MapTracker mt;
     int[] healscores;
+    Pathing path;
     int[] dmgscores;
+    MapLocation[] spawnCenters = null;
+    SymmetryChecker sc;
     public AttackMicro(Robot r) {
         this.rc = r.rc;
         this.comms = r.communications;
+        this.path = new Pathing(r);
+        this.sc = r.sc;
         healscores = new int[7];
         dmgscores = new int[7];
         for (int i = 0; i < 7; i++) {
@@ -31,8 +36,82 @@ public class AttackMicro {
         enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         if (enemies.length == 0) return false;
         addBestTarget();
+        if (rc.getRoundNum() > 5 && spawnCenters == null) getSpawnCenters();
+        if (rc.getRoundNum() > 5 && enemies.length > 2 * friends.length && notNearSpawn()) {
+            kite();
+        }
         maneuver();
         return true;
+    }
+
+    public void getSpawnCenters() {
+        spawnCenters = new MapLocation[3];
+        int ind = 0;
+        MapLocation[] sp = rc.getAllySpawnLocations();
+        for (MapLocation m : sp) {
+            int cnt = 0;
+            for (MapLocation x : sp) {
+                if(x.isAdjacentTo(m) && !x.equals(m)) {
+                    cnt++;
+                }
+            }
+            if (cnt == 8) spawnCenters[ind++] = m;
+            if (ind == 3) break;
+        }
+    }
+
+    public boolean notNearSpawn() throws GameActionException {
+        for (MapLocation m : spawnCenters) {
+            if (rc.getLocation().distanceSquaredTo(m) < 49) return false;
+            if (sc.getSymLoc(m) != null) {
+                if (rc.getLocation().distanceSquaredTo(sc.getSymLoc(m)) < 49) return false;
+            }
+            else {
+                int status = rc.readSharedArray(Channels.SYMMETRY);
+                if ((status & 1) == 0) {
+                    if (rc.getLocation().distanceSquaredTo(sc.getHSym(m)) < 49) return false;
+                }
+                if (((status >> 1) & 1) == 0) {
+                    if (rc.getLocation().distanceSquaredTo(sc.getVSym(m)) < 49) return false;
+                }
+                if (((status >> 2) & 1) == 0) {
+                    if (rc.getLocation().distanceSquaredTo(sc.getRSym(m)) < 49) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public void kite() throws GameActionException {
+        rc.setIndicatorString("kiting!");
+        int avgX = 0, avgY = 0;
+        int num = 0;
+        for (RobotInfo r : enemies) {
+            avgX += r.location.x;
+            avgY += r.location.y;
+            num++;
+            if (rc.getLocation().distanceSquaredTo(r.location) <= 9) {
+                avgX += r.location.x;
+                avgY += r.location.y;
+                num++;
+            }
+        }
+        if (num == 0) return;
+        MapLocation enemy = new MapLocation(avgX / num, avgY / num);
+        MapInfo[] trapsTmp = rc.senseNearbyMapInfos();
+        int bestDist = 1000000;
+        MapLocation best = null;
+        for (MapInfo m : trapsTmp) {
+            if (m.getTrapType() != TrapType.NONE && rc.getLocation().distanceSquaredTo(m.getMapLocation()) < enemy.distanceSquaredTo(m.getMapLocation())) {
+                Direction enemyPath = enemy.directionTo(m.getMapLocation());
+                MapLocation g = m.getMapLocation().add(enemyPath).add(enemyPath).add(enemyPath);
+                if (rc.getLocation().distanceSquaredTo(g) < bestDist) {
+                    bestDist = rc.getLocation().distanceSquaredTo(g);
+                    best = g;
+                }
+            }
+        }
+        if (best != null) path.moveTo(best);
     }
 
     // Finds the enemy closest to a flag, and marks it in comms.
@@ -123,7 +202,7 @@ public class AttackMicro {
             friends = rc.senseNearbyRobots(-1, myteam);
             enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
-        rc.setIndicatorString("Iters: " + iters);
+        //rc.setIndicatorString("Iters: " + iters);
         while (tryAttack()) ;
     }
 

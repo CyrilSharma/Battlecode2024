@@ -1,11 +1,6 @@
 package initialBot;
 
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.RobotController;
-import battlecode.common.RobotInfo;
-import battlecode.common.TrapType;
+import battlecode.common.*;
 
 public class TrapMicro {
 
@@ -43,6 +38,22 @@ public class TrapMicro {
             microtargets[8].addEnemy(r);
         }
 
+        MapInfo[] trapsTmp = rc.senseNearbyMapInfos();
+        for (MapInfo m : trapsTmp) {
+            if (m.getTrapType() != TrapType.NONE) {
+                MapLocation r = m.getMapLocation();
+                microtargets[0].addTrap(r);
+                microtargets[1].addTrap(r);
+                microtargets[2].addTrap(r);
+                microtargets[3].addTrap(r);
+                microtargets[4].addTrap(r);
+                microtargets[5].addTrap(r);
+                microtargets[6].addTrap(r);
+                microtargets[7].addTrap(r);
+                microtargets[8].addTrap(r);
+            }
+        }
+
         MicroTarget best = microtargets[0];
         if (microtargets[1].isBetterThan(best)) best = microtargets[1];
         if (microtargets[2].isBetterThan(best)) best = microtargets[2];
@@ -77,7 +88,18 @@ public class TrapMicro {
             if (dist <= 5){
                 enemyDamageScore += 250;
             }
-        } 
+        }
+
+        void addTrap(MapLocation r) throws GameActionException {
+            if (!canPlace) return;
+            int dist = r.distanceSquaredTo(nloc);
+            if (dist <= 13){
+                enemyDamageScore -= 50;
+            }
+            if (dist <= 5){
+                enemyDamageScore -= 150;
+            }
+        }
 
         boolean isBetterThan(MicroTarget mt) {
             if (!canPlace) {
