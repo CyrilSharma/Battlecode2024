@@ -277,25 +277,6 @@ public class Duck extends Robot {
         RobotInfo[] enemies = rc.senseNearbyRobots(13, rc.getTeam().opponent());
         if (enemies.length >= 9) {
             tm.placeTrap();
-            // int bestd = 1 << 30;
-            // MapLocation bestloc = null;
-            // for (Direction d: directions) {
-            //     MapLocation loc = myloc.add(d);
-            //     if (!rc.canBuild(TrapType.EXPLOSIVE, loc)) continue;
-            //     int dist = 0;
-            //     for (RobotInfo e: enemies) {
-            //         dist += loc.distanceSquaredTo(e.location);
-            //     }
-            //     if (dist < bestd) {
-            //         bestd = dist;
-            //         bestloc = loc;
-            //     }
-            // }
-
-            // if (bestloc == null) return;
-            // if (rc.canBuild(TrapType.EXPLOSIVE, bestloc)) {
-            //     rc.build(TrapType.EXPLOSIVE, bestloc);
-            // }
         }
     }
 
@@ -324,9 +305,7 @@ public class Duck extends Robot {
             int idx = -1;
             for (int i = targets.length; i-- > 0;) {
                 MapLocation loc = targets[i].m;
-                int score = targets[i].score;
                 int d = loc.distanceSquaredTo(myloc);
-                // Find closest unmanned target.
                 if ((d < bestd) && (d < 9)) { // && (score < 5)) {
                     bestd = d;
                     bestloc = loc;
@@ -393,6 +372,25 @@ public class Duck extends Robot {
             return bestloc;
         }
 
+        // When we capture all flags this actually happens pretty frequently.
+        // Especially considering we're ignoring attack targets now.
+        if (targets.length != 0) {
+            int idx = -1;
+            for (int i = targets.length; i-- > 0;) {
+                MapLocation loc = targets[i].m;
+                int d = loc.distanceSquaredTo(myloc);
+                if (d < bestd) {
+                    bestd = d;
+                    bestloc = loc;
+                    idx = i;
+                }
+            }
+            if (bestloc != null) {
+                rc.setIndicatorString("Hunting enemy: " + bestloc);
+                communications.markAttackTarget(idx);
+                return bestloc;
+            }
+        }
         return null;
     }
 
