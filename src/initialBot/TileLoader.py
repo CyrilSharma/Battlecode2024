@@ -70,6 +70,8 @@ def load_tiles():
     cp.print("}")
     cp.print()
 
+    load_switch2()
+
     # This is pretty useful and kind of fits with map tracking,
     # So I'm going to keep it here.
     start = 1 << (4 * MASK_WIDTH + 4)
@@ -111,6 +113,64 @@ def load_switch(mask):
             cp.print(line)
         cp.print('default: System.out.println("This shouldn\'t happen..."); continue;')
     cp.print("}")
+
+
+def load_switch2():
+    # bottom rows
+    cp.print("switch (rc.getLocation().y) {")
+    with cp:
+        mask = 0
+        for idx in range(VISION//2):
+            # fill out row as unreachable
+            mask += ((1 << VISION) - 1) * (1 << idx * VISION)
+            cp.print(f"case {VISION//2 - 1 - idx}: t_wall_mask0 += {hex(mask)}L; break;")
+    cp.print("}")
+
+    # left side
+    cp.print("switch (rc.getLocation().x) {")
+    mask0_ = 0b000000001000000001000000001000000001000000001000000001000000001
+    mask1_ = 0b000000001000000001
+    with cp:
+        mask0 = 0
+        mask1 = 0
+        i = 0
+        for idx in range(VISION//2 - 1, -1, -1):
+            # fill out row as unreachable
+            mask0 += (mask0_ << i)
+            mask1 += (mask1_ << i)
+            cp.print(f"case {idx}: t_wall_mask0 += {hex(mask0)}L; t_wall_mask1 += {hex(mask1)}L; break;")
+            i+=1
+    cp.print("}")
+
+    # top rows
+    cp.print("switch (rc.getMapHeight() - rc.getLocation().y) {")
+    with cp:
+        mask1 = ((1 << VISION) - 1) << VISION
+        mask2 = mask1 + ((1 << VISION) - 1)
+        mask3 = ((1 << VISION) - 1) * (1 << VISION * 6)
+        mask4 = mask3 + ((1 << VISION) - 1) * (1 << VISION * 5)
+        cp.print(f"case 4: t_wall_mask1 += {hex(mask1)}L; break;")
+        cp.print(f"case 3: t_wall_mask1 += {hex(mask2)}L; break;")
+        cp.print(f"case 2: t_wall_mask1 += {hex(mask2)}L; t_wall_mask0 += {hex(mask3)}L; break;")
+        cp.print(f"case 1: t_wall_mask1 += {hex(mask2)}L; t_wall_mask0 += {hex(mask4)}L; break;")
+    cp.print("}")
+
+    # right side
+    cp.print("switch (rc.getMapWidth() - rc.getLocation().x) {")
+    mask0_ = 0b100000000100000000100000000100000000100000000100000000100000000
+    mask1_ = 0b100000000100000000
+    with cp:
+        mask0 = 0
+        mask1 = 0
+        i = 0
+        for idx in range(VISION//2, 0, -1):
+            # fill out row as unreachable
+            mask0 += (mask0_ >> i)
+            mask1 += (mask1_ >> i)
+            cp.print(f"case {idx}: t_wall_mask0 += {hex(mask0)}L; t_wall_mask1 += {hex(mask1)}L; break;")
+            i+=1
+    cp.print("}")
+    cp.print("")
 
 
 printLoader()

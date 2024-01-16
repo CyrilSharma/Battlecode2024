@@ -189,6 +189,31 @@ public class TileLoader {
             }
         }
         
+        switch (rc.getLocation().y) {
+            case 3: t_wall_mask0 += 0x1ffL; break;
+            case 2: t_wall_mask0 += 0x3ffffL; break;
+            case 1: t_wall_mask0 += 0x7ffffffL; break;
+            case 0: t_wall_mask0 += 0xfffffffffL; break;
+        }
+        switch (rc.getLocation().x) {
+            case 3: t_wall_mask0 += 0x40201008040201L; t_wall_mask1 += 0x201L; break;
+            case 2: t_wall_mask0 += 0xc06030180c0603L; t_wall_mask1 += 0x603L; break;
+            case 1: t_wall_mask0 += 0x1c0e070381c0e07L; t_wall_mask1 += 0xe07L; break;
+            case 0: t_wall_mask0 += 0x3c1e0f0783c1e0fL; t_wall_mask1 += 0x1e0fL; break;
+        }
+        switch (rc.getMapHeight() - rc.getLocation().y) {
+            case 4: t_wall_mask1 += 0x3fe00L; break;
+            case 3: t_wall_mask1 += 0x3ffffL; break;
+            case 2: t_wall_mask1 += 0x3ffffL; t_wall_mask0 += 0x7fc0000000000000L; break;
+            case 1: t_wall_mask1 += 0x3ffffL; t_wall_mask0 += 0x7fffe00000000000L; break;
+        }
+        switch (rc.getMapWidth() - rc.getLocation().x) {
+            case 4: t_wall_mask0 += 0x4020100804020100L; t_wall_mask1 += 0x20100L; break;
+            case 3: t_wall_mask0 += 0x6030180c06030180L; t_wall_mask1 += 0x30180L; break;
+            case 2: t_wall_mask0 += 0x70381c0e070381c0L; t_wall_mask1 += 0x381c0L; break;
+            case 1: t_wall_mask0 += 0x783c1e0f0783c1e0L; t_wall_mask1 += 0x3c1e0L; break;
+        }
+        
         if (!rc.canMove(Direction.NORTHWEST)) { blocked += 0x1000000000000L;}
         if (!rc.canMove(Direction.NORTH)) { blocked += 0x2000000000000L;}
         if (!rc.canMove(Direction.NORTHEAST)) { blocked += 0x4000000000000L;}
