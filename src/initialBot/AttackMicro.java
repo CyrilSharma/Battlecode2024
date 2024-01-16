@@ -202,7 +202,11 @@ public class AttackMicro {
             friends = rc.senseNearbyRobots(-1, myteam);
             enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
-        //rc.setIndicatorString("Iters: " + iters);
+        StringBuilder str = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            str.append(", " + microtargets[i].minDistToBuilder);
+        }
+        rc.setIndicatorString("uhh: " + best.minDistToBuilder + str.toString());
         while (tryAttack()) ;
     }
 
@@ -239,16 +243,20 @@ public class AttackMicro {
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
         boolean canMove;
+        boolean isBuilder;
         int canLandHit;
         MapLocation nloc;
         MapLocation bl;
         Direction dir;
+        int minDistToBuilder = -1;
 
         MicroTarget(Direction dir) throws GameActionException {
             MapLocation myloc = rc.getLocation();
             nloc = myloc.add(dir);
             bl = myloc.translate(-4, -4);
             canMove = rc.canMove(dir);
+            if (rc.getLevel(SkillType.BUILD) >= 4) isBuilder = true;
+            else isBuilder = false;
             this.dir = dir;
             computeHitMask();
         }
@@ -323,6 +331,9 @@ public class AttackMicro {
             if (!canMove) return;
             if (r.hasFlag) return;
             int d = nloc.distanceSquaredTo(r.location);
+            if (r.getBuildLevel() >= 4 && (d < minDistToBuilder || minDistToBuilder == -1)) {
+                minDistToBuilder = d;
+            }
             if (d < minDistToAlly) minDistToAlly = d;
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
                 healAttackRange += healscores[r.healLevel];
@@ -341,11 +352,22 @@ public class AttackMicro {
             return (Math.max(dmgVisionRange - healAttackRange, 0) - canLandHit);
         }
 
+        int attackScoreB() {
+            return (Math.max(dmgAttackRange - healAttackRange, 0) - canLandHit);
+        }
+
+        int visionScoreB() {
+            return (Math.max(dmgVisionRange - healAttackRange, 0) - canLandHit);
+        }
+
+
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
             if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
                 return minDistToEnemy > mt.minDistToEnemy;
             }
+
+            if (isBuilder) return isBuilderBetterThan(mt);
 
             if (attackScore() < mt.attackScore()) return true;
             if (attackScore() > mt.attackScore()) return false;
@@ -362,5 +384,24 @@ public class AttackMicro {
             if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
             else return minDistToEnemy <= mt.minDistToEnemy;
         }
+
+        boolean isBuilderBetterThan(MicroTarget mt) {
+
+            if (minDistToBuilder > mt.minDistToBuilder) return true;
+            if (minDistToBuilder < mt.minDistToBuilder) return false;
+
+            if (attackScoreB() < mt.attackScoreB()) return true;
+            if (attackScoreB() > mt.attackScoreB()) return false;
+
+            if (visionScoreB() < mt.visionScoreB()) return true;
+            if (visionScoreB() > mt.visionScoreB()) return false;
+
+            if (minDistToAlly < mt.minDistToAlly) return true;
+            if (minDistToAlly > mt.minDistToAlly) return false;
+
+            if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
+            else return minDistToEnemy <= mt.minDistToEnemy;
+        }
+
     }
 }

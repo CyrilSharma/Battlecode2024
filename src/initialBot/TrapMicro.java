@@ -97,7 +97,7 @@ public class TrapMicro {
                 enemyDamageScore -= 50;
             }
             if (dist <= 5){
-                enemyDamageScore -= 150;
+                enemyDamageScore -= 50;
             }
         }
 
