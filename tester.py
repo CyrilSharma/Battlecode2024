@@ -3,6 +3,7 @@ import os
 import random
 import sys
 from asyncio import Semaphore
+from typing import Iterable
 
 a_wins, b_wins = 0, 0
 
@@ -18,28 +19,31 @@ def read_maps():
             maps.append(data)
     return maps
 
+def parse_results_text(text: Iterable[str]):
+    a_won, b_won = 0, 0
+    match_started = False
+    for line in text:
+        if not line.startswith("[server]"):
+            continue
+        if "match starting" in line.lower():
+            match_started = True
+            continue
+        if not match_started:
+            continue
+        if "wins" in line.lower():
+            a_won = int("(A)" in line)
+            b_won = int("(B)" in line)
+            break
+        elif "loses" in line.lower():
+            a_won = 1 - int("(A)" in line)
+            b_won = 1 - int("(B)" in line)
+    return a_won, b_won
 
 def parse_results(path: str):
     a_won, b_won = 0, 0
-    match_started = False
     with open(path, "r") as f:
         i = iter(f)
-        for line in i:
-            if not line.startswith("[server]"):
-                continue
-            if "match starting" in line.lower():
-                match_started = True
-                continue
-            if not match_started:
-                continue
-            if "wins" in line.lower():
-                a_won = int("(A)" in line)
-                b_won = int("(B)" in line)
-                break
-            elif "loses" in line.lower():
-                a_won = 1 - int("(A)" in line)
-                b_won = 1 - int("(B)" in line)
-                break
+        a_won, b_won = parse_results_text(i)
     return (a_won, b_won)
 
 

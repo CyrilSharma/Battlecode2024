@@ -120,10 +120,12 @@ def load_switch2():
     cp.print("switch (rc.getLocation().y) {")
     with cp:
         mask = 0
-        for idx in range(VISION//2):
+        for idx in range(VISION // 2):
             # fill out row as unreachable
             mask += ((1 << VISION) - 1) * (1 << idx * VISION)
-            cp.print(f"case {VISION//2 - 1 - idx}: t_wall_mask0 += {hex(mask)}L; break;")
+            cp.print(
+                f"case {VISION//2 - 1 - idx}: t_wall_mask0 += {hex(mask)}L; break;"
+            )
     cp.print("}")
 
     # left side
@@ -134,12 +136,14 @@ def load_switch2():
         mask0 = 0
         mask1 = 0
         i = 0
-        for idx in range(VISION//2 - 1, -1, -1):
+        for idx in range(VISION // 2 - 1, -1, -1):
             # fill out row as unreachable
-            mask0 += (mask0_ << i)
-            mask1 += (mask1_ << i)
-            cp.print(f"case {idx}: t_wall_mask0 += {hex(mask0)}L; t_wall_mask1 += {hex(mask1)}L; break;")
-            i+=1
+            mask0 += mask0_ << i
+            mask1 += mask1_ << i
+            cp.print(
+                f"case {idx}: t_wall_mask0 += {hex(mask0)}L; t_wall_mask1 += {hex(mask1)}L; break;"
+            )
+            i += 1
     cp.print("}")
 
     # top rows
@@ -151,8 +155,12 @@ def load_switch2():
         mask4 = mask3 + ((1 << VISION) - 1) * (1 << VISION * 5)
         cp.print(f"case 4: t_wall_mask1 += {hex(mask1)}L; break;")
         cp.print(f"case 3: t_wall_mask1 += {hex(mask2)}L; break;")
-        cp.print(f"case 2: t_wall_mask1 += {hex(mask2)}L; t_wall_mask0 += {hex(mask3)}L; break;")
-        cp.print(f"case 1: t_wall_mask1 += {hex(mask2)}L; t_wall_mask0 += {hex(mask4)}L; break;")
+        cp.print(
+            f"case 2: t_wall_mask1 += {hex(mask2)}L; t_wall_mask0 += {hex(mask3)}L; break;"
+        )
+        cp.print(
+            f"case 1: t_wall_mask1 += {hex(mask2)}L; t_wall_mask0 += {hex(mask4)}L; break;"
+        )
     cp.print("}")
 
     # right side
@@ -163,12 +171,14 @@ def load_switch2():
         mask0 = 0
         mask1 = 0
         i = 0
-        for idx in range(VISION//2, 0, -1):
+        for idx in range(VISION // 2, 0, -1):
             # fill out row as unreachable
-            mask0 += (mask0_ >> i)
-            mask1 += (mask1_ >> i)
-            cp.print(f"case {idx}: t_wall_mask0 += {hex(mask0)}L; t_wall_mask1 += {hex(mask1)}L; break;")
-            i+=1
+            mask0 += mask0_ >> i
+            mask1 += mask1_ >> i
+            cp.print(
+                f"case {idx}: t_wall_mask0 += {hex(mask0)}L; t_wall_mask1 += {hex(mask1)}L; break;"
+            )
+            i += 1
     cp.print("}")
     cp.print("")
 

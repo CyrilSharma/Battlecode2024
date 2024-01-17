@@ -1,11 +1,16 @@
 # Testing using Modal for access to massive amounts of compute
 # The container's files sync with your local ones, so make sure
-# that you have run ./gradlew update ./gradlew update locally first
+# that you have run ./gradlew update ./gradlew build locally first
 
 import os
 import modal
 from modal import Image
-from tester import parse_results
+from tester import parse_results_text, read_maps
+
+
+stub = modal.Stub()
+volume = modal.NetworkFileSystem.persisted("battlecode-vol")
+LOCAL_PROJECT_DIR = os.path.join(os.path.dirname(__file__))
 
 
 def get_info():
@@ -14,16 +19,7 @@ def get_info():
     output = subprocess.run(
         ["ls", "-l", "/usr/lib/jvm/"], capture_output=True, text=True, check=True
     ).stdout
-    print(output)
-
-
-def query_java():
-    # confirms that java installation was successful
-    import subprocess
-
-    output = subprocess.run(
-        ["java", "-version"], capture_output=True, text=True, check=True
-    ).stdout
+    print("get info:")
     print(output)
 
 
@@ -43,33 +39,27 @@ image = (
     .run_function(get_info)
     .run_commands(
         'update-alternatives --install "/usr/bin/java" "java" "/usr/lib/jvm/jdk1.8.0_131/bin/java" 1',
-        "update-alternatives --set java /usr/lib/jvm/jdk1.8.0_131/bin/java"
-        # "apt-get update",
-        # "apt-get install -y software-properties-common",
-        # "apt-add-repository ppa:ts.sch.gr/ppa",
-        # "echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections",
-        # "apt-get update",
-        # "apt-get install -y -f oracle-java8-set-default",
+        "update-alternatives --set java /usr/lib/jvm/jdk1.8.0_131/bin/java",
     )
-    .run_function(query_java)
+    .apt_install(["dos2unix"])
 )
-
-stub = modal.Stub()
-
-volume = modal.NetworkFileSystem.persisted("battlecode-vol")
-
-LOCAL_PROJECT_DIR = os.path.join(os.path.dirname(__file__))
 
 
 @stub.function(
-    mounts=[modal.Mount.from_local_dir(LOCAL_PROJECT_DIR, remote_path="/"),],
+    mounts=[
+        modal.Mount.from_local_dir(LOCAL_PROJECT_DIR, remote_path="/root/"),
+    ],
     image=image,
 )
 def tester(team1: str, team2: str, map: str):
     import subprocess
-
-    ofile = "output"
-
+    subprocess.run(
+        ["dos2unix", "gradlew"], capture_output=True, check=True
+    )
+    output = subprocess.run(
+        ["bash", "gradlew"], capture_output=True, check=True
+    )
+    print(output)
     command = (
         "./gradlew run"
         + f" -PteamA={team1}"
@@ -80,10 +70,11 @@ def tester(team1: str, team2: str, map: str):
         + f" -PoutputVerbose=false"
     )
 
-    with open(ofile, "w") as f:
-        subprocess.run([command], stdout=f, stderr=f)
-        f.flush()
-    team1_game1, team2_game1 = parse_results(ofile)
+    output = subprocess.run(
+        command, capture_output=True, check=True, shell=True
+    )
+    print(output)
+    team1_game1, team2_game1 = parse_results_text(output.stdout.decode().split("\n"))
 
     command = (
         "./gradlew run"
@@ -95,22 +86,23 @@ def tester(team1: str, team2: str, map: str):
         + f" -PoutputVerbose=false"
     )
 
-    with open(ofile, "w") as f:
-        subprocess.run([command], stdout=f, stderr=f)
-        f.flush()
-    team2_game2, team1_game2 = parse_results(ofile)
-
-    os.remove(ofile)
+    output = subprocess.run(
+        command, capture_output=True, check=True, shell=True
+    )
+    print(output)
+    team2_game2, team1_game2 = parse_results_text(output.stdout.decode().split("\n"))
 
     return team1_game1 + team1_game2, team2_game1 + team2_game2
 
 
 @stub.local_entrypoint()
-def main(team1: str, team2: str, map: str, num_games: int = 10):
+def main(team1: str, team2: str):
     tot1 = 0
     tot2 = 0
+    maps = read_maps()
+    num_games = len(maps)
     for team1_wins, team2_wins in tester.map(
-        [team1] * (num_games // 2), [team2] * (num_games // 2), [map] * (num_games // 2)
+        [team1] * (num_games), [team2] * (num_games), maps
     ):
         tot1 += team1_wins
         tot2 += team2_wins
