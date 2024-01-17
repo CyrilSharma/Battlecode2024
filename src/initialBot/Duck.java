@@ -18,12 +18,14 @@ public class Duck extends Robot {
     int lastSeen;
     public Duck(RobotController rc) {
         super(rc);
+        // Keep this first so other things
+        // Can copy the spawn centers.
+        getSpawnCenters();
         path = new Pathing(this);
         exploration = new Exploration(this);
         am = new AttackMicro(this);
         tm = new TrapMicro(this);
         H = new Heist(this);
-        getSpawnCenters();
         putDefenses = false;
         lastSeen = 0;
     }

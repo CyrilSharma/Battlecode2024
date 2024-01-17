@@ -4,21 +4,34 @@ import battlecode.common.*;
 public class AttackMicro {
     int mydmg;
     boolean canAttack;
-    RobotController rc;
+    int[] healscores;
+    int[] dmgscores;
     RobotInfo[] friends = null;
     RobotInfo[] enemies = null;
+    long friend_mask0 = 0;
+    long friend_mask1 = 0;
+    long enemy_mask0 = 0;
+    long enemy_mask1 = 0;
+
+    RobotController rc;
+    MapLocation[] spawnCenters = null;
     Communications comms;
     MapTracker mt;
-    int[] healscores;
     Pathing path;
-    int[] dmgscores;
-    MapLocation[] spawnCenters = null;
     SymmetryChecker sc;
-    public AttackMicro(Robot r) {
-        this.rc = r.rc;
-        this.comms = r.communications;
-        this.path = new Pathing(r);
-        this.sc = r.sc;
+
+    public AttackMicro(Duck d) throws GameActionException {
+        this.rc = d.rc;
+        this.comms = d.communications;
+        this.path = d.path;
+        this.sc = d.sc;
+        this.mt = d.mt;
+        assert d.spawnCenters != null;
+        this.spawnCenters = d.spawnCenters;
+        computeScores();
+    }
+
+    public void computeScores() throws GameActionException {
         healscores = new int[7];
         dmgscores = new int[7];
         for (int i = 0; i < 7; i++) {
@@ -27,7 +40,6 @@ public class AttackMicro {
             dmgscores[i] = 2 * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100 /
                     (100 + SkillType.ATTACK.getCooldown(i));
         }
-        this.mt = r.mt;
     }
 
     public boolean runMicro() throws GameActionException {
@@ -36,10 +48,9 @@ public class AttackMicro {
         enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         if (enemies.length == 0) return false;
         addBestTarget();
-        if (rc.getRoundNum() > 5 && spawnCenters == null) getSpawnCenters();
-        if (rc.getRoundNum() > 5 && enemies.length > 2 * friends.length && notNearSpawn()) {
-            kite();
-        }
+        // if (rc.getRoundNum() > 5 && enemies.length > 2 * friends.length && notNearSpawn()) {
+        //     kite();
+        // }
         maneuver();
         return true;
     }
