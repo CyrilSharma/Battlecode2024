@@ -54,7 +54,7 @@ async def run_game(a: str, b: str, map: str, ooo: int, sem: Semaphore):
             "./gradlew run"
             + f" -PteamA={a}"
             + f" -PteamB={b}"
-            + f" -Pmaps={map}"
+            + f" -Pmaps=\"{map}\""
             + f" -Psource=src"
             + f" -PprofilerEnabled=false"
             + f" -PoutputVerbose=false"
