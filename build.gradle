@@ -267,7 +267,7 @@ task run(type: JavaExec) {
     '-Dbc.server.alternate-order=' + project.property('alternateOrder'),
     '-Dbc.server.save-file=' + (project.findProperty('replay') ?: defaultReplay),
     // Enable this when runnning tester.py
-    '-Dbc.server.websocket=false',
+    // '-Dbc.server.websocket=false',
   ]
 }
 

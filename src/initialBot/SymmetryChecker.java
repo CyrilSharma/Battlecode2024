@@ -62,19 +62,19 @@ class SymmetryChecker {
             s = getHSym(m);
             if (rc.canSenseLocation(s)) {
                 MapInfo e = rc.senseMapInfo(s);
-                if (!e.isSpawnZone() || e.getTeamTerritory() != opponentTeam)
+                if (e.getSpawnZoneTeam() != opponentTeam)
                     status |= 1;
             }
             s = getVSym(m);
             if (rc.canSenseLocation(s)) {
                 MapInfo e = rc.senseMapInfo(s);
-                if (!e.isSpawnZone() || e.getTeamTerritory() != opponentTeam)
+                if (e.getSpawnZoneTeam() != opponentTeam)
                     status |= 2;
             }
             s = getRSym(m);
             if (rc.canSenseLocation(s)) {
                 MapInfo e = rc.senseMapInfo(s);
-                if (!e.isSpawnZone() || e.getTeamTerritory() != opponentTeam)
+                if (e.getSpawnZoneTeam() != opponentTeam)
                     status |= 4;
             }
         }
