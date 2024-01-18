@@ -32,6 +32,7 @@ public class AttackMicro {
 
     public void computeScores() {
         for (int i = 0; i < 7; i++) {
+            // ATTACKERS HAVE BEEN BUFFED. MAKE SURE TO CHANGE THIS.
             healscores[i] = (100 + SkillType.HEAL.getSkillEffect(i)) * 100 /
                     (100 + SkillType.HEAL.getCooldown(i));
             dmgscores[i] = 2 * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100 /
