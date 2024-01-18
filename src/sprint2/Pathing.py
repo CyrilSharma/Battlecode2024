@@ -4,7 +4,7 @@ MASK_WIDTH = 9
 MASK_HEIGHT = 7
 CLASS_NAME = "OptimalPathing"
 RSQR = 20
-COST_OF_WATER = 3  # 2 actual turns, one for filling, and one for moving. +1 accounts for crumbs and base cooldown cost
+COST_OF_WATER = 3
 PACKAGE_NAME = "sprint2"
 
 class ClassPrinter:
@@ -195,7 +195,7 @@ def moveTo():
                 if (rc.canFill(loc)) {
                     rc.fill(loc);
                 }
-            } else if (rc.canMove(bestDir) {
+            } else if (rc.canMove(bestDir)) {
                 rc.move(bestDir);
             }
         }

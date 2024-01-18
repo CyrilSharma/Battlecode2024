@@ -57,7 +57,6 @@ image = (
     .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "build.gradle"), remote_path="/root/build.gradle")
     .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "gradle.properties"), remote_path="/root/gradle.properties")
     .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "gradlew"), remote_path="/root/gradlew")
-    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "bin"), remote_path="/root/bin")
     .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "build/libs"), remote_path="/root/build/libs")
     .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "client"), remote_path="/root/client")
     .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, ".gradle"), remote_path="/root/.gradle")
