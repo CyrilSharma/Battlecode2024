@@ -22,6 +22,16 @@ def get_info():
     print("get info:")
     print(output)
 
+def gradlew_setup():
+    import subprocess
+    
+    subprocess.run(
+        ["dos2unix", "gradlew"], capture_output=True, check=True
+    )
+    output = subprocess.run(
+        ["bash", "gradlew"], capture_output=True, check=True
+    )
+    print(output)
 
 # https://askubuntu.com/questions/931610/how-to-install-jdk8-on-ubuntu-16
 # https://askubuntu.com/questions/1139387/update-to-latest-version-of-java-after-ppa-is-discontinued
@@ -42,24 +52,40 @@ image = (
         "update-alternatives --set java /usr/lib/jvm/jdk1.8.0_131/bin/java",
     )
     .apt_install(["dos2unix"])
+    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, ".idea"), remote_path="/root/.idea")
+    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "gradle"), remote_path="/root/gradle")
+    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "maps"), remote_path="/root/maps")
+    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "test"), remote_path="/root/test")
+    .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "build.gradle"), remote_path="/root/build.gradle")
+    .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "gradle.properties"), remote_path="/root/gradle.properties")
+    .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "gradlew"), remote_path="/root/gradlew")
+    .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "version.txt"), remote_path="/root/version.txt")
+    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "bin"), remote_path="/root/bin")
+    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "build/libs"), remote_path="/root/build/libs")
+    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "client"), remote_path="/root/client")
+    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, ".gradle"), remote_path="/root/.gradle")
+    .run_function(gradlew_setup)
 )
-
 
 @stub.function(
     mounts=[
-        modal.Mount.from_local_dir(LOCAL_PROJECT_DIR, remote_path="/root/"),
+        modal.Mount.from_local_dir(os.path.join(LOCAL_PROJECT_DIR, "src"), remote_path="/root/src"),
     ],
     image=image,
+    network_file_systems={"/root/matches_final": volume}
 )
 def tester(team1: str, team2: str, map: str):
     import subprocess
-    subprocess.run(
-        ["dos2unix", "gradlew"], capture_output=True, check=True
-    )
-    output = subprocess.run(
-        ["bash", "gradlew"], capture_output=True, check=True
-    )
-    print(output)
+    import os
+    import shutil
+
+    def get_reason(text):
+        for line in text:
+            if not line.startswith("[server]"):
+                continue
+            if "Reason: " in line:
+                return line.split("Reason: ")[1]
+
     command = (
         "./gradlew run"
         + f" -PteamA={team1}"
@@ -73,9 +99,9 @@ def tester(team1: str, team2: str, map: str):
     output = subprocess.run(
         command, capture_output=True, check=True, shell=True
     )
-    print(output)
-    team1_game1, team2_game1 = parse_results_text(output.stdout.decode().split("\n"))
-
+    lines = output.stdout.decode().split("\n")
+    team1_game1, team2_game1 = parse_results_text(lines)
+    print(f"{team1 if team1_game1 else team2} wins on map {map} for reason: {get_reason(lines)}")
     command = (
         "./gradlew run"
         + f" -PteamA={team2}"
@@ -89,8 +115,12 @@ def tester(team1: str, team2: str, map: str):
     output = subprocess.run(
         command, capture_output=True, check=True, shell=True
     )
-    print(output)
-    team2_game2, team1_game2 = parse_results_text(output.stdout.decode().split("\n"))
+    lines = output.stdout.decode().split("\n")
+    team2_game2, team1_game2 = parse_results_text(lines)
+    print(f"{team1 if team1_game1 else team2} wins on map {map} for reason: {get_reason(lines)}")
+
+    for file in os.listdir("/root/matches/"):
+        shutil.copyfile("/root/matches/" + file, "/root/matches_final/" + file)
 
     return team1_game1 + team1_game2, team2_game1 + team2_game2
 
