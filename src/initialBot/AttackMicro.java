@@ -40,28 +40,45 @@ public class AttackMicro {
     }
 
     public boolean runMicro() throws GameActionException {
-        Team myteam = rc.getTeam();
-        friends = rc.senseNearbyRobots(-1, myteam);
-        enemies = rc.senseNearbyRobots(-1, myteam.opponent());
+        nl.load(this);
         if (enemies.length == 0) return false;
         addBestTarget();
-        maneuver();
+        if (enemies.length > 2 * friends.length) bombpath();
+        else maneuver();
         return true;
     }
 
     public void bombpath() throws GameActionException {
+        long loverflow = 0x7fbfdfeff7fbfdfeL;
+        long roverflow = 0x3fdfeff7fbfdfeffL;
+        long passible0 = 0;
+        long passible1 = 0;
+        long temp = 0;
+
+        // Compute the reachability mask.
+        long reach0 = (1L << (4 * 9 + 4));
+        long reach1 = 0L;
+        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked);
+        passible1 = ~(mt.wall_mask1 | mt.water_mask1);
+        for (int i = 10; i-- > 0;) {
+            reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
+            reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+            temp = reach0;
+            reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
+            reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
+        }
+
+
+        // Using the enemy mask as a starting point, shift it around, assuming impassible bombs,
+        // Using our normal bitmasking tricks. Do this until you reach a fixed point.
         long pprev0 = 0;
         long pprev1 = 0;
         long prev0 = 0;
         long prev1 = 0;
         long cur0 = enemy_mask0;
         long cur1 = enemy_mask1;
-        long temp = 0;
-
-        long passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0);
-        long passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1);
-        long loverflow = 0x7fbfdfeff7fbfdfeL;
-        long roverflow = 0x3fdfeff7fbfdfeffL;
+        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0);
+        passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1);
         while ((cur0 != prev0 || cur1 != prev1)) {
             cur0 = (cur0 | ((cur0 << 1) & loverflow) | ((cur0 >> 1) & roverflow));
             cur1 = (cur1 | ((cur1 << 1) & loverflow) | ((cur1 >> 1) & roverflow));
@@ -74,16 +91,20 @@ public class AttackMicro {
             prev1 = cur1;
         }
 
-        if (((cur0 & 0x7FFFFFFFFL) != 0x7FFFFFFFFL) ||
-            ((cur1 & 0x7FFFFFFFL) != 0x7FFFFFFFFL)) {
+        // If we haven't hit every reachable square, change passablity definition.
+        // This is important because we want the square furthest from vision.
+        if (((cur0 & reach0) != reach0) ||
+            ((cur1 & reach1) != reach1)) {
             prev0 = 0;
             prev1 = 0;
+            passible0 = ~(mt.wall_mask0 | mt.water_mask0);
+            passible1 = ~(mt.wall_mask1 | mt.water_mask1);
             while ((cur0 != prev0 || cur1 != prev1)) {
                 cur0 = (cur0 | ((cur0 << 1) & loverflow) | ((cur0 >> 1) & roverflow));
                 cur1 = (cur1 | ((cur1 << 1) & loverflow) | ((cur1 >> 1) & roverflow));
                 temp = cur0;
-                cur0 = (cur0 | (cur0 << 9) | (cur0 >> 9) | (cur1 << 54));
-                cur1 = (cur1 | (cur1 << 9) | (cur1 >> 9) | (temp >> 54));
+                cur0 = (cur0 | (cur0 << 9) | (cur0 >> 9) | (cur1 << 54)) & passible0;
+                cur1 = (cur1 | (cur1 << 9) | (cur1 >> 9) | (temp >> 54)) & passible1;
                 pprev0 = prev0;
                 pprev1 = prev1;
                 prev0 = cur0;
@@ -91,44 +112,35 @@ public class AttackMicro {
             }
         }
 
+        // At this point, you have found the squares furthest away from enemies,
+        // assuming Impassible bombs.
+        // The rest proceeds exactly like our normal pathing algo.
         long del0 = (prev0 & ~pprev0);
         long del1 = (prev1 & ~pprev1);
-        del0 = (del0 & -del0);
-        del1 = (del1 & -del1);
+        passible0 = ~(mt.wall_mask0 | mt.water_mask0);
+        passible1 = ~(mt.wall_mask1 | mt.water_mask1);
+        while ((del0 & 0x70381c0000000L) == 0) {
+            del0 = (del0 | ((del0 << 1) & loverflow) | ((del0 >> 1) & roverflow));
+            del1 = (del1 | ((del1 << 1) & loverflow) | ((del1 >> 1) & roverflow));
+            temp = del0;
+            del0 = (del0 | (del0 << 9) | (del0 >> 9) | (del1 << 54)) & passible0;
+            del1 = (del1 | (del1 << 9) | (del1 >> 9) | (temp >> 54)) & passible1;
+        }
 
-        int idx = 0;
-        for (int i = 0; i < 63; i += 8, del0 >>>= 8) {
-            switch ((int)(del0 & 0xF)) {
-                case 0: continue;
-                case 0b1: idx = 0 + i; break;
-                case 0b10: idx = 1 + i; break;
-                case 0b100: idx = 2 + i; break;
-                case 0b1000: idx = 3 + i; break;
-                case 0b10000: idx = 4 + i; break;
-                case 0b100000: idx = 5 + i; break;
-                case 0b1000000: idx = 6 + i; break;
-                case 0b10000000: idx = 7 + i; break;
-            }
-            break;
-        }
-        for (int i = 63; i < 81; i += 8, del1 >>>= 8) {
-            switch ((int)(del1 & 0xF)) {
-                case 0: continue;
-                case 0b1: idx = 0 + i; break;
-                case 0b10: idx = 1 + i; break;
-                case 0b100: idx = 2 + i; break;
-                case 0b1000: idx = 3 + i; break;
-                case 0b10000: idx = 4 + i; break;
-                case 0b100000: idx = 5 + i; break;
-                case 0b1000000: idx = 6 + i; break;
-                case 0b10000000: idx = 7 + i; break;
-            }
-            break;
-        }
-        int dy = (idx) / 9;
-        int dx = (idx) % 9;
-        MapLocation target = rc.getLocation().translate(dx - 4, dy - 4);
-        path.moveTo(target);
+        // Target square is in vision range so no need to compute
+        // `best` direction, i.e closest to target location.
+        long best = del0;
+        Direction bestDir = null;
+        if ((best & 0x1000000000000L) > 0) bestDir = Direction.NORTHWEST;
+        else if ((best & 0x2000000000000L) > 0) bestDir = Direction.NORTH;
+        else if ((best & 0x4000000000000L) > 0) bestDir = Direction.NORTHEAST;
+        else if ((best & 0x20000000000L) > 0) bestDir = Direction.EAST;
+        else if ((best & 0x8000000000L) > 0) bestDir = Direction.WEST;
+        else if ((best & 0x40000000L) > 0) bestDir = Direction.SOUTHWEST;
+        else if ((best & 0x80000000L) > 0) bestDir = Direction.SOUTH;
+        else if ((best & 0x100000000L) > 0) bestDir = Direction.SOUTHEAST;
+        if (bestDir != null) rc.move(bestDir);
+        rc.setIndicatorString("Bomb Pathing!");
     }
 
     public boolean notNearSpawn() throws GameActionException {
@@ -282,7 +294,6 @@ public class AttackMicro {
         MapLocation nloc;
         MapLocation bl;
         Direction dir;
-        int minDistToBuilder = -1;
 
         MicroTarget(Direction dir) throws GameActionException {
             MapLocation myloc = rc.getLocation();
@@ -336,14 +347,8 @@ public class AttackMicro {
 
         boolean canHitSoon(MapLocation loc) throws GameActionException {
             int idx = (9 * (loc.y - bl.y)) + (loc.x - bl.x);
-            if (idx >= 63) {
-                // hits1 |= (close1 & (1L << (idx - 63)));
-                return ((close1 & (1L << (idx - 63))) != 0);
-            }
-            else {
-                // hits0 |= (close0 & (1L << idx));
-                return ((close0 & (1L << idx)) != 0);
-            }
+            if (idx >= 63) return ((close1 & (1L << (idx - 63))) != 0);
+            else return ((close0 & (1L << idx)) != 0);
         }
         
         void addEnemy(RobotInfo r) throws GameActionException {
