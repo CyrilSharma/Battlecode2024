@@ -164,28 +164,6 @@ public class AttackMicro {
         return false;
     }
 
-    int computeMinDist(boolean friend) throws GameActionException {
-        int iters = 0;
-        int[] dists = new int[9];
-        long mask0 = (friend) ? friend_mask0 : enemy_mask0;
-        long mask1 = (friend) ? friend_mask1 : enemy_mask1;
-        if (mask0 == 0 && mask1 == 0) return 100000;
-        long loverflow = 0x7fbfdfeff7fbfdfeL;
-        long roverflow = 0x3fdfeff7fbfdfeffL;        
-        long start0 = 1L << (9 * nloc.y + nloc.x);
-        long start1 = 0;
-        long temp = 0;
-        while ((start0 & mask0) != 0 && (start1 & mask1) != 0) {
-            start0 = (start0 | ((start0 << 1) & loverflow) | ((start0 >> 1) & roverflow));
-            start1 = (start1 | ((start1 << 1) & loverflow) | ((start1 >> 1) & roverflow));
-            temp = start0;
-            start1 = (start1 | (start1 << 9) | (start1 >> 9) | (start1 << 54));
-            start1 = (start1 | (start1 << 9) | (start1 >> 9) | (temp >> 54));
-            iters++;
-        }
-        return iters;
-    }
-
     // Choose best candidate for maneuvering in close encounters.
     class MicroTarget {
         long close0 = 0;
@@ -209,8 +187,6 @@ public class AttackMicro {
             canMove = rc.canMove(dir);
             this.dir = dir;
             computeHitMask();
-            minDistToAlly = computeMinDist(true);
-            minDistToEnemy = computeMinDist(false);
         }
 
         void displayHitMask() throws GameActionException {
