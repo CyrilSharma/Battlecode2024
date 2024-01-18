@@ -3,7 +3,7 @@ MASK_HEIGHT = 7
 VISION = 9
 CLASS_NAME = "TileLoader"
 BITS_PER_MASK = 63
-TILES = ["water", "wall"]
+TILES = ["water", "wall", "bomb"]
 
 
 class ClassPrinter:
@@ -58,13 +58,12 @@ def load_tiles():
         name = "m"
         cp.print(f"MapInfo {name} = infos[j];")
         cp.print(f"if ({name}.isWater()) {{")
-        with cp:
-            tile = "water"
-            load_switch(f"t_{tile}_mask")
+        with cp: load_switch(f"t_water_mask")
         cp.print(f"}} else if ({name}.isWall()) {{")
-        with cp:
-            tile = "wall"
-            load_switch(f"t_{tile}_mask")
+        with cp: load_switch(f"t_wall_mask")
+        cp.print("}")
+        cp.print(f"if ({name}.getTrapType() != TrapType.NONE) {{")
+        with cp: load_switch(f"t_bomb_mask")
         cp.print("}")
 
     cp.print("}")
