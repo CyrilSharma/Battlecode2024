@@ -117,7 +117,7 @@ def tester(team1: str, team2: str, map: str):
     )
     lines = output.stdout.decode().split("\n")
     team2_game2, team1_game2 = parse_results_text(lines)
-    print(f"{team1 if team1_game1 else team2} wins on map {map} for reason: {get_reason(lines)}")
+    print(f"{team1 if team1_game2 else team2} wins on map {map} for reason: {get_reason(lines)}")
 
     for file in os.listdir("/root/matches/"):
         shutil.copyfile("/root/matches/" + file, "/root/matches_final/" + file)
