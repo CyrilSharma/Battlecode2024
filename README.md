@@ -1,3 +1,7 @@
+# Modal Tester Usage Example
+
+```modal run modal_tester.py --team1=initialBot --team2=initialBot```
+
 # Battlecode 2024 Scaffold
 
 This is the Battlecode 2024 scaffold, containing an `examplefuncsplayer`. Read https://play.battlecode.org/bc24/getting-started!
