@@ -45,79 +45,90 @@ public class AttackMicro {
         enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         if (enemies.length == 0) return false;
         addBestTarget();
-        // if (rc.getRoundNum() > 5 && spawnCenters == null) getSpawnCenters();
-        // if (rc.getRoundNum() > 5 && enemies.length > 2 * friends.length && notNearSpawn()) {
-        //     kite();
-        // }
         maneuver();
         return true;
     }
 
-    // public void bombpath() throws GameActionException {
-    //     long pprev0 = 0;
-    //     long pprev1 = 0;
-    //     long prev0 = 0;
-    //     long prev1 = 0;
-    //     long cur0 = enemy_mask0;
-    //     long cur1 = enemy_mask1;
-    //     long temp = 0;
+    public void bombpath() throws GameActionException {
+        long pprev0 = 0;
+        long pprev1 = 0;
+        long prev0 = 0;
+        long prev1 = 0;
+        long cur0 = enemy_mask0;
+        long cur1 = enemy_mask1;
+        long temp = 0;
 
-    //     long passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0);
-    //     long passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1);
-    //     long loverflow = 0x7fbfdfeff7fbfdfeL;
-    //     long roverflow = 0x3fdfeff7fbfdfeffL;
-    //     while ((cur0 != prev0 || cur1 != prev1)) {
-    //         cur0 = (cur0 | ((cur0 << 1) & loverflow) | ((cur0 >> 1) & roverflow));
-    //         cur1 = (cur1 | ((cur1 << 1) & loverflow) | ((cur1 >> 1) & roverflow));
-    //         temp = cur0;
-    //         cur0 = (cur0 | (cur0 << 9) | (cur0 >> 9) | (cur1 << 54)) & passible0;
-    //         cur1 = (cur1 | (cur1 << 9) | (cur1 >> 9) | (temp >> 54)) & passible1;
-    //         pprev0 = prev0;
-    //         pprev1 = prev1;
-    //         prev0 = cur0;
-    //         prev1 = cur1;
-    //     }
-
-    //     if (((cur0 & 0x7FFFFFFFFL) != 0x7FFFFFFFFL) ||
-    //         ((cur1 & 0x7FFFFFFFL) != 0x7FFFFFFFFL)) {
-    //         prev0 = 0;
-    //         prev1 = 0;
-    //         while ((cur0 != prev0 || cur1 != prev1)) {
-    //             cur0 = (cur0 | ((cur0 << 1) & loverflow) | ((cur0 >> 1) & roverflow));
-    //             cur1 = (cur1 | ((cur1 << 1) & loverflow) | ((cur1 >> 1) & roverflow));
-    //             temp = cur0;
-    //             cur0 = (cur0 | (cur0 << 9) | (cur0 >> 9) | (cur1 << 54));
-    //             cur1 = (cur1 | (cur1 << 9) | (cur1 >> 9) | (temp >> 54));
-    //             pprev0 = prev0;
-    //             pprev1 = prev1;
-    //             prev0 = cur0;
-    //             prev1 = cur1;
-    //         }
-    //     }
-
-    //     long del0 = (prev0 & ~pprev0);
-    //     long del1 = (prev1 & ~pprev1);
-    //     // Magically determine the square somehow...
-    //     // switch (del0 & -del0) {
-
-    //     // }
-
-    // }
-
-    public void getSpawnCenters() {
-        spawnCenters = new MapLocation[3];
-        int ind = 0;
-        MapLocation[] sp = rc.getAllySpawnLocations();
-        for (MapLocation m : sp) {
-            int cnt = 0;
-            for (MapLocation x : sp) {
-                if(x.isAdjacentTo(m) && !x.equals(m)) {
-                    cnt++;
-                }
-            }
-            if (cnt == 8) spawnCenters[ind++] = m;
-            if (ind == 3) break;
+        long passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0);
+        long passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1);
+        long loverflow = 0x7fbfdfeff7fbfdfeL;
+        long roverflow = 0x3fdfeff7fbfdfeffL;
+        while ((cur0 != prev0 || cur1 != prev1)) {
+            cur0 = (cur0 | ((cur0 << 1) & loverflow) | ((cur0 >> 1) & roverflow));
+            cur1 = (cur1 | ((cur1 << 1) & loverflow) | ((cur1 >> 1) & roverflow));
+            temp = cur0;
+            cur0 = (cur0 | (cur0 << 9) | (cur0 >> 9) | (cur1 << 54)) & passible0;
+            cur1 = (cur1 | (cur1 << 9) | (cur1 >> 9) | (temp >> 54)) & passible1;
+            pprev0 = prev0;
+            pprev1 = prev1;
+            prev0 = cur0;
+            prev1 = cur1;
         }
+
+        if (((cur0 & 0x7FFFFFFFFL) != 0x7FFFFFFFFL) ||
+            ((cur1 & 0x7FFFFFFFL) != 0x7FFFFFFFFL)) {
+            prev0 = 0;
+            prev1 = 0;
+            while ((cur0 != prev0 || cur1 != prev1)) {
+                cur0 = (cur0 | ((cur0 << 1) & loverflow) | ((cur0 >> 1) & roverflow));
+                cur1 = (cur1 | ((cur1 << 1) & loverflow) | ((cur1 >> 1) & roverflow));
+                temp = cur0;
+                cur0 = (cur0 | (cur0 << 9) | (cur0 >> 9) | (cur1 << 54));
+                cur1 = (cur1 | (cur1 << 9) | (cur1 >> 9) | (temp >> 54));
+                pprev0 = prev0;
+                pprev1 = prev1;
+                prev0 = cur0;
+                prev1 = cur1;
+            }
+        }
+
+        long del0 = (prev0 & ~pprev0);
+        long del1 = (prev1 & ~pprev1);
+        del0 = (del0 & -del0);
+        del1 = (del1 & -del1);
+
+        int idx = 0;
+        for (int i = 0; i < 64; i += 8, del0 >>>= 8) {
+            switch ((int)(del0 & 0xF)) {
+                case 0: continue;
+                case 0b1: idx = 0 + i; break;
+                case 0b10: idx = 1 + i; break;
+                case 0b100: idx = 2 + i; break;
+                case 0b1000: idx = 3 + i; break;
+                case 0b10000: idx = 4 + i; break;
+                case 0b100000: idx = 5 + i; break;
+                case 0b1000000: idx = 6 + i; break;
+                case 0b10000000: idx = 7 + i; break;
+            }
+            break;
+        }
+        for (int i = 64; i < 81; i += 8, del1 >>>= 8) {
+            switch ((int)(del1 & 0xF)) {
+                case 0: continue;
+                case 0b1: idx = 0 + i; break;
+                case 0b10: idx = 1 + i; break;
+                case 0b100: idx = 2 + i; break;
+                case 0b1000: idx = 3 + i; break;
+                case 0b10000: idx = 4 + i; break;
+                case 0b100000: idx = 5 + i; break;
+                case 0b1000000: idx = 6 + i; break;
+                case 0b10000000: idx = 7 + i; break;
+            }
+            break;
+        }
+        int dy = (idx) / 9;
+        int dx = (idx) % 9;
+        MapLocation target = rc.getLocation().translate(dx - 4, dy - 4);
+        path.moveTo(target);
     }
 
     public boolean notNearSpawn() throws GameActionException {
@@ -140,38 +151,6 @@ public class AttackMicro {
             }
         }
         return true;
-    }
-
-    public void kite() throws GameActionException {
-        rc.setIndicatorString("kiting!");
-        int avgX = 0, avgY = 0;
-        int num = 0;
-        for (RobotInfo r : enemies) {
-            avgX += r.location.x;
-            avgY += r.location.y;
-            num++;
-            if (rc.getLocation().distanceSquaredTo(r.location) <= 9) {
-                avgX += r.location.x;
-                avgY += r.location.y;
-                num++;
-            }
-        }
-        if (num == 0) return;
-        MapLocation enemy = new MapLocation(avgX / num, avgY / num);
-        MapInfo[] trapsTmp = rc.senseNearbyMapInfos();
-        int bestDist = 1000000;
-        MapLocation best = null;
-        for (MapInfo m : trapsTmp) {
-            if (m.getTrapType() != TrapType.NONE && rc.getLocation().distanceSquaredTo(m.getMapLocation()) < enemy.distanceSquaredTo(m.getMapLocation())) {
-                Direction enemyPath = enemy.directionTo(m.getMapLocation());
-                MapLocation g = m.getMapLocation().add(enemyPath).add(enemyPath).add(enemyPath);
-                if (rc.getLocation().distanceSquaredTo(g) < bestDist) {
-                    bestDist = rc.getLocation().distanceSquaredTo(g);
-                    best = g;
-                }
-            }
-        }
-        if (best != null) path.moveTo(best);
     }
 
     // Finds the enemy closest to a flag, and marks it in comms.
