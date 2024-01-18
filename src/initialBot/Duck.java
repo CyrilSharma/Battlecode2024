@@ -16,16 +16,14 @@ public class Duck extends Robot {
     boolean putDefenses;
     Heist H;
     int lastSeen;
-    public Duck(RobotController rc) throws GameActionException {
+    public Duck(RobotController rc) {
         super(rc);
-        // Keep this first so other things
-        // Can copy the spawn centers.
-        getSpawnCenters();
         path = new Pathing(this);
         exploration = new Exploration(this);
         am = new AttackMicro(this);
         tm = new TrapMicro(this);
         H = new Heist(this);
+        getSpawnCenters();
         putDefenses = false;
         lastSeen = 0;
     }
@@ -261,8 +259,8 @@ public class Duck extends Robot {
     void purchaseGlobal() throws GameActionException {
         // Factored into it's own method because logic may
         // Become complex.
-        if (rc.canBuyGlobal(GlobalUpgrade.ATTACK)) {
-            rc.buyGlobal(GlobalUpgrade.ATTACK);
+        if (rc.canBuyGlobal(GlobalUpgrade.ACTION)) {
+            rc.buyGlobal(GlobalUpgrade.ACTION);
         } else if (rc.canBuyGlobal(GlobalUpgrade.HEALING)) {
             rc.buyGlobal(GlobalUpgrade.HEALING);
         } else if (rc.canBuyGlobal(GlobalUpgrade.CAPTURING)) {
