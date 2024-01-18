@@ -97,7 +97,7 @@ public class AttackMicro {
         del1 = (del1 & -del1);
 
         int idx = 0;
-        for (int i = 0; i < 64; i += 8, del0 >>>= 8) {
+        for (int i = 0; i < 63; i += 8, del0 >>>= 8) {
             switch ((int)(del0 & 0xF)) {
                 case 0: continue;
                 case 0b1: idx = 0 + i; break;
@@ -111,7 +111,7 @@ public class AttackMicro {
             }
             break;
         }
-        for (int i = 64; i < 81; i += 8, del1 >>>= 8) {
+        for (int i = 63; i < 81; i += 8, del1 >>>= 8) {
             switch ((int)(del1 & 0xF)) {
                 case 0: continue;
                 case 0b1: idx = 0 + i; break;
