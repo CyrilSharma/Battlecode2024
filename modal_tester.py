@@ -54,16 +54,15 @@ image = (
     .apt_install(["dos2unix"])
     .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, ".idea"), remote_path="/root/.idea")
     .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "gradle"), remote_path="/root/gradle")
-    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "maps"), remote_path="/root/maps")
-    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "test"), remote_path="/root/test")
     .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "build.gradle"), remote_path="/root/build.gradle")
     .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "gradle.properties"), remote_path="/root/gradle.properties")
     .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "gradlew"), remote_path="/root/gradlew")
-    .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "version.txt"), remote_path="/root/version.txt")
     .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "bin"), remote_path="/root/bin")
     .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "build/libs"), remote_path="/root/build/libs")
     .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "client"), remote_path="/root/client")
     .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, ".gradle"), remote_path="/root/.gradle")
+    .copy_local_dir(os.path.join(LOCAL_PROJECT_DIR, "maps"), remote_path="/root/maps")
+    .copy_local_file(os.path.join(LOCAL_PROJECT_DIR, "version.txt"), remote_path="/root/version.txt")
     .run_function(gradlew_setup)
 )
 
@@ -131,10 +130,14 @@ def main(team1: str, team2: str):
     tot2 = 0
     maps = read_maps()
     num_games = len(maps)
-    for team1_wins, team2_wins in tester.map(
-        [team1] * (num_games), [team2] * (num_games), maps
+    for output in tester.map(
+        [team1] * (num_games), [team2] * (num_games), maps, return_exceptions=True
     ):
-        tot1 += team1_wins
-        tot2 += team2_wins
+        if isinstance(output, tuple):
+            team1_wins, team2_wins = output
+            tot1 += team1_wins
+            tot2 += team2_wins
+        else:
+            print(output)
 
     print(f"{team1} wins: {tot1}, {team2} wins: {tot2}")
