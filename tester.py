@@ -76,7 +76,6 @@ async def run_game(a: str, b: str, map: str, ooo: int, sem: Semaphore):
         end="\r",
         flush=True,
     )
-    os.remove(path)
 
 
 async def play(a: str, b: str, maps: [str]):
@@ -93,8 +92,6 @@ async def play(a: str, b: str, maps: [str]):
 
 
 async def main():
-    print("DON'T USE THIS (for now)!")
-    exit()
     print("Starting Tests!")
     random.seed(42)
     if len(sys.argv) < 3:

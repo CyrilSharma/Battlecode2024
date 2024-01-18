@@ -14,6 +14,7 @@ public class AttackMicro {
     long enemy_mask1 = 0;
 
     RobotController rc;
+    NeighborLoader nl;
     MapLocation[] spawnCenters = null;
     Communications comms;
     MapTracker mt;
@@ -28,6 +29,7 @@ public class AttackMicro {
         this.mt = d.mt;
         assert d.spawnCenters != null;
         this.spawnCenters = d.spawnCenters;
+        this.nl = new NeighborLoader(rc);
         computeScores();
     }
 
@@ -43,9 +45,7 @@ public class AttackMicro {
     }
 
     public boolean runMicro() throws GameActionException {
-        Team myteam = rc.getTeam();
-        friends = rc.senseNearbyRobots(-1, myteam);
-        enemies = rc.senseNearbyRobots(-1, myteam.opponent());
+        nl.load(this);
         if (enemies.length == 0) return false;
         addBestTarget();
         // if (rc.getRoundNum() > 5 && enemies.length > 2 * friends.length && notNearSpawn()) {
@@ -213,11 +213,6 @@ public class AttackMicro {
             friends = rc.senseNearbyRobots(-1, myteam);
             enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
-        StringBuilder str = new StringBuilder();
-        for (int i = 0; i < 8; i++) {
-            str.append(", " + microtargets[i].minDistToBuilder);
-        }
-        rc.setIndicatorString("uhh: " + best.minDistToBuilder + str.toString());
         while (tryAttack()) ;
     }
 
@@ -243,9 +238,6 @@ public class AttackMicro {
 
     // Choose best candidate for maneuvering in close encounters.
     class MicroTarget {
-        // Debugging purposes only.
-        // long hits0 = 0;
-        // long hits1 = 0;
         long close0 = 0;
         long close1 = 0;
         int minDistToEnemy = 100000;
@@ -254,20 +246,16 @@ public class AttackMicro {
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
         boolean canMove;
-        boolean isBuilder;
         int canLandHit;
         MapLocation nloc;
         MapLocation bl;
         Direction dir;
-        int minDistToBuilder = -1;
 
         MicroTarget(Direction dir) throws GameActionException {
             MapLocation myloc = rc.getLocation();
             nloc = myloc.add(dir);
             bl = myloc.translate(-4, -4);
             canMove = rc.canMove(dir);
-            if (rc.getLevel(SkillType.BUILD) >= 4) isBuilder = true;
-            else isBuilder = false;
             this.dir = dir;
             computeHitMask();
         }
@@ -275,7 +263,6 @@ public class AttackMicro {
         void displayHitMask() throws GameActionException {
             rc.setIndicatorString("HitMask for " + dir);
             Util.displayMask(rc, close0, close1);
-            // Util.displayMask(rc, hits0, hits1);
             rc.setIndicatorDot(nloc, 255, 165, 0);
         }
 
@@ -315,36 +302,27 @@ public class AttackMicro {
 
         boolean canHitSoon(MapLocation loc) throws GameActionException {
             int idx = (9 * (loc.y - bl.y)) + (loc.x - bl.x);
-            if (idx >= 63) {
-                // hits1 |= (close1 & (1L << (idx - 63)));
-                return ((close1 & (1L << (idx - 63))) != 0);
-            }
-            else {
-                // hits0 |= (close0 & (1L << idx));
-                return ((close0 & (1L << idx)) != 0);
-            }
+            if (idx >= 63) return ((close1 & (1L << (idx - 63))) != 0);
+            else return ((close0 & (1L << idx)) != 0);
         }
         
         void addEnemy(RobotInfo r) throws GameActionException {
-            int dist = r.location.distanceSquaredTo(nloc);
-            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
-                canLandHit = mydmg;
-            }
             if (r.hasFlag) return;
+            int dist = r.location.distanceSquaredTo(nloc);
             if (dist < minDistToEnemy) minDistToEnemy = dist;
-
-            int dmg = dmgscores[r.attackLevel];
-            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) dmgAttackRange += dmg;
-            if (canHitSoon(r.location)) dmgVisionRange += dmg;            
+            if (canHitSoon(r.location)) {
+                int dmg = dmgscores[r.attackLevel];
+                dmgVisionRange += dmg;
+                if (canAttack) canLandHit = mydmg;  
+                if (dist <= GameConstants.ATTACK_RADIUS_SQUARED)
+                    dmgAttackRange += dmg;
+            }      
         }
         
         void addAlly(RobotInfo r) throws GameActionException {
             if (!canMove) return;
             if (r.hasFlag) return;
             int d = nloc.distanceSquaredTo(r.location);
-            if (r.getBuildLevel() >= 4 && (d < minDistToBuilder || minDistToBuilder == -1)) {
-                minDistToBuilder = d;
-            }
             if (d < minDistToAlly) minDistToAlly = d;
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
                 healAttackRange += healscores[r.healLevel];
@@ -363,22 +341,11 @@ public class AttackMicro {
             return (Math.max(dmgVisionRange - healAttackRange, 0) - canLandHit);
         }
 
-        int attackScoreB() {
-            return (Math.max(dmgAttackRange - healAttackRange, 0) - canLandHit);
-        }
-
-        int visionScoreB() {
-            return (Math.max(dmgVisionRange - healAttackRange, 0) - canLandHit);
-        }
-
-
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
             if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
                 return minDistToEnemy > mt.minDistToEnemy;
             }
-
-            if (isBuilder) return isBuilderBetterThan(mt);
 
             if (attackScore() < mt.attackScore()) return true;
             if (attackScore() > mt.attackScore()) return false;
@@ -395,24 +362,5 @@ public class AttackMicro {
             if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
             else return minDistToEnemy <= mt.minDistToEnemy;
         }
-
-        boolean isBuilderBetterThan(MicroTarget mt) {
-
-            if (minDistToBuilder > mt.minDistToBuilder) return true;
-            if (minDistToBuilder < mt.minDistToBuilder) return false;
-
-            if (attackScoreB() < mt.attackScoreB()) return true;
-            if (attackScoreB() > mt.attackScoreB()) return false;
-
-            if (visionScoreB() < mt.visionScoreB()) return true;
-            if (visionScoreB() > mt.visionScoreB()) return false;
-
-            if (minDistToAlly < mt.minDistToAlly) return true;
-            if (minDistToAlly > mt.minDistToAlly) return false;
-
-            if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
-            else return minDistToEnemy <= mt.minDistToEnemy;
-        }
-
     }
 }
