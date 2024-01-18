@@ -64,7 +64,7 @@ def tester(team1: str, team2: str, map: str):
         "./gradlew run"
         + f" -PteamA={team1}"
         + f" -PteamB={team2}"
-        + f" -Pmaps={map}"
+        + f" -Pmaps=\"{map}\""
         + f" -Psource=src"
         + f" -PprofilerEnabled=false"
         + f" -PoutputVerbose=false"

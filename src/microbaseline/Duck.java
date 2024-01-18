@@ -61,8 +61,8 @@ public class Duck extends Robot {
     void purchaseGlobal() throws GameActionException {
         // Factored into it's own method because logic may
         // Become complex.
-        if (rc.canBuyGlobal(GlobalUpgrade.ACTION)) {
-            rc.buyGlobal(GlobalUpgrade.ACTION);
+        if (rc.canBuyGlobal(GlobalUpgrade.ATTACK)) {
+            rc.buyGlobal(GlobalUpgrade.ATTACK);
         }
     }
 
