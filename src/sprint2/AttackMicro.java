@@ -5,6 +5,10 @@ public class AttackMicro {
     int mydmg;
     boolean canAttack;
     RobotController rc;
+    long enemy_mask0 = 0;
+    long enemy_mask1 = 0;
+    long friend_mask0 = 0;
+    long friend_mask1 = 0;
     RobotInfo[] friends = null;
     RobotInfo[] enemies = null;
     Communications comms;
