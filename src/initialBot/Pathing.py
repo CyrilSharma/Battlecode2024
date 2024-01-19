@@ -59,14 +59,16 @@ def moveTo():
     loverflow = 0b111111110111111110111111110111111110111111110111111110111111110
     roverflow = 0b011111111011111111011111111011111111011111111011111111011111111
     cp.print(f"if (rc.getMovementCooldownTurns() >= 10) return;")
+    cp.print(f"long mask0 = 0x7FFFFFFFFFFFFFFFL;")
+    cp.print(f"long mask1 = 0x3FFFFL;")
     cp.print(f"long loverflow = {hex(loverflow)}L;")
     cp.print(f"long roverflow = {hex(roverflow)}L;")
     cp.print(f"long water_mask0 = mt.water_mask0;")
     cp.print(f"long water_mask1 = mt.water_mask1;")
-    cp.print("long passible0 = ~(mt.adjblocked | mt.wall_mask0);")
-    cp.print("long passible1 = ~(mt.wall_mask1);")
-    cp.print("long clear0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0);")
-    cp.print("long clear1 = ~(mt.wall_mask1 | mt.water_mask1);")
+    cp.print("long passible0 = ~(mt.adjblocked | mt.wall_mask0) & mask0;")
+    cp.print("long passible1 = ~(mt.wall_mask1) & mask1;")
+    cp.print("long clear0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0) & mask0;")
+    cp.print("long clear1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;")
     cp.print(f"long temp = 0;")
 
     # Compute all squares we can reach in 10 iterations.
@@ -169,7 +171,7 @@ def moveTo():
     # The only squares that should be active in best are those which
     # Are part of the optimal path. Hence, we can simply choose any of them.
     cp.print("Direction bestDir = null;")
-    cp.print("int bestDist = -1;")
+    cp.print(f"int bestDist = {1 << 30};")
 
 
 
@@ -215,11 +217,11 @@ def advance_reachable(mask_name, walls):
     cp.print(f"temp = {mask_name}0;")
     cp.print(
         f"{mask_name}0 = ({mask_name}0 | ({mask_name}0 << {MASK_WIDTH}) |"
-        + f" ({mask_name}0 >>> {MASK_WIDTH}) | ({mask_name}1 << {shift})){' & passible0' if walls else ''};"
+        + f" ({mask_name}0 >>> {MASK_WIDTH}) | ({mask_name}1 << {shift})){' & passible0' if walls else ' & mask0'};"
     )
     cp.print(
         f"{mask_name}1 = ({mask_name}1 | ({mask_name}1 << {MASK_WIDTH}) |"
-        + f" ({mask_name}1 >>> {MASK_WIDTH}) | (temp >>> {shift})){' & passible1' if walls else ''};"
+        + f" ({mask_name}1 >>> {MASK_WIDTH}) | (temp >>> {shift})){' & passible1' if walls else ' & mask1'};"
     )
 
 

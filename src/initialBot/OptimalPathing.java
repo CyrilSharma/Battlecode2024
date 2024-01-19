@@ -13,14 +13,16 @@ public class OptimalPathing {
     
     public void moveTo(MapLocation target) throws GameActionException {
         if (rc.getMovementCooldownTurns() >= 10) return;
+        long mask0 = 0x7FFFFFFFFFFFFFFFL;
+        long mask1 = 0x3FFFFL;
         long loverflow = 0x7fbfdfeff7fbfdfeL;
         long roverflow = 0x3fdfeff7fbfdfeffL;
         long water_mask0 = mt.water_mask0;
         long water_mask1 = mt.water_mask1;
-        long passible0 = ~(mt.adjblocked | mt.wall_mask0);
-        long passible1 = ~(mt.wall_mask1);
-        long clear0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0);
-        long clear1 = ~(mt.wall_mask1 | mt.water_mask1);
+        long passible0 = ~(mt.adjblocked | mt.wall_mask0) & mask0;
+        long passible1 = ~(mt.wall_mask1) & mask1;
+        long clear0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0) & mask0;
+        long clear1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
         long temp = 0;
         long reach0 = 1099511627776L;
         long reach1 = 0;
@@ -151,8 +153,8 @@ public class OptimalPathing {
             targetsqrs0 = (targetsqrs0 | ((targetsqrs0 << 1) & loverflow) | ((targetsqrs0 >>> 1) & roverflow));
             targetsqrs1 = (targetsqrs1 | ((targetsqrs1 << 1) & loverflow) | ((targetsqrs1 >>> 1) & roverflow));
             temp = targetsqrs0;
-            targetsqrs0 = (targetsqrs0 | (targetsqrs0 << 9) | (targetsqrs0 >>> 9) | (targetsqrs1 << 54));
-            targetsqrs1 = (targetsqrs1 | (targetsqrs1 << 9) | (targetsqrs1 >>> 9) | (temp >>> 54));
+            targetsqrs0 = (targetsqrs0 | (targetsqrs0 << 9) | (targetsqrs0 >>> 9) | (targetsqrs1 << 54)) & mask0;
+            targetsqrs1 = (targetsqrs1 | (targetsqrs1 << 9) | (targetsqrs1 >>> 9) | (temp >>> 54)) & mask1;
         }
         
         int idx = 0;
@@ -177,7 +179,7 @@ public class OptimalPathing {
         }
         
         Direction bestDir = null;
-        int bestDist = -1;
+        int bestDist = 1073741824;
         long best = back0[idx];
         if ((best & 0x1000000000000L) > 0) {
             MapLocation loc = rc.adjacentLocation(Direction.NORTHWEST);
@@ -270,7 +272,5 @@ public class OptimalPathing {
                 rc.move(bestDir);
             }
         }
-
-
     }
 }

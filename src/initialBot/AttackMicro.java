@@ -46,9 +46,14 @@ public class AttackMicro {
         nl.load(this);
         if (enemies.length == 0) return false;
         addBestTarget();
-        // if (enemies.length > 2 * friends.length) bombpath();
-        // else maneuver();
-        bombpath();
+        // int bombcount = Long.bitCount(mt.bomb_mask0) + Long.bitCount(mt.bomb_mask1);
+        // if ((bombcount > 5)) {
+        //     bombpath();
+        //     rc.setIndicatorDot(rc.getLocation(), 179, 3, 33);
+        // } else {
+        //     maneuver();
+        // }
+        maneuver();
         return true;
     }
 
@@ -67,8 +72,8 @@ public class AttackMicro {
         // Compute the reachability mask.
         long reach0 = 1099511627776L;
         long reach1 = 0L;
-        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0 | mt.adjblocked) & mask0;
-        passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1) & mask1;
+        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked) & mask0;
+        passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
         for (int i = 10; i-- > 0;) {
             reach0 = (reach0 | ((reach0 << 1) & loverflow0) | ((reach0 >>> 1) & roverflow0));
             reach1 = (reach1 | ((reach1 << 1) & loverflow1) | ((reach1 >>> 1) & roverflow1));
@@ -87,6 +92,19 @@ public class AttackMicro {
         long cur1 = enemy_mask1;
         passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0) & mask0;
         passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1) & mask1;
+        if (rc.getID() == 10504 && rc.getRoundNum() == 205) {
+            System.out.println("enemy - ");
+            Util.printMask(enemy_mask0, enemy_mask1);
+            System.out.println("bomb - ");
+            Util.printMask(mt.bomb_mask0, mt.bomb_mask1);
+            System.out.println("water - ");
+            Util.printMask(mt.water_mask0, mt.water_mask1);
+            System.out.println("wall - ");
+            Util.printMask(mt.wall_mask0, mt.wall_mask1);
+            System.out.println("mask - ");
+            Util.printMask(mask0, mask1);
+        }
+
         while ((cur0 != prev0 || cur1 != prev1)) {
             rc.setIndicatorString("Stuck in L1!");
             pprev0 = prev0;
@@ -98,73 +116,78 @@ public class AttackMicro {
             temp = cur0;
             cur0 = (cur0 | (cur0 << 9) | (cur0 >>> 9) | (cur1 << 54)) & passible0;
             cur1 = (cur1 | (cur1 << 9) | (cur1 >>> 9) | (temp >>> 54)) & passible1;
+            // if (rc.getID() == 10504 && rc.getRoundNum() == 205) {
+            //     System.out.println("Bytecode: " + Clock.getBytecodesLeft());
+            //     System.out.println("cur - ");
+            //     Util.printMask(cur0, cur1);
+            // }
         }
         // Reset it to before the redundant iteration.
         prev0 = pprev0;
         prev1 = pprev1;
         rc.setIndicatorString("Past L1!");
-
-        // If we didn't hit a reachable square, we have to one.
-        passible0 = mask0;
-        passible1 = mask1;
-        while ((cur0 & reach0) == 0 && (cur1 & reach1) == 0) {
-            rc.setIndicatorString("Stuck in L2!");
-            prev0 = cur0;
-            prev1 = cur1;
-            cur0 = (cur0 | ((cur0 << 1) & loverflow0) | ((cur0 >>> 1) & roverflow0));
-            cur1 = (cur1 | ((cur1 << 1) & loverflow1) | ((cur1 >>> 1) & roverflow1));
-            temp = cur0;
-            cur0 = (cur0 | (cur0 << 9) | (cur0 >>> 9) | (cur1 << 54)) & passible0;
-            cur1 = (cur1 | (cur1 << 9) | (cur1 >>> 9) | (temp >>> 54)) & passible1;
+        if ((cur0 & reach0) == 0 && (cur1 & reach1) == 0) {
+            return;
         }
-        rc.setIndicatorString("Past L2!");
 
-        // Now that we're guaranteed to be in reachable territory, bring walls back.
-        // Perform the same computation as earlier, and find the square furthest away.
-        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked) & mask0;
-        passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
-        while (((cur0 & reach0) != reach0) 
-            || ((cur1 & reach1) != reach1)) {
-            rc.setIndicatorString("Stuck in L3!");
-            prev0 = cur0;
-            prev1 = cur1;
-            cur0 = (cur0 | ((cur0 << 1) & loverflow0) | ((cur0 >>> 1) & roverflow0));
-            cur1 = (cur1 | ((cur1 << 1) & loverflow1) | ((cur1 >>> 1) & roverflow1));
-            temp = cur0;
-            cur0 = (cur0 | (cur0 << 9) | (cur0 >>> 9) | (cur1 << 54)) & passible0;
-            cur1 = (cur1 | (cur1 << 9) | (cur1 >>> 9) | (temp >>> 54)) & passible1;
-        } 
-        rc.setIndicatorString("Past L3!");
-        
-
-        long del0 = (cur0 & ~prev0);
-        long del1 = (cur1 & ~prev1);
-        Util.displayMask(rc, del0, del1);
-        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked) & mask0;
-        passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
-        while ((del0 & 0x70381c0000000L) == 0) {
-            rc.setIndicatorString("Stuck in L4!");
-            del0 = (del0 | ((del0 << 1) & loverflow0) | ((del0 >>> 1) & roverflow0));
-            del1 = (del1 | ((del1 << 1) & loverflow1) | ((del1 >>> 1) & roverflow1));
-            temp = del0;
-            del0 = (del0 | (del0 << 9) | (del0 >>> 9) | (del1 << 54)) & passible0;
-            del1 = (del1 | (del1 << 9) | (del1 >>> 9) | (temp >>> 54)) & passible1;
+        // should be guaranteed reachable?
+        long del0 = cur0 & ~prev0;
+        long del1 = cur1 & ~prev1;
+        int idx = 0;
+        int nz0 = Long.numberOfTrailingZeros(del0);
+        int nz1 = Long.numberOfTrailingZeros(del1);
+        if (nz0 == 64) {
+            idx = 63 + nz1;
+        } else {
+            idx = nz0;
         }
-        rc.setIndicatorString("Past L4!");
+        if (rc.getRoundNum() == 206 && rc.getID() == 12270) {
+            System.out.println("del - ");
+            System.out.println("idx: " + idx);
+            System.out.println("nz0: " + nz0);
+            System.out.println("nz1: " + nz1);
+            Util.printMask(del0, del1);
+        }
+
+        int dy = (idx / 9);
+        int dx = (idx % 9);
+        MapLocation target = rc.getLocation().translate(dx - 4, dy - 4);
+        rc.setIndicatorDot(target, 0, 0, 0);
+
+        // passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked) & mask0;
+        // passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
+        // while ((del0 & 0x70381c0000000L) == 0) {
+        //     rc.setIndicatorString("Stuck in L4!");
+        //     del0 = (del0 | ((del0 << 1) & loverflow0) | ((del0 >>> 1) & roverflow0));
+        //     del1 = (del1 | ((del1 << 1) & loverflow1) | ((del1 >>> 1) & roverflow1));
+        //     temp = del0;
+        //     del0 = (del0 | (del0 << 9) | (del0 >>> 9) | (del1 << 54)) & passible0;
+        //     del1 = (del1 | (del1 << 9) | (del1 >>> 9) | (temp >>> 54)) & passible1;
+        // }
+        // rc.setIndicatorString("Past L4!");
 
         // Target square is in vision range so no need to compute
         // `best` direction, i.e closest to target location.
-        long best = del0;
         Direction bestDir = null;
-        if ((best & 0x1000000000000L) > 0) bestDir = Direction.NORTHWEST;
-        else if ((best & 0x2000000000000L) > 0) bestDir = Direction.NORTH;
-        else if ((best & 0x4000000000000L) > 0) bestDir = Direction.NORTHEAST;
-        else if ((best & 0x20000000000L) > 0) bestDir = Direction.EAST;
-        else if ((best & 0x8000000000L) > 0) bestDir = Direction.WEST;
-        else if ((best & 0x40000000L) > 0) bestDir = Direction.SOUTHWEST;
-        else if ((best & 0x80000000L) > 0) bestDir = Direction.SOUTH;
-        else if ((best & 0x100000000L) > 0) bestDir = Direction.SOUTHEAST;
-        if ((bestDir != null) && (rc.canMove(bestDir))) rc.move(bestDir);
+        int bestDist = (1 << 30);
+        MapLocation loc = null;
+        int d = 0;
+
+        for (Direction dir: Direction.values()) {
+            loc = rc.adjacentLocation(dir);
+            d = target.distanceSquaredTo(loc);
+            if ((d < bestDist) && rc.canMove(dir)) {
+                bestDir = dir;
+                bestDist = d;
+            }
+        }
+        
+        if (bestDir != null) {
+            rc.setIndicatorString("Best Dir: " + bestDir);
+            if (rc.canMove(bestDir)) {
+                rc.move(bestDir);
+            }
+        }
     }
 
     public boolean notNearSpawn() throws GameActionException {

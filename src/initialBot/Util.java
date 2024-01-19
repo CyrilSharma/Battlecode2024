@@ -25,4 +25,21 @@ public class Util {
             }
         }
     }
+
+    public static void printMask(long cur0, long cur1) {
+        String s = "\n";
+        for (int i = 2; i-- > 0;) {
+            for (int j = 0; j < 9; j++) {
+                s += (cur1 >> (9*i + j)) & 1;
+            }
+            s += "\n";
+        }
+        for (int i = 7; i-- > 0;) {
+            for (int j = 0; j < 9; j++) {
+                s += (cur0 >> (9*i + j)) & 1;
+            }
+            s += "\n";
+        }
+        System.out.println(s);
+    } 
 }
