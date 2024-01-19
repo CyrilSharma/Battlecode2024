@@ -13,67 +13,69 @@ public class OptimalPathing {
     
     public void moveTo(MapLocation target) throws GameActionException {
         if (rc.getMovementCooldownTurns() >= 10) return;
+        long mask0 = 0x7FFFFFFFFFFFFFFFL;
+        long mask1 = 0x3FFFFL;
         long loverflow = 0x7fbfdfeff7fbfdfeL;
         long roverflow = 0x3fdfeff7fbfdfeffL;
         long water_mask0 = mt.water_mask0;
         long water_mask1 = mt.water_mask1;
-        long passible0 = ~(mt.adjblocked | mt.wall_mask0);
-        long passible1 = ~(mt.wall_mask1);
-        long clear0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0);
-        long clear1 = ~(mt.wall_mask1 | mt.water_mask1);
+        long passible0 = ~(mt.adjblocked | mt.wall_mask0) & mask0;
+        long passible1 = ~(mt.wall_mask1) & mask1;
+        long clear0 = ~(mt.adjblocked | mt.wall_mask0 | mt.water_mask0) & mask0;
+        long clear1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
         long temp = 0;
         long reach0 = 1099511627776L;
         long reach1 = 0;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
-        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+        reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+        reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
         temp = reach0;
-        reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-        reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
+        reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+        reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
         
         long targetsqrs0 = 0;
         long targetsqrs1 = 0;
@@ -148,11 +150,11 @@ public class OptimalPathing {
         }
         
         while ((targetsqrs0 & reach0) == 0 && (targetsqrs1 & reach1) == 0) {
-            targetsqrs0 = (targetsqrs0 | ((targetsqrs0 << 1) & loverflow) | ((targetsqrs0 >> 1) & roverflow));
-            targetsqrs1 = (targetsqrs1 | ((targetsqrs1 << 1) & loverflow) | ((targetsqrs1 >> 1) & roverflow));
+            targetsqrs0 = (targetsqrs0 | ((targetsqrs0 << 1) & loverflow) | ((targetsqrs0 >>> 1) & roverflow));
+            targetsqrs1 = (targetsqrs1 | ((targetsqrs1 << 1) & loverflow) | ((targetsqrs1 >>> 1) & roverflow));
             temp = targetsqrs0;
-            targetsqrs0 = (targetsqrs0 | (targetsqrs0 << 9) | (targetsqrs0 >> 9) | (targetsqrs1 << 54));
-            targetsqrs1 = (targetsqrs1 | (targetsqrs1 << 9) | (targetsqrs1 >> 9) | (temp >> 54));
+            targetsqrs0 = (targetsqrs0 | (targetsqrs0 << 9) | (targetsqrs0 >>> 9) | (targetsqrs1 << 54)) & mask0;
+            targetsqrs1 = (targetsqrs1 | (targetsqrs1 << 9) | (targetsqrs1 >>> 9) | (temp >>> 54)) & mask1;
         }
         
         int idx = 0;
@@ -164,11 +166,11 @@ public class OptimalPathing {
             int nidx = (idx + 1) % 4;
             long water0 = back0[nidx];
             long water1 = back1[nidx];
-            back0[nidx] = (back0[idx] | ((back0[idx] << 1) & loverflow) | ((back0[idx] >> 1) & roverflow));
-            back1[nidx] = (back1[idx] | ((back1[idx] << 1) & loverflow) | ((back1[idx] >> 1) & roverflow));
+            back0[nidx] = (back0[idx] | ((back0[idx] << 1) & loverflow) | ((back0[idx] >>> 1) & roverflow));
+            back1[nidx] = (back1[idx] | ((back1[idx] << 1) & loverflow) | ((back1[idx] >>> 1) & roverflow));
             temp = back0[nidx];
-            back0[nidx] = (back0[nidx] | (back0[nidx] << 9) | (back0[nidx] >> 9) | (back1[nidx] << 54));
-            back1[nidx] = (back1[nidx] | (back1[nidx] << 9) | (back1[nidx] >> 9) | (temp >> 54));
+            back0[nidx] = (back0[nidx] | (back0[nidx] << 9) | (back0[nidx] >>> 9) | (back1[nidx] << 54));
+            back1[nidx] = (back1[nidx] | (back1[nidx] << 9) | (back1[nidx] >>> 9) | (temp >>> 54));
             back0[(idx + 3) % 4] = (back0[nidx] & water_mask0);
             back0[nidx] = water0 | (back0[nidx] & clear0);
             back1[(idx + 3) % 4] = (back1[nidx] & water_mask1);
@@ -177,7 +179,7 @@ public class OptimalPathing {
         }
         
         Direction bestDir = null;
-        int bestDist = -1;
+        int bestDist = 1073741824;
         long best = back0[idx];
         if ((best & 0x1000000000000L) > 0) {
             MapLocation loc = rc.adjacentLocation(Direction.NORTHWEST);
@@ -270,7 +272,5 @@ public class OptimalPathing {
                 rc.move(bestDir);
             }
         }
-
-
     }
 }
