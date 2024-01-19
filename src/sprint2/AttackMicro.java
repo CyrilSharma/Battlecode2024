@@ -147,6 +147,7 @@ public class AttackMicro {
             return;
         }
 
+        // should probably choose the location furthest from enemies.
         // should be guaranteed reachable?
         long del0 = cur0 & ~prev0;
         long del1 = cur1 & ~prev1;

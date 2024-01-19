@@ -14,21 +14,24 @@ public class Communications {
         rc.writeSharedArray(Channels.FIRST, order + 1);
     }
 
-    public void log_flag(MapLocation m, boolean friendly) throws GameActionException {
+    public void log_enemy_flag_spawn(MapLocation m) throws GameActionException {
         int hash = hashLocation(m);
-        int start = (friendly) ? Channels.FFLAGS : Channels.EFLAGS;
+        int start = Channels.EFLAGS;
         for (int i = start; i < start + 3; i++) {
             int data = rc.readSharedArray(i);
             if (data == 0) {
                 rc.writeSharedArray(i, hash);
                 break;
+            } else {
+                MapLocation loc = dehashLocation(data);
+                if (loc.distanceSquaredTo(m) <= 36) return;
             }
         }
     }
 
-    public void delete_flag(MapLocation m, boolean friendly) throws GameActionException {
+    public void delete_enemy_flag_spawn(MapLocation m) throws GameActionException {
         int hash = hashLocation(m);
-        int start = (friendly) ? Channels.FFLAGS : Channels.EFLAGS;
+        int start = Channels.EFLAGS;
         for (int i = start; i < start + 3; i++) {
             int data = rc.readSharedArray(i);
             if (data == hash) {
@@ -38,7 +41,47 @@ public class Communications {
         }
     }
 
-    public void carrying_flag(MapLocation m) throws GameActionException {
+    public MapLocation[] get_enemy_flag_spawns() throws GameActionException {
+        int ctr = 0;
+        MapLocation[] locs = new MapLocation[3];
+        int start = Channels.EFLAGS;
+        for (int i = start; i < start + 3; i++) {
+            int data = rc.readSharedArray(i);
+            if (data == 0) continue;
+            locs[ctr++] = dehashLocation(data);
+        }
+        MapLocation[] trim = new MapLocation[ctr];
+        while (ctr-- > 0) trim[ctr] = locs[ctr];
+        return trim;
+    }
+
+    public void log_runaway_flag(MapLocation m) throws GameActionException {
+        int hash = hashLocation(m);
+        int start = Channels.RUNAWAY_FLAGS;
+        for (int i = start; i < start + Channels.FLAG_NUM; i++) {
+            int data = rc.readSharedArray(i);
+            if (data == 0) {
+                rc.writeSharedArray(i, hash);
+                break;
+            }
+        }
+    }
+
+    public AttackTarget[] get_runaway_flags() throws GameActionException {
+        int ctr = 0;
+        AttackTarget[] targets = new AttackTarget[Channels.FLAG_NUM];
+        for (int i = 0; i < Channels.FLAG_NUM; i++) {
+            int item = rc.readSharedArray(Channels.RUNAWAY_FLAGS + i);
+            if (item == 0) continue;
+            AttackTarget at = dehashAttackTarget(item);
+            targets[ctr++] = at;
+        }
+        AttackTarget[] trim = new AttackTarget[ctr];
+        while (ctr-- > 0) trim[ctr] = targets[ctr];
+        return trim;
+    }
+
+    public void log_carrier(MapLocation m) throws GameActionException {
         int hash = hashLocation(m);
         int start = Channels.FLAG_CARRIERS;
         for (int i = start; i < start + Channels.FLAG_NUM; i++) {
@@ -61,20 +104,6 @@ public class Communications {
         }
         AttackTarget[] trim = new AttackTarget[ctr];
         while (ctr-- > 0) trim[ctr] = targets[ctr];
-        return trim;
-    }
-
-    public MapLocation[] get_flags(boolean friendly) throws GameActionException {
-        int ctr = 0;
-        MapLocation[] locs = new MapLocation[3];
-        int start = (friendly) ? Channels.FFLAGS : Channels.EFLAGS;
-        for (int i = start; i < start + 3; i++) {
-            int data = rc.readSharedArray(i);
-            if (data == 0) continue;
-            locs[ctr++] = dehashLocation(data);
-        }
-        MapLocation[] trim = new MapLocation[ctr];
-        while (ctr-- > 0) trim[ctr] = locs[ctr];
         return trim;
     }
 
@@ -136,6 +165,7 @@ public class Communications {
         }
         for (int i = 0; i < Channels.FLAG_NUM; i++) {
             rc.writeSharedArray(Channels.FLAG_CARRIERS + i, 0);
+            rc.writeSharedArray(Channels.RUNAWAY_FLAGS + i, 0);
         }
     }
 

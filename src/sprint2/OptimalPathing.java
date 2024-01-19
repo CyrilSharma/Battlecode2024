@@ -268,7 +268,8 @@ public class OptimalPathing {
                 if (rc.canFill(loc)) {
                     rc.fill(loc);
                 }
-            } else if (rc.canMove(bestDir)) {
+            }
+            if (rc.canMove(bestDir)) {
                 rc.move(bestDir);
             }
         }

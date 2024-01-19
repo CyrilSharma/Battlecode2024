@@ -221,29 +221,33 @@ public class Duck extends Robot {
     }
 
     void updateFlags() throws GameActionException {
-        for (int ctr = 0; ctr < 2; ctr++) {
-            boolean friendly = (ctr == 0) ? true : false;
-            Team team = (friendly) ? rc.getTeam() : rc.getTeam().opponent();
-            MapLocation[] locs = communications.get_flags(friendly);
-            FlagInfo[] flags = rc.senseNearbyFlags(-1, team);
-            for (int i = locs.length; i-- > 0;) {
-                if (!rc.canSenseLocation(locs[i])) continue;
-                boolean found = false;
-                for (int j = flags.length; j-- > 0;) {
-                    if (flags[j].getLocation().equals(locs[i])) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    communications.delete_flag(locs[i], friendly);
-                }
-            }
+        FlagInfo[] flags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
+        MapLocation[] locs = communications.get_enemy_flag_spawns();
+        for (int i = locs.length; i-- > 0;) {
+            if (!rc.canSenseLocation(locs[i])) continue;
+            boolean found = false;
             for (int j = flags.length; j-- > 0;) {
-                MapLocation floc = flags[j].getLocation();
-                if (!friendly && flags[j].isPickedUp()) continue;
-                communications.log_flag(floc, friendly);
+                if (flags[j].getLocation().equals(locs[i])) {
+                    found = true;
+                    break;
+                }
             }
+            if (found) continue;
+            communications.delete_enemy_flag_spawn(locs[i]);
+        }
+        
+        flags = rc.senseNearbyFlags(-1, rc.getTeam());
+        for (int j = flags.length; j-- > 0;) {
+            if (!flags[j].isPickedUp()) continue;
+            MapLocation floc = flags[j].getLocation();
+            communications.log_runaway_flag(floc);
+        }
+
+        flags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
+        for (int j = flags.length; j-- > 0;) {
+            if (flags[j].isPickedUp()) continue;
+            MapLocation floc = flags[j].getLocation();
+            communications.log_enemy_flag_spawn(floc);
         }
     }
 
@@ -301,12 +305,12 @@ public class Duck extends Robot {
     }
 
     public MapLocation getHuntTarget() throws GameActionException {
-        //go to carriers if close!
-        AttackTarget[] carriers = communications.get_carriers();
+        // Defend nearby carriers!
         MapLocation myloc = rc.getLocation();
-        int closest = 1 << 30;
-        MapLocation closestCarrier = null;
+        AttackTarget[] carriers = communications.get_carriers();
         if (carriers.length != 0) {
+            int closest = 1 << 30;
+            MapLocation closestCarrier = null;
             for (int i = carriers.length; i-- > 0;) {
                 MapLocation loc = carriers[i].m;
                 int d = loc.distanceSquaredTo(myloc);
@@ -315,11 +319,33 @@ public class Duck extends Robot {
                     closestCarrier = loc;
                 }
             }
+            if (closest <= 100) {
+                protectCarrier(closestCarrier);
+                return null;
+            }
         }
-        if (closest <= 100) {
-            protectCarrier(closestCarrier);
-            return null;
+
+        // Take back nearby flags!
+        AttackTarget[] runaways = communications.get_runaway_flags();
+        if (runaways.length != 0) {
+            int closest = 1 << 30;
+            MapLocation closestCarrier = null;
+            for (int i = runaways.length; i-- > 0;) {
+                MapLocation loc = runaways[i].m;
+                int d = loc.distanceSquaredTo(myloc);
+                if (d < closest) {
+                    closest = d;
+                    closestCarrier = loc;
+                }
+            }
+            if (closest <= 100) {
+                protectCarrier(closestCarrier);
+                return null;
+            }
         }
+        
+        // Go to nearby targets? 
+        // Distance cap currently set so low as to make this never happen.
         int bestd = 1 << 30;
         MapLocation bestloc = null;
         AttackTarget[] targets = communications.getAttackTargets();
@@ -349,7 +375,9 @@ public class Duck extends Robot {
                 break;
             }
         }
-        MapLocation[] flags = communications.get_flags(false);
+
+        // Go to nearby enemy flag spawns (if we know them)!
+        MapLocation[] flags = communications.get_enemy_flag_spawns();
         if (flags.length != 0) {
             for (int i = flags.length; i-- > 0;) {
                 MapLocation loc = flags[i];
@@ -365,6 +393,7 @@ public class Duck extends Robot {
             }
         }
 
+        // Go to approximate flag locations!
         flags = rc.senseBroadcastFlagLocations();
         if (flags.length != 0) {
             for (int i = Math.min(10, flags.length); i-- > 0;) {
@@ -381,10 +410,10 @@ public class Duck extends Robot {
             }
         }
 
+        // Go to symmetric spawn loations.
         if (sc.getSymmetry() != -1) {
-            MapLocation[] allies = rc.getAllySpawnLocations();
-            for (int i = Math.min(10, allies.length); i-- > 0;) {
-                MapLocation loc = sc.getSymLoc(allies[i]);
+            for (int i = spawnCenters.length; i-- > 0;) {
+                MapLocation loc = sc.getSymLoc(spawnCenters[i]);
                 int d = loc.distanceSquaredTo(myloc);
                 if (d < bestd) {
                     bestd = d;
@@ -394,8 +423,7 @@ public class Duck extends Robot {
             return bestloc;
         }
 
-        // When we capture all flags this actually happens pretty frequently.
-        // Especially considering we're ignoring attack targets now.
+        // Go to attack targets, if they exist hopefully.
         if (targets.length != 0) {
             int idx = -1;
             for (int i = targets.length; i-- > 0;) {
@@ -421,9 +449,7 @@ public class Duck extends Robot {
             // Not sure how well this works. Ideally we just move directly
             // Towards friendly territory.
             MapLocation myloc = rc.getLocation();
-            // Stop things from swarming around me.
-            communications.delete_flag(myloc, false);
-            communications.carrying_flag(myloc);
+            communications.log_carrier(myloc);
             int bestdist = 1 << 30;
             MapLocation bestloc = null;
             MapLocation[] locs = spawnCenters;
@@ -448,7 +474,6 @@ public class Duck extends Robot {
         MapLocation floc = f.getLocation();
         if (rc.canPickupFlag(floc)) {
             rc.pickupFlag(floc);
-            communications.delete_flag(floc, false);
         } else {
             // RUSH THE FLAG ALL AT ONCE. 
             MapLocation myloc = rc.getLocation();
