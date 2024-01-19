@@ -21,12 +21,13 @@ public class AttackMicro {
     MapLocation[] spawnCenters = null;
     SymmetryChecker sc;
     NeighborLoader nl;
-    public AttackMicro(Robot r) {
-        this.rc = r.rc;
-        this.comms = r.communications;
-        this.path = new Pathing(r);
-        this.sc = r.sc;
-        this.mt = r.mt;
+    public AttackMicro(Duck d) {
+        this.rc = d.rc;
+        this.comms = d.communications;
+        this.sc = d.sc;
+        this.mt = d.mt;
+        this.path = d.path;
+        this.nl = new NeighborLoader(rc);
         this.computeScores();
     }
 
@@ -41,34 +42,40 @@ public class AttackMicro {
     }
 
     public boolean runMicro() throws GameActionException {
+        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
         nl.load(this);
         if (enemies.length == 0) return false;
         addBestTarget();
-        if (enemies.length > 2 * friends.length) bombpath();
-        else maneuver();
+        // if (enemies.length > 2 * friends.length) bombpath();
+        // else maneuver();
+        bombpath();
         return true;
     }
 
     public void bombpath() throws GameActionException {
-        long loverflow = 0x7fbfdfeff7fbfdfeL;
-        long roverflow = 0x3fdfeff7fbfdfeffL;
+        rc.setIndicatorString("Bomb Pathing!");
+        long mask0 = 0x7FFFFFFFFFFFFFFFL;
+        long mask1 = 0x3FFFFL;
+        long loverflow0 = 0x7fbfdfeff7fbfdfeL & mask0;
+        long roverflow0 = 0x3fdfeff7fbfdfeffL & mask0;
+        long loverflow1 = 0x7fbfdfeff7fbfdfeL & mask1;
+        long roverflow1 = 0x3fdfeff7fbfdfeffL & mask1;
         long passible0 = 0;
         long passible1 = 0;
         long temp = 0;
 
         // Compute the reachability mask.
-        long reach0 = (1L << (4 * 9 + 4));
+        long reach0 = 1099511627776L;
         long reach1 = 0L;
-        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked);
-        passible1 = ~(mt.wall_mask1 | mt.water_mask1);
+        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0 | mt.adjblocked) & mask0;
+        passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1) & mask1;
         for (int i = 10; i-- > 0;) {
-            reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >> 1) & roverflow));
-            reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >> 1) & roverflow));
+            reach0 = (reach0 | ((reach0 << 1) & loverflow0) | ((reach0 >>> 1) & roverflow0));
+            reach1 = (reach1 | ((reach1 << 1) & loverflow1) | ((reach1 >>> 1) & roverflow1));
             temp = reach0;
-            reach0 = (reach0 | (reach0 << 9) | (reach0 >> 9) | (reach1 << 54)) & passible0;
-            reach1 = (reach1 | (reach1 << 9) | (reach1 >> 9) | (temp >> 54)) & passible1;
+            reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+            reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
         }
-
 
         // Using the enemy mask as a starting point, shift it around, assuming impassible bombs,
         // Using our normal bitmasking tricks. Do this until you reach a fixed point.
@@ -78,55 +85,72 @@ public class AttackMicro {
         long prev1 = 0;
         long cur0 = enemy_mask0;
         long cur1 = enemy_mask1;
-        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0);
-        passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1);
+        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0) & mask0;
+        passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1) & mask1;
         while ((cur0 != prev0 || cur1 != prev1)) {
-            cur0 = (cur0 | ((cur0 << 1) & loverflow) | ((cur0 >> 1) & roverflow));
-            cur1 = (cur1 | ((cur1 << 1) & loverflow) | ((cur1 >> 1) & roverflow));
-            temp = cur0;
-            cur0 = (cur0 | (cur0 << 9) | (cur0 >> 9) | (cur1 << 54)) & passible0;
-            cur1 = (cur1 | (cur1 << 9) | (cur1 >> 9) | (temp >> 54)) & passible1;
+            rc.setIndicatorString("Stuck in L1!");
             pprev0 = prev0;
             pprev1 = prev1;
             prev0 = cur0;
             prev1 = cur1;
+            cur0 = (cur0 | ((cur0 << 1) & loverflow0) | ((cur0 >>> 1) & roverflow0));
+            cur1 = (cur1 | ((cur1 << 1) & loverflow1) | ((cur1 >>> 1) & roverflow1));
+            temp = cur0;
+            cur0 = (cur0 | (cur0 << 9) | (cur0 >>> 9) | (cur1 << 54)) & passible0;
+            cur1 = (cur1 | (cur1 << 9) | (cur1 >>> 9) | (temp >>> 54)) & passible1;
         }
+        // Reset it to before the redundant iteration.
+        prev0 = pprev0;
+        prev1 = pprev1;
+        rc.setIndicatorString("Past L1!");
 
-        // If we haven't hit every reachable square, change passablity definition.
-        // This is important because we want the square furthest from vision.
-        if (((cur0 & reach0) != reach0) ||
-            ((cur1 & reach1) != reach1)) {
-            prev0 = 0;
-            prev1 = 0;
-            passible0 = ~(mt.wall_mask0 | mt.water_mask0);
-            passible1 = ~(mt.wall_mask1 | mt.water_mask1);
-            while ((cur0 != prev0 || cur1 != prev1)) {
-                cur0 = (cur0 | ((cur0 << 1) & loverflow) | ((cur0 >> 1) & roverflow));
-                cur1 = (cur1 | ((cur1 << 1) & loverflow) | ((cur1 >> 1) & roverflow));
-                temp = cur0;
-                cur0 = (cur0 | (cur0 << 9) | (cur0 >> 9) | (cur1 << 54)) & passible0;
-                cur1 = (cur1 | (cur1 << 9) | (cur1 >> 9) | (temp >> 54)) & passible1;
-                pprev0 = prev0;
-                pprev1 = prev1;
-                prev0 = cur0;
-                prev1 = cur1;
-            }
+        // If we didn't hit a reachable square, we have to one.
+        passible0 = mask0;
+        passible1 = mask1;
+        while ((cur0 & reach0) == 0 && (cur1 & reach1) == 0) {
+            rc.setIndicatorString("Stuck in L2!");
+            prev0 = cur0;
+            prev1 = cur1;
+            cur0 = (cur0 | ((cur0 << 1) & loverflow0) | ((cur0 >>> 1) & roverflow0));
+            cur1 = (cur1 | ((cur1 << 1) & loverflow1) | ((cur1 >>> 1) & roverflow1));
+            temp = cur0;
+            cur0 = (cur0 | (cur0 << 9) | (cur0 >>> 9) | (cur1 << 54)) & passible0;
+            cur1 = (cur1 | (cur1 << 9) | (cur1 >>> 9) | (temp >>> 54)) & passible1;
         }
+        rc.setIndicatorString("Past L2!");
 
-        // At this point, you have found the squares furthest away from enemies,
-        // assuming Impassible bombs.
-        // The rest proceeds exactly like our normal pathing algo.
-        long del0 = (prev0 & ~pprev0);
-        long del1 = (prev1 & ~pprev1);
-        passible0 = ~(mt.wall_mask0 | mt.water_mask0);
-        passible1 = ~(mt.wall_mask1 | mt.water_mask1);
+        // Now that we're guaranteed to be in reachable territory, bring walls back.
+        // Perform the same computation as earlier, and find the square furthest away.
+        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked) & mask0;
+        passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
+        while (((cur0 & reach0) != reach0) 
+            || ((cur1 & reach1) != reach1)) {
+            rc.setIndicatorString("Stuck in L3!");
+            prev0 = cur0;
+            prev1 = cur1;
+            cur0 = (cur0 | ((cur0 << 1) & loverflow0) | ((cur0 >>> 1) & roverflow0));
+            cur1 = (cur1 | ((cur1 << 1) & loverflow1) | ((cur1 >>> 1) & roverflow1));
+            temp = cur0;
+            cur0 = (cur0 | (cur0 << 9) | (cur0 >>> 9) | (cur1 << 54)) & passible0;
+            cur1 = (cur1 | (cur1 << 9) | (cur1 >>> 9) | (temp >>> 54)) & passible1;
+        } 
+        rc.setIndicatorString("Past L3!");
+        
+
+        long del0 = (cur0 & ~prev0);
+        long del1 = (cur1 & ~prev1);
+        Util.displayMask(rc, del0, del1);
+        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked) & mask0;
+        passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
         while ((del0 & 0x70381c0000000L) == 0) {
-            del0 = (del0 | ((del0 << 1) & loverflow) | ((del0 >> 1) & roverflow));
-            del1 = (del1 | ((del1 << 1) & loverflow) | ((del1 >> 1) & roverflow));
+            rc.setIndicatorString("Stuck in L4!");
+            del0 = (del0 | ((del0 << 1) & loverflow0) | ((del0 >>> 1) & roverflow0));
+            del1 = (del1 | ((del1 << 1) & loverflow1) | ((del1 >>> 1) & roverflow1));
             temp = del0;
-            del0 = (del0 | (del0 << 9) | (del0 >> 9) | (del1 << 54)) & passible0;
-            del1 = (del1 | (del1 << 9) | (del1 >> 9) | (temp >> 54)) & passible1;
+            del0 = (del0 | (del0 << 9) | (del0 >>> 9) | (del1 << 54)) & passible0;
+            del1 = (del1 | (del1 << 9) | (del1 >>> 9) | (temp >>> 54)) & passible1;
         }
+        rc.setIndicatorString("Past L4!");
 
         // Target square is in vision range so no need to compute
         // `best` direction, i.e closest to target location.
@@ -140,8 +164,7 @@ public class AttackMicro {
         else if ((best & 0x40000000L) > 0) bestDir = Direction.SOUTHWEST;
         else if ((best & 0x80000000L) > 0) bestDir = Direction.SOUTH;
         else if ((best & 0x100000000L) > 0) bestDir = Direction.SOUTHEAST;
-        if (bestDir != null) rc.move(bestDir);
-        rc.setIndicatorString("Bomb Pathing!");
+        if ((bestDir != null) && (rc.canMove(bestDir))) rc.move(bestDir);
     }
 
     public boolean notNearSpawn() throws GameActionException {
@@ -155,10 +178,10 @@ public class AttackMicro {
                 if ((status & 1) == 0) {
                     if (rc.getLocation().distanceSquaredTo(sc.getHSym(m)) < 49) return false;
                 }
-                if (((status >> 1) & 1) == 0) {
+                if (((status >>> 1) & 1) == 0) {
                     if (rc.getLocation().distanceSquaredTo(sc.getVSym(m)) < 49) return false;
                 }
-                if (((status >> 2) & 1) == 0) {
+                if (((status >>> 2) & 1) == 0) {
                     if (rc.getLocation().distanceSquaredTo(sc.getRSym(m)) < 49) return false;
                 }
             }
@@ -279,36 +302,33 @@ public class AttackMicro {
 
     // Choose best candidate for maneuvering in close encounters.
     class MicroTarget {
-        // Debugging purposes only.
-        // long hits0 = 0;
-        // long hits1 = 0;
         long close0 = 0;
         long close1 = 0;
+        int offset = 0;
         int minDistToEnemy = 100000;
         int minDistToAlly = 100000;
         int healAttackRange = 0;
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
         boolean canMove;
-        boolean isBuilder;
         int canLandHit;
         MapLocation nloc;
         MapLocation bl;
         Direction dir;
 
         MicroTarget(Direction dir) throws GameActionException {
+            this.dir = dir;
             MapLocation myloc = rc.getLocation();
             nloc = myloc.add(dir);
             bl = myloc.translate(-4, -4);
+            offset = bl.hashCode();
             canMove = rc.canMove(dir);
-            this.dir = dir;
             computeHitMask();
         }
 
         void displayHitMask() throws GameActionException {
             rc.setIndicatorString("HitMask for " + dir);
             Util.displayMask(rc, close0, close1);
-            // Util.displayMask(rc, hits0, hits1);
             rc.setIndicatorDot(nloc, 255, 165, 0);
         }
 
@@ -322,10 +342,10 @@ public class AttackMicro {
                 case NORTHWEST:     action0 <<= 8;  action1 = 0b000100000; break;
                 case EAST:          action0 <<= 1;  break;
                 case CENTER:        break;
-                case WEST:          action0 >>= 1;  break;
-                case SOUTHEAST:     action0 >>= 8;  break;
-                case SOUTH:         action0 >>= 9;  break;
-                case SOUTHWEST:     action0 >>= 10; break;
+                case WEST:          action0 >>>= 1;  break;
+                case SOUTHEAST:     action0 >>>= 8;  break;
+                case SOUTH:         action0 >>>= 9;  break;
+                case SOUTHWEST:     action0 >>>= 10; break;
             }
 
             long passible0 = ~(mt.wall_mask0 | mt.water_mask0);
@@ -336,27 +356,108 @@ public class AttackMicro {
             long t_close1 = (action1 & passible1);;
             long temp = 0;
             for (int i = 1; i-- > 0;) {
-                t_close0 = (t_close0 | ((t_close0 << 1) & loverflow) | ((t_close0 >> 1) & roverflow));
-                t_close1 = (t_close1 | ((t_close1 << 1) & loverflow) | ((t_close1 >> 1) & roverflow));
+                t_close0 = (t_close0 | ((t_close0 << 1) & loverflow) | ((t_close0 >>> 1) & roverflow));
+                t_close1 = (t_close1 | ((t_close1 << 1) & loverflow) | ((t_close1 >>> 1) & roverflow));
                 temp = t_close0;
-                t_close0 = (t_close0 | (t_close0 << 9) | (t_close0 >> 9) | (t_close1 << 54)) & passible0;
-                t_close1 = (t_close1 | (t_close1 << 9) | (t_close1 >> 9) | (temp >> 54)) & passible1;
+                t_close0 = (t_close0 | (t_close0 << 9) | (t_close0 >>> 9) | (t_close1 << 54)) & passible0;
+                t_close1 = (t_close1 | (t_close1 << 9) | (t_close1 >>> 9) | (temp >>> 54)) & passible1;
             }
             close0 = t_close0;
             close1 = t_close1;
         }
 
-        boolean canHitSoon(MapLocation loc) throws GameActionException {
-            int idx = (9 * (loc.y - bl.y)) + (loc.x - bl.x);
-            if (idx >= 63) return ((close1 & (1L << (idx - 63))) != 0);
-            else return ((close0 & (1L << idx)) != 0);
+        long canHitSoon(MapLocation loc) throws GameActionException {
+            switch (loc.hashCode() - offset) {
+                case 0: return (close0 & 0x1L);
+                case 65536: return (close0 & 0x2L);
+                case 131072: return (close0 & 0x4L);
+                case 196608: return (close0 & 0x8L);
+                case 262144: return (close0 & 0x10L);
+                case 327680: return (close0 & 0x20L);
+                case 393216: return (close0 & 0x40L);
+                case 458752: return (close0 & 0x80L);
+                case 524288: return (close0 & 0x100L);
+                case 1: return (close0 & 0x200L);
+                case 65537: return (close0 & 0x400L);
+                case 131073: return (close0 & 0x800L);
+                case 196609: return (close0 & 0x1000L);
+                case 262145: return (close0 & 0x2000L);
+                case 327681: return (close0 & 0x4000L);
+                case 393217: return (close0 & 0x8000L);
+                case 458753: return (close0 & 0x10000L);
+                case 524289: return (close0 & 0x20000L);
+                case 2: return (close0 & 0x40000L);
+                case 65538: return (close0 & 0x80000L);
+                case 131074: return (close0 & 0x100000L);
+                case 196610: return (close0 & 0x200000L);
+                case 262146: return (close0 & 0x400000L);
+                case 327682: return (close0 & 0x800000L);
+                case 393218: return (close0 & 0x1000000L);
+                case 458754: return (close0 & 0x2000000L);
+                case 524290: return (close0 & 0x4000000L);
+                case 3: return (close0 & 0x8000000L);
+                case 65539: return (close0 & 0x10000000L);
+                case 131075: return (close0 & 0x20000000L);
+                case 196611: return (close0 & 0x40000000L);
+                case 262147: return (close0 & 0x80000000L);
+                case 327683: return (close0 & 0x100000000L);
+                case 393219: return (close0 & 0x200000000L);
+                case 458755: return (close0 & 0x400000000L);
+                case 524291: return (close0 & 0x800000000L);
+                case 4: return (close0 & 0x1000000000L);
+                case 65540: return (close0 & 0x2000000000L);
+                case 131076: return (close0 & 0x4000000000L);
+                case 196612: return (close0 & 0x8000000000L);
+                case 262148: return (close0 & 0x10000000000L);
+                case 327684: return (close0 & 0x20000000000L);
+                case 393220: return (close0 & 0x40000000000L);
+                case 458756: return (close0 & 0x80000000000L);
+                case 524292: return (close0 & 0x100000000000L);
+                case 5: return (close0 & 0x200000000000L);
+                case 65541: return (close0 & 0x400000000000L);
+                case 131077: return (close0 & 0x800000000000L);
+                case 196613: return (close0 & 0x1000000000000L);
+                case 262149: return (close0 & 0x2000000000000L);
+                case 327685: return (close0 & 0x4000000000000L);
+                case 393221: return (close0 & 0x8000000000000L);
+                case 458757: return (close0 & 0x10000000000000L);
+                case 524293: return (close0 & 0x20000000000000L);
+                case 6: return (close0 & 0x40000000000000L);
+                case 65542: return (close0 & 0x80000000000000L);
+                case 131078: return (close0 & 0x100000000000000L);
+                case 196614: return (close0 & 0x200000000000000L);
+                case 262150: return (close0 & 0x400000000000000L);
+                case 327686: return (close0 & 0x800000000000000L);
+                case 393222: return (close0 & 0x1000000000000000L);
+                case 458758: return (close0 & 0x2000000000000000L);
+                case 524294: return (close0 & 0x4000000000000000L);
+                case 7: return (close1 & 0x1L);
+                case 65543: return (close1 & 0x2L);
+                case 131079: return (close1 & 0x4L);
+                case 196615: return (close1 & 0x8L);
+                case 262151: return (close1 & 0x10L);
+                case 327687: return (close1 & 0x20L);
+                case 393223: return (close1 & 0x40L);
+                case 458759: return (close1 & 0x80L);
+                case 524295: return (close1 & 0x100L);
+                case 8: return (close1 & 0x200L);
+                case 65544: return (close1 & 0x400L);
+                case 131080: return (close1 & 0x800L);
+                case 196616: return (close1 & 0x1000L);
+                case 262152: return (close1 & 0x2000L);
+                case 327688: return (close1 & 0x4000L);
+                case 393224: return (close1 & 0x8000L);
+                case 458760: return (close1 & 0x10000L);
+                case 524296: return (close1 & 0x20000L);
+                default: return 0;
+            }
         }
         
         void addEnemy(RobotInfo r) throws GameActionException {
             if (r.hasFlag) return;
             int dist = r.location.distanceSquaredTo(nloc);
             if (dist < minDistToEnemy) minDistToEnemy = dist;
-            if (canHitSoon(r.location)) {
+            if (canHitSoon(r.location) != 0) {
                 int dmg = dmgscores[r.attackLevel];
                 dmgVisionRange += dmg;            
                 if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) {

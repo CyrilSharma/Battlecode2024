@@ -18,12 +18,12 @@ public class Duck extends Robot {
     int lastSeen;
     public Duck(RobotController rc) {
         super(rc);
+        getSpawnCenters();
         path = new Pathing(this);
         exploration = new Exploration(this);
         am = new AttackMicro(this);
         tm = new TrapMicro(this);
         H = new Heist(this);
-        getSpawnCenters();
         putDefenses = false;
         lastSeen = 0;
     }
@@ -35,10 +35,12 @@ public class Duck extends Robot {
         updateFlags();
         purchaseGlobal();
         considerTrap();
-        collectCrumbs();
-        ranFlagMicro();
 
-        if (builder()) {}
+        // Anything that involves movement should be here.
+        // We shouldn't waste bytecode trying to do two movements.
+        if (collectCrumbs()) {}
+        else if (ranFlagMicro()) {}
+        else if (builder()) {}
         else if (am.runMicro()) {}
         else if (tryLevelUp()) {}
         else if (H.needHeist()) { H.runHeist(); }
@@ -57,10 +59,9 @@ public class Duck extends Robot {
         return true;
     }
 
-    public void collectCrumbs() throws GameActionException{
-        // Seek crumbs.
-        MapLocation[] crumbs = rc.senseNearbyCrumbs(-1);
+    public boolean collectCrumbs() throws GameActionException{
         int best = 0;
+        MapLocation[] crumbs = rc.senseNearbyCrumbs(-1);
         MapLocation bestLocation = null;
         for (int i = 0; i < crumbs.length; i++) {
             int c = rc.senseMapInfo(crumbs[i]).getCrumbs();
@@ -71,8 +72,9 @@ public class Duck extends Robot {
         }
         if (bestLocation != null) {
             path.moveTo(bestLocation);
+            return true;
         }
-
+        return false;
     }
 
     public void getSpawnCenters() {
@@ -94,19 +96,19 @@ public class Duck extends Robot {
     public boolean shouldTrainBuilder() throws GameActionException {
         if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
         MapInfo mi = rc.senseMapInfo(rc.getLocation());
-        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 4 && !mi.isSpawnZone());
-        else if (rc.getRoundNum() > 1000) {
-            return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
-        }
-        else return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
+        int order = communications.order;
+        int blevel = rc.getLevel(SkillType.BUILD);
+        if (rc.getRoundNum() < 300) return (order >= 3 && order < 6 && blevel < 4 && !mi.isSpawnZone());
+        else if (rc.getRoundNum() > 1000) return (order >= 3 && order < 9 && blevel < 6 && !mi.isSpawnZone());
+        else return (order >= 3 && order < 6 && blevel < 6 && !mi.isSpawnZone());
     }
     public boolean isBuilder() {
         if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
-        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) >= 4);
-        else if (rc.getRoundNum() > 1000) {
-            return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6);
-        }
-        return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) == 6);
+        int order = communications.order;
+        int blevel = rc.getLevel(SkillType.BUILD);
+        if (rc.getRoundNum() < 300) return (order >= 3 && order < 6 && blevel >= 4);
+        else if (rc.getRoundNum() > 1000) return (order >= 3 && order < 9 && blevel < 6);
+        return (order >= 3 && order < 6 && blevel == 6);
     }
 
     public boolean trainBuilder() throws GameActionException {
