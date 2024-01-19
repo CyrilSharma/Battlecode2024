@@ -38,6 +38,32 @@ public class Communications {
         }
     }
 
+    public void carrying_flag(MapLocation m) throws GameActionException {
+        int hash = hashLocation(m);
+        int start = Channels.FLAG_CARRIERS;
+        for (int i = start; i < start + Channels.FLAG_NUM; i++) {
+            int data = rc.readSharedArray(i);
+            if (data == 0) {
+                rc.writeSharedArray(i, hash);
+                break;
+            }
+        }
+    }
+
+    public AttackTarget[] get_carriers() throws GameActionException {
+        int ctr = 0;
+        AttackTarget[] targets = new AttackTarget[Channels.FLAG_NUM];
+        for (int i = 0; i < Channels.FLAG_NUM; i++) {
+            int item = rc.readSharedArray(Channels.FLAG_CARRIERS + i);
+            if (item == 0) continue;
+            AttackTarget at = dehashAttackTarget(item);
+            targets[ctr++] = at;
+        }
+        AttackTarget[] trim = new AttackTarget[ctr];
+        while (ctr-- > 0) trim[ctr] = targets[ctr];
+        return trim;
+    }
+
     public MapLocation[] get_flags(boolean friendly) throws GameActionException {
         int ctr = 0;
         MapLocation[] locs = new MapLocation[3];
@@ -107,6 +133,9 @@ public class Communications {
         if (rc.getRoundNum() % 5 != 0) return;
         for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
             rc.writeSharedArray(Channels.ATTACK_TARGETS + i, 0);
+        }
+        for (int i = 0; i < Channels.FLAG_NUM; i++) {
+            rc.writeSharedArray(Channels.FLAG_CARRIERS + i, 0);
         }
     }
 

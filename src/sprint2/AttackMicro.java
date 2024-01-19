@@ -15,6 +15,8 @@ public class AttackMicro {
     MapTracker mt;
     int[] healscores;
     int[] dmgscores;
+    boolean seeEnemyFlagCarrier = false;
+    MapLocation carrier = null;
     public AttackMicro(Robot r) {
         this.rc = r.rc;
         this.comms = r.communications;
@@ -34,6 +36,7 @@ public class AttackMicro {
         friends = rc.senseNearbyRobots(-1, myteam);
         enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         if (enemies.length == 0) return false;
+        seeEnemyFlagCarrier = false;
         addBestTarget();
         maneuver();
         return true;
@@ -96,6 +99,7 @@ public class AttackMicro {
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
+            if(r.hasFlag) seeEnemyFlagCarrier = true;
             microtargets[0].addEnemy(r);
             microtargets[1].addEnemy(r);
             microtargets[2].addEnemy(r);
@@ -160,6 +164,7 @@ public class AttackMicro {
         long close1 = 0;
         int minDistToEnemy = 100000;
         int minDistToAlly = 100000;
+        int minDistToFlag = 100000;
         int healAttackRange = 0;
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
@@ -236,7 +241,13 @@ public class AttackMicro {
             if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
                 canLandHit = mydmg;
             }
-            if (r.hasFlag) return;
+            if (r.hasFlag) {
+                if (dist < minDistToFlag) {
+                    minDistToFlag = dist;
+                    carrier = r.location;
+                }
+                return;
+            }
             if (dist < minDistToEnemy) minDistToEnemy = dist;
 
             int dmg = dmgscores[r.attackLevel];
@@ -270,6 +281,11 @@ public class AttackMicro {
             if (!canMove) return false;
             if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
                 return minDistToEnemy > mt.minDistToEnemy;
+            }
+
+            if (seeEnemyFlagCarrier && rc.getLocation().distanceSquaredTo(carrier) > 3) {
+                if (minDistToFlag < mt.minDistToFlag) return true;
+                if (minDistToFlag > mt.minDistToFlag) return false;
             }
 
             if (attackScore() < mt.attackScore()) return true;

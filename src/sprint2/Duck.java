@@ -287,10 +287,41 @@ public class Duck extends Robot {
         if (target != null) path.moveTo(target);
     }
 
+    public void protectCarrier(MapLocation loc) throws GameActionException {
+        if (rc.getLocation().distanceSquaredTo(loc) > 9) path.moveTo(loc);
+        else {
+            Direction dir = rc.getLocation().directionTo(loc);
+            dir = dir.rotateRight();
+            if (rc.canMove(dir)) rc.move(dir);
+            else {
+                dir = dir.rotateRight();
+                if (rc.canMove(dir)) rc.move(dir);
+            }
+        }
+    }
+
     public MapLocation getHuntTarget() throws GameActionException {
+        //go to carriers if close!
+        AttackTarget[] carriers = communications.get_carriers();
+        MapLocation myloc = rc.getLocation();
+        int closest = 1 << 30;
+        MapLocation closestCarrier = null;
+        if (carriers.length != 0) {
+            for (int i = carriers.length; i-- > 0;) {
+                MapLocation loc = carriers[i].m;
+                int d = loc.distanceSquaredTo(myloc);
+                if (d < closest) {
+                    closest = d;
+                    closestCarrier = loc;
+                }
+            }
+        }
+        if (closest <= 100) {
+            protectCarrier(closestCarrier);
+            return null;
+        }
         int bestd = 1 << 30;
         MapLocation bestloc = null;
-        MapLocation myloc = rc.getLocation();
         AttackTarget[] targets = communications.getAttackTargets();
         if (targets.length != 0) {
             int idx = -1;
@@ -392,6 +423,7 @@ public class Duck extends Robot {
             MapLocation myloc = rc.getLocation();
             // Stop things from swarming around me.
             communications.delete_flag(myloc, false);
+            communications.carrying_flag(myloc);
             int bestdist = 1 << 30;
             MapLocation bestloc = null;
             MapLocation[] locs = spawnCenters;

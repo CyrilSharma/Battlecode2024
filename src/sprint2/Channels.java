@@ -8,4 +8,7 @@ public class Channels {
     static int FIRST = EFLAGS + 3;
     static int ATTACK_TARGETS = FIRST + 1;
     static int N_ATTACK_TARGETS = 10;
+
+    static int FLAG_CARRIERS = ATTACK_TARGETS + N_ATTACK_TARGETS + 1;
+    static int FLAG_NUM = 3;
 }
