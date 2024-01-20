@@ -131,16 +131,14 @@ public class Communications {
         rc.writeSharedArray(channel, hashAttackTarget(at));
     }
 
-    public void addAttackTarget(MapLocation m, boolean hasflag) throws GameActionException {
-        int hash = hashAttackTarget(new AttackTarget(m, 0));
-        if (!hasflag) {
-            // If we're close to other targets, don't add us.
-            for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
-                int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
-                if (item != 0) {
-                    AttackTarget at = dehashAttackTarget(item);
-                    if (at.m.distanceSquaredTo(m) <= 9) return;
-                }
+    public void addAttackTarget(MapLocation m, int score) throws GameActionException {
+        int hash = hashAttackTarget(new AttackTarget(m, score));
+        // If we're close to other targets, don't add us.
+        for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
+            int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
+            if (item != 0) {
+                AttackTarget at = dehashAttackTarget(item);
+                if (at.m.distanceSquaredTo(m) <= 9) return;
             }
         }
 
@@ -152,9 +150,6 @@ public class Communications {
                 return;
             }
         }
-
-        // If we still haven't written the target, and it's a flag, just overwrite something.
-        if (hasflag) rc.writeSharedArray(Channels.ATTACK_TARGETS, hash);
     }
 
     public void refreshTargets() throws GameActionException {

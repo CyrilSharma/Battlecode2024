@@ -11,18 +11,20 @@ public class AttackMicro {
     long friend_mask1 = 0;
     RobotInfo[] friends = null;
     RobotInfo[] enemies = null;
-    Communications comms;
-    MapTracker mt;
     int[] healscores = new int[7];
     int[] dmgscores = new int[7];
 
     boolean updatedScores = false;
     boolean seeEnemyFlagCarrier = false;
     MapLocation carrier = null;
+    NeighborLoader nl;
+    Communications comms;
+    MapTracker mt;
     public AttackMicro(Robot r) {
         this.rc = r.rc;
         this.comms = r.communications;
         this.mt = r.mt;
+        this.nl = new NeighborLoader(rc);
         computeScores(false);
     }
 
@@ -46,9 +48,7 @@ public class AttackMicro {
     } 
 
     public boolean runMicro() throws GameActionException {
-        Team myteam = rc.getTeam();
-        friends = rc.senseNearbyRobots(-1, myteam);
-        enemies = rc.senseNearbyRobots(-1, myteam.opponent());
+        nl.load(this);
         if (enemies.length == 0) return false;
         // if (hasAttackUpgrade() && !updatedScores) {
         //     computeScores(true);
@@ -56,22 +56,40 @@ public class AttackMicro {
         // }
         seeEnemyFlagCarrier = false;
         addBestTarget();
+        // int bombcount = Long.bitCount(mt.bomb_mask0) + Long.bitCount(mt.bomb_mask1);
+        // if ((bombcount >= 3 && enemies.length >= 3)) {
+        //     bombpath();
+        //     rc.setIndicatorDot(rc.getLocation(), 179, 3, 33);
+        // } else {
+        //     maneuver();
+        // }
         maneuver();
         return true;
     }
 
-    // Finds the enemy closest to a flag, and marks it in comms.
+    // public boolean shouldRunMicro(MapLocation target) throws GameActionException {
+    //     if (target == null) return enemies.length != 0;
+    //     MapLocation myloc = rc.getLocation();
+    //     Direction dirtarget = myloc.directionTo(target);
+    //     for (int i = enemies.length; i-- > 0;) {
+    //         MapLocation eloc = enemies[i].location;
+    //         Direction direnemy = myloc.directionTo(eloc);
+    //         if ((direnemy != dirtarget.opposite()) &&
+    //             (direnemy != dirtarget.opposite().rotateRight()) &&
+    //             (direnemy != dirtarget.opposite().rotateLeft())) {
+    //             continue;
+    //         }
+    //         return true;
+    //     }
+    //     return false;
+    // }
+
+    // Tracks density of enemies.
     public void addBestTarget() throws GameActionException {
-        boolean hasFlag = false;
-        MapLocation bestloc = enemies[0].location;
-        for (int i = enemies.length; i-- > 0;) {
-            if (enemies[i].hasFlag) {
-                bestloc = enemies[i].location;
-                hasFlag = true;
-                break;
-            }
-        }
-        comms.addAttackTarget(bestloc, hasFlag);
+        comms.addAttackTarget(
+            rc.getLocation(),
+            Math.min(enemies.length, 15)
+        );
     }
 
     public void bombpath() throws GameActionException {
@@ -109,18 +127,18 @@ public class AttackMicro {
         long cur1 = enemy_mask1;
         passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0) & mask0;
         passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1) & mask1;
-        if (rc.getID() == 10504 && rc.getRoundNum() == 205) {
-            System.out.println("enemy - ");
-            Util.printMask(enemy_mask0, enemy_mask1);
-            System.out.println("bomb - ");
-            Util.printMask(mt.bomb_mask0, mt.bomb_mask1);
-            System.out.println("water - ");
-            Util.printMask(mt.water_mask0, mt.water_mask1);
-            System.out.println("wall - ");
-            Util.printMask(mt.wall_mask0, mt.wall_mask1);
-            System.out.println("mask - ");
-            Util.printMask(mask0, mask1);
-        }
+        // if (rc.getID() == 10504 && rc.getRoundNum() == 205) {
+        //     System.out.println("enemy - ");
+        //     Util.printMask(enemy_mask0, enemy_mask1);
+        //     System.out.println("bomb - ");
+        //     Util.printMask(mt.bomb_mask0, mt.bomb_mask1);
+        //     System.out.println("water - ");
+        //     Util.printMask(mt.water_mask0, mt.water_mask1);
+        //     System.out.println("wall - ");
+        //     Util.printMask(mt.wall_mask0, mt.wall_mask1);
+        //     System.out.println("mask - ");
+        //     Util.printMask(mask0, mask1);
+        // }
 
         while ((cur0 != prev0 || cur1 != prev1)) {
             rc.setIndicatorString("Stuck in L1!");
@@ -251,7 +269,7 @@ public class AttackMicro {
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
-            if(r.hasFlag) seeEnemyFlagCarrier = true;
+            if (r.hasFlag) seeEnemyFlagCarrier = true;
             microtargets[0].addEnemy(r);
             microtargets[1].addEnemy(r);
             microtargets[2].addEnemy(r);
@@ -362,8 +380,8 @@ public class AttackMicro {
 
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;
-            long passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0) & mask0;
-            long passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1) & mask1;
+            long passible0 = ~(mt.wall_mask0 | mt.water_mask0) & mask0;
+            long passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
             long loverflow = 0x7fbfdfeff7fbfdfeL;
             long roverflow = 0x3fdfeff7fbfdfeffL;            
             long t_close0 = (action0 & passible0);
@@ -510,13 +528,13 @@ public class AttackMicro {
 
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
-            if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
-                return minDistToEnemy > mt.minDistToEnemy;
-            }
-
             if (seeEnemyFlagCarrier && rc.getLocation().distanceSquaredTo(carrier) > 3) {
                 if (minDistToFlag < mt.minDistToFlag) return true;
                 if (minDistToFlag > mt.minDistToFlag) return false;
+            }
+
+            if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
+                return minDistToEnemy > mt.minDistToEnemy;
             }
 
             if (attackScore() < mt.attackScore()) return true;

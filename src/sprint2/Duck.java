@@ -9,7 +9,6 @@ import sprint2.Communications.AttackTarget;
 public class Duck extends Robot {
     Pathing path;
     Exploration exploration;
-    MapLocation target;
     AttackMicro am;
     TrapMicro tm;
     MapLocation[] spawnCenters;
@@ -18,12 +17,13 @@ public class Duck extends Robot {
     int lastSeen;
     public Duck(RobotController rc) {
         super(rc);
+        // Placing it here so other things can refer to it.
+        getSpawnCenters();
         path = new Pathing(this);
         exploration = new Exploration(this);
         am = new AttackMicro(this);
         tm = new TrapMicro(this);
         H = new Heist(this);
-        getSpawnCenters();
         putDefenses = false;
         lastSeen = 0;
     }
@@ -292,7 +292,7 @@ public class Duck extends Robot {
     }
 
     public void protectCarrier(MapLocation loc) throws GameActionException {
-        if (rc.getLocation().distanceSquaredTo(loc) > 9) path.moveTo(loc);
+        if (rc.getLocation().distanceSquaredTo(loc) > 16) path.moveTo(loc);
         else {
             Direction dir = rc.getLocation().directionTo(loc);
             dir = dir.rotateRight();
@@ -344,28 +344,25 @@ public class Duck extends Robot {
             }
         }
         
-        // Go to nearby targets? 
-        // Distance cap currently set so low as to make this never happen.
         int bestd = 1 << 30;
         MapLocation bestloc = null;
-        AttackTarget[] targets = communications.getAttackTargets();
-        if (targets.length != 0) {
-            int idx = -1;
-            for (int i = targets.length; i-- > 0;) {
-                MapLocation loc = targets[i].m;
-                int d = loc.distanceSquaredTo(myloc);
-                if ((d < bestd) && (d < 9)) { // && (score < 5)) {
-                    bestd = d;
-                    bestloc = loc;
-                    idx = i;
-                }
-            }
-            if (bestloc != null) {
-                rc.setIndicatorString("Hunting enemy: " + bestloc);
-                communications.markAttackTarget(idx);
-                return bestloc;
-            }
-        }
+        // if (targets.length != 0) {
+        //     int idx = -1;
+        //     for (int i = targets.length; i-- > 0;) {
+        //         MapLocation loc = targets[i].m;
+        //         int d = loc.distanceSquaredTo(myloc);
+        //         if ((d < bestd) && (d < 64)) { // && (score < 5)) {
+        //             bestd = d;
+        //             bestloc = loc;
+        //             idx = i;
+        //         }
+        //     }
+        //     if (bestloc != null) {
+        //         rc.setIndicatorString("Hunting enemy: " + bestloc);
+        //         communications.markAttackTarget(idx);
+        //         return bestloc;
+        //     }
+        // }
 
         boolean dealt_with = false;
         FlagInfo[] nearbyflags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
@@ -424,6 +421,7 @@ public class Duck extends Robot {
         }
 
         // Go to attack targets, if they exist hopefully.
+        AttackTarget[] targets = communications.getAttackTargets();
         if (targets.length != 0) {
             int idx = -1;
             for (int i = targets.length; i-- > 0;) {
@@ -446,19 +444,71 @@ public class Duck extends Robot {
 
     public boolean ranFlagMicro() throws GameActionException {
         if (rc.hasFlag()) {
-            // Not sure how well this works. Ideally we just move directly
-            // Towards friendly territory.
             MapLocation myloc = rc.getLocation();
             communications.log_carrier(myloc);
+            int[] scores = new int[spawnCenters.length];
+            AttackTarget[] targets = communications.getAttackTargets();
+
+            // for (int i = spawnCenters.length; i-- > 0;) {
+            //     MapLocation spawn = spawnCenters[i];
+            //     int Fx = spawn.x - myloc.x;
+            //     int Fy = spawn.y - myloc.y;
+            //     int Fm = (int) Math.sqrt(Fx*Fx + Fy*Fy);
+            //     int Px = -Fy;
+            //     int Py = Fx;
+            //     int Pm = (int) Math.sqrt(Px*Px + Py*Py);
+            //     int det = Px*Fy - Py*Fx;
+            //     for (int j = targets.length; j-- > 0;) {
+            //         AttackTarget target = targets[j];
+            //         int tscore = target.score;
+            //         MapLocation loc = target.m;
+            //         int Tx = loc.x - myloc.x;
+            //         int Ty = loc.y - myloc.y;
+            //         int pcomp = ((Tx*Fy - Ty*Fx) * Pm) / det;
+            //         int fcomp = ((Px*Ty - Py*Tx) * Fm) / det;
+            //         if ((pcomp < 5) && (pcomp > -5)) {
+            //             if (fcomp <= 5) scores[i] += tscore * 3;
+            //             else if (fcomp <= 10) scores[i] += tscore * 2;
+            //             else scores[i] += tscore;
+            //         }
+            //     }
+            // }
+
+            // for (int i = targets.length; i-- > 0;) {
+            //     AttackTarget target = targets[i];
+            //     MapLocation tloc = target.m;
+            //     int tscore = target.score;
+            //     for (int j = spawnCenters.length; j-- > 0;) {
+            //         int d = tloc.distanceSquaredTo(spawnCenters[j]);
+            //         if (d <= 16) scores[j] += tscore * 2;
+            //         if (d <= 64) scores[j] += tscore * 3;
+            //         if (d <= 144) scores[j] += tscore;
+            //     }
+            // }
+
+            
+            // for (int i = spawnCenters.length; i-- > 0; ) {
+            //     MapLocation m = spawnCenters[i];
+            //     int d = m.distanceSquaredTo(myloc);
+            //     int s = scores[i];
+            //     if (s > 12) continue;
+            //     if (d < bestdist) {
+            //         bestdist = d;
+            //         bestloc = m;
+            //     }
+            // }
+
             int bestdist = 1 << 30;
             MapLocation bestloc = null;
-            MapLocation[] locs = spawnCenters;
-            for (int i = 3; i-- > 0; ) {
-                MapLocation m = locs[i];
-                int d = m.distanceSquaredTo(myloc);
-                if (d < bestdist) {
-                    bestdist = d;
-                    bestloc = m;
+            if (bestloc == null) {
+                bestdist = 1 << 30;
+                for (int i = spawnCenters.length; i-- > 0; ) {
+                    MapLocation m = spawnCenters[i];
+                    int d = m.distanceSquaredTo(myloc);
+                    if (d < bestdist) {
+                        bestdist = d;
+                        bestloc = m;
+                    }
                 }
             }
             path.moveTo(bestloc);
