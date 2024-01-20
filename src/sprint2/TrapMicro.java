@@ -54,7 +54,7 @@ public class TrapMicro {
         if (microtargets[8].isBetterThan(best)) best = microtargets[8];
 
         if (best.enemyDamageScore >= 500 * 5 || (best.enemyDamageScore >= 500 * 3 && rc.getCrumbs() > 500) || (best.enemyDamageScore >= 500 * 2 && rc.getCrumbs() >= 1500)) {
-            rc.build(TrapType.EXPLOSIVE, best.nloc);
+            rc.build(TrapType.STUN, best.nloc);
         }
 
     }
@@ -66,7 +66,7 @@ public class TrapMicro {
         
         MicroTarget(Direction dir) throws GameActionException {
             nloc = rc.getLocation().add(dir);
-            canPlace = rc.canBuild(TrapType.EXPLOSIVE, nloc);
+            canPlace = rc.canBuild(TrapType.STUN, nloc);
         }
         void addEnemy(RobotInfo r) throws GameActionException {
             if (!canPlace) return;
