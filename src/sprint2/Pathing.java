@@ -30,6 +30,9 @@ public class Pathing {
         //bug stuff starts
         //if we have not made progress for 15 turns, we turn to bug
         //then we just continue bugging until bug decides we are over the obstacle
+        if (target != goal) {
+            gp.shouldBug = false;
+        }
         if (!gp.shouldBug) {
             if (target != goal) {
                 goal = target;
