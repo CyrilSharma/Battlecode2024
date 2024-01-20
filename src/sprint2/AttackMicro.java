@@ -3,6 +3,7 @@ import battlecode.common.*;
 
 public class AttackMicro {
     int mydmg;
+    int lastactivated = -1;
     boolean canAttack;
     RobotController rc;
     long enemy_mask0 = 0;
@@ -50,10 +51,11 @@ public class AttackMicro {
     public boolean runMicro() throws GameActionException {
         nl.load(this);
         if (enemies.length == 0) return false;
-        // if (hasAttackUpgrade() && !updatedScores) {
-        //     computeScores(true);
-        //     updatedScores = true;
-        // }
+        lastactivated = rc.getRoundNum();
+        if (hasAttackUpgrade() && !updatedScores) {
+            computeScores(true);
+            updatedScores = true;
+        }
         seeEnemyFlagCarrier = false;
         addBestTarget();
         // int bombcount = Long.bitCount(mt.bomb_mask0) + Long.bitCount(mt.bomb_mask1);
@@ -127,19 +129,6 @@ public class AttackMicro {
         long cur1 = enemy_mask1;
         passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0) & mask0;
         passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1) & mask1;
-        // if (rc.getID() == 10504 && rc.getRoundNum() == 205) {
-        //     System.out.println("enemy - ");
-        //     Util.printMask(enemy_mask0, enemy_mask1);
-        //     System.out.println("bomb - ");
-        //     Util.printMask(mt.bomb_mask0, mt.bomb_mask1);
-        //     System.out.println("water - ");
-        //     Util.printMask(mt.water_mask0, mt.water_mask1);
-        //     System.out.println("wall - ");
-        //     Util.printMask(mt.wall_mask0, mt.wall_mask1);
-        //     System.out.println("mask - ");
-        //     Util.printMask(mask0, mask1);
-        // }
-
         while ((cur0 != prev0 || cur1 != prev1)) {
             rc.setIndicatorString("Stuck in L1!");
             pprev0 = prev0;
@@ -151,40 +140,54 @@ public class AttackMicro {
             temp = cur0;
             cur0 = (cur0 | (cur0 << 9) | (cur0 >>> 9) | (cur1 << 54)) & passible0;
             cur1 = (cur1 | (cur1 << 9) | (cur1 >>> 9) | (temp >>> 54)) & passible1;
-            // if (rc.getID() == 10504 && rc.getRoundNum() == 205) {
-            //     System.out.println("Bytecode: " + Clock.getBytecodesLeft());
-            //     System.out.println("cur - ");
-            //     Util.printMask(cur0, cur1);
-            // }
         }
+
         // Reset it to before the redundant iteration.
         prev0 = pprev0;
         prev1 = pprev1;
         rc.setIndicatorString("Past L1!");
         if ((cur0 & reach0) == 0 && (cur1 & reach1) == 0) {
-            return;
+            MapLocation myloc = rc.getLocation();
+            int dists[] = new int[9];
+            for (Direction d: Direction.values()) {
+                dists[d.ordinal()] = 1 << 30;
+                MapLocation loc = myloc.add(d);
+                if (!rc.canMove(d)) continue;
+                int bestdist = 1 << 30;
+                for (RobotInfo r: enemies) {
+                    int dist = loc.distanceSquaredTo(r.location);
+                    if ((dist < bestdist)) {
+                        bestdist = dist;
+                    }
+                }
+                dists[d.ordinal()] = bestdist;
+            }
+
+            int bestd = -1;
+            Direction bestdir = null;
+            for (Direction d: Direction.values()) {
+                if (!rc.canMove(d)) continue;
+                int dist = dists[d.ordinal()];
+                if (dist > bestd) {
+                    bestd = dist;
+                    bestdir = d;
+                }
+            }
+            if ((bestdir != null) && (rc.canMove(bestdir))) {
+                rc.move(bestdir);
+            }
         }
 
         // should probably choose the location furthest from enemies.
         // should be guaranteed reachable?
         long del0 = cur0 & ~prev0;
         long del1 = cur1 & ~prev1;
+        
         int idx = 0;
         int nz0 = Long.numberOfTrailingZeros(del0);
         int nz1 = Long.numberOfTrailingZeros(del1);
-        if (nz0 == 64) {
-            idx = 63 + nz1;
-        } else {
-            idx = nz0;
-        }
-        // if (rc.getRoundNum() == 206 && rc.getID() == 12270) {
-        //     System.out.println("del - ");
-        //     System.out.println("idx: " + idx);
-        //     System.out.println("nz0: " + nz0);
-        //     System.out.println("nz1: " + nz1);
-        //     Util.printMask(del0, del1);
-        // }
-
+        if (nz0 == 64) idx = 63 + nz1;
+        else idx = nz0;
         int dy = (idx / 9);
         int dx = (idx % 9);
         MapLocation target = rc.getLocation().translate(dx - 4, dy - 4);

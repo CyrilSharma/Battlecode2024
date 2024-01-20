@@ -47,10 +47,9 @@ public class Exploration {
 
     public void reset() throws GameActionException {
         int order = communications.order;
-        // if (rc.getRoundNum() >= 10) order = (order + rng.nextInt(49)) % 49;
-        int tilewidth = rc.getMapWidth() / 7;
-        int tileheight = rc.getMapHeight() / 7;
-        int idxh = order / 7, idxw = order % 7;
+        int tileheight = rc.getMapHeight() / 9;
+        int tilewidth = rc.getMapWidth() / 5;
+        int idxh = order / 9, idxw = order % 5;
 
         // In case we accidentally don't search our tile thoroughly.
         int diffw = rng.nextInt(2 * tilewidth), diffh = rng.nextInt(2 * tileheight);

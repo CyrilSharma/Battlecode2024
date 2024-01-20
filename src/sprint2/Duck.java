@@ -58,15 +58,16 @@ public class Duck extends Robot {
     }
 
     public void collectCrumbs() throws GameActionException{
-        // Seek crumbs.
-        MapLocation[] crumbs = rc.senseNearbyCrumbs(-1);
-        int best = 0;
+        int bestd = 1 << 30;
         MapLocation bestLocation = null;
+        MapLocation myloc = rc.getLocation();
+        MapLocation[] crumbs = rc.senseNearbyCrumbs(-1);
         for (int i = 0; i < crumbs.length; i++) {
-            int c = rc.senseMapInfo(crumbs[i]).getCrumbs();
-            if (c > best) {
-                best = c;
-                bestLocation = crumbs[i];
+            MapLocation loc = crumbs[i];
+            int d = loc.distanceSquaredTo(myloc);
+            if (d < bestd) {
+                bestd = d;
+                bestLocation = loc;
             }
         }
         if (bestLocation != null) {
@@ -101,7 +102,28 @@ public class Duck extends Robot {
         else return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
     }
 
+    // public boolean trainBuilder() throws GameActionException {
+    //     for (Direction dir : directions) {
+    //         MapLocation loc = rc.getLocation().add(dir);
+    //         if(rc.canDig(rc.getLocation().add(dir))) {
+    //             rc.dig(loc);
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
     public boolean trainBuilder() throws GameActionException {
+        // returns true if the builder is next to water, (or will be because of digging) so that it stays there
+        boolean nextToWater = false;
+        for(Direction dir : directions) {
+            MapLocation loc = rc.getLocation().add(dir);
+            if (rc.canFill(loc)) {
+                rc.fill(loc);
+            }
+            if (rc.canSenseLocation(loc) && rc.senseMapInfo(loc).isWater()) {
+                nextToWater = true;
+            }
+        }
         for (Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
             if(rc.canDig(rc.getLocation().add(dir))) {
@@ -109,7 +131,7 @@ public class Duck extends Robot {
                 return true;
             }
         }
-        return false;
+        return nextToWater;
     }
 
     public boolean builder() throws GameActionException {
@@ -161,6 +183,17 @@ public class Duck extends Robot {
     }
 
     public void tryHeal() throws GameActionException {
+        // return;
+        // if (rc.getRoundNum() % 3 == 0) return;
+        // if (am.lastactivated < 3) return;
+        // Basic Leveling cap.
+        // if (communications.order >= 10 && communications.order < 20) {
+        //     if (rc.getLevel(SkillType.ATTACK) < 3) return;
+        //     // int cur = rc.getExperience(SkillType.HEAL);
+        //     // int needed = SkillType.HEAL.getExperience(3);
+        //     // if (needed - cur <= 5) return;
+        // }
+
         int besthealth = 1001;
         RobotInfo bestfriend = null;
         RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
@@ -178,11 +211,25 @@ public class Duck extends Robot {
     }
 
     void spawn() throws GameActionException {
+        int bestd = 1 << 30;
+        MapLocation bestloc = null;
         AttackTarget[] targets = communications.getAttackTargets();
         MapLocation[] spawns = rc.getAllySpawnLocations();
 
-        int bestd = 1 << 30;
-        MapLocation bestloc = null;
+        // Special handling if you're a flag defender.
+        if (!communications.flagdead && communications.order < 3) {
+            for (int i = spawns.length; i-- > 0;) {
+                MapLocation loc = spawns[i];
+                if (!loc.isAdjacentTo(spawnCenters[communications.order])) continue;
+                if (rc.canSpawn(loc)) {
+                    rc.spawn(loc);
+                    break;
+                }
+            }
+            mt.run();
+            return;
+        }
+        
         for (int i = spawns.length; i-- > 0;) {
             MapLocation loc = spawns[i];
             for (int j = targets.length; j-- > 0;) {
@@ -194,7 +241,7 @@ public class Duck extends Robot {
                 }
             }
         }
-        if ((bestloc == null) || bestd >= 144) {
+        if ((bestloc == null) || (bestd >= 144)) {
             int st = rng.nextInt(spawns.length);
             for (int i = spawns.length; i-- > 0;) {
                 MapLocation loc = spawns[(i + st) % spawns.length];
