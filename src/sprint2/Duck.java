@@ -2,6 +2,8 @@ package sprint2;
 import battlecode.common.*;
 import sprint2.Communications.AttackTarget;
 
+import static java.util.Arrays.sort;
+
 /*
  * in the future we may want to diversify this class into the multiple specializations.
  */
@@ -90,6 +92,7 @@ public class Duck extends Robot {
             if (cnt == 8) spawnCenters[ind++] = m;
             if (ind == 3) break;
         }
+        sort(spawnCenters);
     }
 
     public boolean shouldTrainBuilder() throws GameActionException {
@@ -327,16 +330,21 @@ public class Duck extends Robot {
         if (target != null) path.moveTo(target);
     }
 
-    public void protectCarrier(MapLocation loc) throws GameActionException {
-        if (rc.getLocation().distanceSquaredTo(loc) > 16) path.moveTo(loc);
-        else {
-            Direction dir = rc.getLocation().directionTo(loc);
-            dir = dir.rotateRight();
-            if (rc.canMove(dir)) rc.move(dir);
-            else {
-                dir = dir.rotateRight();
-                if (rc.canMove(dir)) rc.move(dir);
+    public void protectCarrier(MapLocation loc, int spa) throws GameActionException {
+        RobotInfo[] r = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
+        for(int i = r.length; i-- > 0;) {
+            if(r[i].hasFlag) {
+                loc = r[i].location;
+                break;
             }
+        }
+        if (rc.getLocation().distanceSquaredTo(loc) > 12) path.moveTo(loc);
+        else if (rc.getLocation().distanceSquaredTo(loc) < 6) {
+            Direction dir = loc.directionTo(rc.getLocation());
+            if(rc.canMove(dir)) rc.move(dir);
+        }
+        else {
+            path.moveTo(spawnCenters[spa]);
         }
     }
 
@@ -352,6 +360,7 @@ public class Duck extends Robot {
         AttackTarget[] carriers = communications.get_carriers();
         if (carriers.length != 0) {
             int closest = 1 << 30;
+            int spa = -1;
             MapLocation closestCarrier = null;
             for (int i = carriers.length; i-- > 0;) {
                 MapLocation loc = carriers[i].m;
@@ -359,10 +368,11 @@ public class Duck extends Robot {
                 if (d < closest) {
                     closest = d;
                     closestCarrier = loc;
+                    spa = carriers[i].score;
                 }
             }
             if (closest <= 100) {
-                protectCarrier(closestCarrier);
+                protectCarrier(closestCarrier, spa);
                 return null;
             }
         }
@@ -487,7 +497,6 @@ public class Duck extends Robot {
     public boolean ranFlagMicro() throws GameActionException {
         if (rc.hasFlag()) {
             MapLocation myloc = rc.getLocation();
-            communications.log_carrier(myloc);
             int[] scores = new int[spawnCenters.length];
             AttackTarget[] targets = communications.getAttackTargets();
 
@@ -542,6 +551,7 @@ public class Duck extends Robot {
 
             int bestdist = 1 << 30;
             MapLocation bestloc = null;
+            int sp = -1;
             if (bestloc == null) {
                 bestdist = 1 << 30;
                 for (int i = spawnCenters.length; i-- > 0; ) {
@@ -550,9 +560,11 @@ public class Duck extends Robot {
                     if (d < bestdist) {
                         bestdist = d;
                         bestloc = m;
+                        sp = i;
                     }
                 }
             }
+            communications.log_carrier(myloc, sp);
             path.moveTo(bestloc);
             return true;
         }

@@ -64,6 +64,13 @@ public class Communications {
                 rc.writeSharedArray(i, hash);
                 break;
             }
+            else {
+                MapLocation dh = dehashLocation(data);
+                if(dh.distanceSquaredTo(rc.getLocation()) <= 4) {
+                    rc.writeSharedArray(i, hash);
+                    break;
+                }
+            }
         }
     }
 
@@ -81,8 +88,8 @@ public class Communications {
         return trim;
     }
 
-    public void log_carrier(MapLocation m) throws GameActionException {
-        int hash = hashLocation(m);
+    public void log_carrier(MapLocation m, int sp) throws GameActionException {
+        int hash = hashAttackTarget(new AttackTarget(m, sp));
         int start = Channels.FLAG_CARRIERS;
         for (int i = start; i < start + Channels.FLAG_NUM; i++) {
             int data = rc.readSharedArray(i);
@@ -91,8 +98,8 @@ public class Communications {
                 break;
             }
             else {
-                MapLocation dh = dehashLocation(data);
-                if(dh.distanceSquaredTo(rc.getLocation()) <= 4) {
+                AttackTarget dh = dehashAttackTarget(data);
+                if(dh.m.distanceSquaredTo(rc.getLocation()) <= 4) {
                     rc.writeSharedArray(i, hash);
                     break;
                 }
