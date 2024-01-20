@@ -90,6 +90,13 @@ public class Communications {
                 rc.writeSharedArray(i, hash);
                 break;
             }
+            else {
+                MapLocation dh = dehashLocation(data);
+                if(dh.distanceSquaredTo(rc.getLocation()) <= 4) {
+                    rc.writeSharedArray(i, hash);
+                    break;
+                }
+            }
         }
     }
 

@@ -304,6 +304,12 @@ public class Duck extends Robot {
         }
     }
 
+    public void attackCarrier(MapLocation loc) throws GameActionException {
+        while(am.tryAttack());
+        path.moveTo(loc);
+        while(am.tryAttack());
+    }
+
     public MapLocation getHuntTarget() throws GameActionException {
         // Defend nearby carriers!
         MapLocation myloc = rc.getLocation();
@@ -339,7 +345,7 @@ public class Duck extends Robot {
                 }
             }
             if (closest <= 100) {
-                protectCarrier(closestCarrier);
+                attackCarrier(closestCarrier);
                 return null;
             }
         }
