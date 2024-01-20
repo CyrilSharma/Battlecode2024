@@ -102,17 +102,6 @@ public class Duck extends Robot {
     }
 
     public boolean trainBuilder() throws GameActionException {
-        // returns true if the builder is next to water, (or will be because of digging) so that it stays there
-        boolean nextToWater = false;
-        for(Direction dir : directions) {
-            MapLocation loc = rc.getLocation().add(dir);
-            if (rc.canFill(loc)) {
-                rc.fill(loc);
-            }
-            if (rc.canSenseLocation(loc) && rc.senseMapInfo(loc).isWater()) {
-                nextToWater = true;
-            }
-        }
         for (Direction dir : directions) {
             MapLocation loc = rc.getLocation().add(dir);
             if(rc.canDig(rc.getLocation().add(dir))) {
@@ -120,7 +109,7 @@ public class Duck extends Robot {
                 return true;
             }
         }
-        return nextToWater;
+        return false;
     }
 
     public boolean builder() throws GameActionException {
