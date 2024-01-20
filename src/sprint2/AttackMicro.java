@@ -53,6 +53,7 @@ public class AttackMicro {
     public boolean runMicro() throws GameActionException {
         nl.load(this);
         if (enemies.length == 0) return false;
+        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
             computeScores(true);

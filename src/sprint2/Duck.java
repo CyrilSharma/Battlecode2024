@@ -67,6 +67,8 @@ public class Duck extends Robot {
         for (int i = 0; i < crumbs.length; i++) {
             MapLocation loc = crumbs[i];
             int d = loc.distanceSquaredTo(myloc);
+            MapInfo s = rc.senseMapInfo(loc);
+            if(s.isDam()) continue;
             if (d < bestd) {
                 bestd = d;
                 bestLocation = loc;
@@ -208,7 +210,6 @@ public class Duck extends Robot {
                 besthealth = score;
             }
         }
-
         if ((bestfriend != null) && (rc.canHeal(bestfriend.location))) {
             rc.heal(bestfriend.location);
         }
@@ -316,8 +317,34 @@ public class Duck extends Robot {
     }
 
     void seekTarget() throws GameActionException {
-        if ((rc.getRoundNum() > GameConstants.SETUP_ROUNDS - 30)) hunt();
+        if ((rc.getRoundNum() > GameConstants.SETUP_ROUNDS)) hunt();
+        else if (rc.getRoundNum() > GameConstants.SETUP_ROUNDS - 50) wallRush();
         else explore();
+    }
+
+    public void wallRush() throws GameActionException {
+        boolean seeDam = false;
+        boolean nextTo = false;
+        MapInfo[] mi = rc.senseNearbyMapInfos();
+        MapLocation d = null;
+        for(int i = mi.length; i-- > 0;) {
+            if (mi[i].isDam()) {
+                seeDam = true;
+                d = mi[i].getMapLocation();
+                if(mi[i].getMapLocation().distanceSquaredTo(rc.getLocation()) < 2) nextTo = true;
+            }
+        }
+        if(nextTo) return;
+        hunt();
+        if (!seeDam) {
+            hunt();
+            return;
+        }
+        Direction dir = rc.getLocation().directionTo(d);
+        if(rc.canMove(dir)) rc.move(dir);
+        Direction dir2 = dir.rotateRight().rotateRight();
+        if(rc.getID() % 2 == 0) dir2 = dir.rotateLeft().rotateRight();
+        if(rc.canMove(dir2)) rc.move(dir2);
     }
 
     void explore() throws GameActionException {
