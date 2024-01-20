@@ -20,11 +20,13 @@ public class AttackMicro {
     MapLocation carrier = null;
     NeighborLoader nl;
     Communications comms;
+    boolean attacker = false;
     MapTracker mt;
     public AttackMicro(Robot r) {
         this.rc = r.rc;
         this.comms = r.communications;
         this.mt = r.mt;
+        if (comms.order >= 30) attacker = true;
         this.nl = new NeighborLoader(rc);
         computeScores(false);
     }
@@ -513,7 +515,7 @@ public class AttackMicro {
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                healAttackRange += healscores[r.healLevel];
+                healAttackRange += healscores[r.healLevel] * (attacker ? 2 : 1);
             }
         }
 
@@ -522,11 +524,11 @@ public class AttackMicro {
         }
 
         int attackScore() {
-            return (Math.max(dmgAttackRange - healAttackRange, 0) - canLandHit);
+            return (Math.max(dmgAttackRange - healAttackRange, 0) - canLandHit * (attacker ? 2 : 1));
         }
 
         int visionScore() {
-            return (Math.max(dmgVisionRange - healAttackRange, 0) - canLandHit);
+            return (Math.max(dmgVisionRange - healAttackRange, 0) - canLandHit * (attacker ? 2 : 1));
         }
 
         boolean isBetterThan(MicroTarget mt) {
