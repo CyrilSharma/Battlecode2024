@@ -37,10 +37,10 @@ public class Duck extends Robot {
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
-        ranFlagMicro();
 
         if (builder()) {}
         else if (am.runMicro()) {}
+        else if (ranFlagMicro()) {}
         else if (tryLevelUp()) {}
         else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
@@ -58,7 +58,7 @@ public class Duck extends Robot {
         return true;
     }
 
-    public void collectCrumbs() throws GameActionException{
+    public void collectCrumbs() throws GameActionException {
         int bestd = 1 << 30;
         MapLocation bestLocation = null;
         MapLocation myloc = rc.getLocation();
@@ -67,16 +67,28 @@ public class Duck extends Robot {
             MapLocation loc = crumbs[i];
             int d = loc.distanceSquaredTo(myloc);
             MapInfo s = rc.senseMapInfo(loc);
-            if(s.isDam()) continue;
+            if (s.isDam()) continue;
             if (d < bestd) {
                 bestd = d;
                 bestLocation = loc;
             }
         }
         if (bestLocation != null) {
-            path.moveTo(bestLocation);
+            // We still seem to have some bugs in pathing.
+            // This is a bandaid fix.
+            if (bestLocation.isAdjacentTo(myloc)) {
+                MapInfo mi = rc.senseMapInfo(bestLocation);
+                if (mi.isWater()) {
+                    if (rc.canFill(bestLocation)) {
+                        rc.fill(bestLocation);
+                    }
+                }
+                Direction dir = myloc.directionTo(bestLocation);
+                if (rc.canMove(dir)) rc.move(dir);
+            } else {
+                path.moveTo(bestLocation);
+            }
         }
-
     }
 
     public void getSpawnCenters() {
@@ -139,7 +151,8 @@ public class Duck extends Robot {
     }
 
     public boolean builder() throws GameActionException {
-        if(shouldTrainBuilder()) return trainBuilder();
+        if (rc.hasFlag()) return false;
+        if (shouldTrainBuilder()) return trainBuilder();
         return false;
     }
 
@@ -537,6 +550,9 @@ public class Duck extends Robot {
             MapLocation myloc = rc.getLocation();
             int[] scores = new int[spawnCenters.length];
             AttackTarget[] targets = communications.getAttackTargets();
+            if (nt.enemies.length * 2 > nt.friends.length) {
+
+            }
 
             // for (int i = spawnCenters.length; i-- > 0;) {
             //     MapLocation spawn = spawnCenters[i];

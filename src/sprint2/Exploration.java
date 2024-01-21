@@ -49,7 +49,7 @@ public class Exploration {
         int order = communications.order;
         int tileheight = rc.getMapHeight() / 9;
         int tilewidth = rc.getMapWidth() / 5;
-        int idxh = order / 9, idxw = order % 5;
+        int idxh = order / 5, idxw = order % 5;
 
         // In case we accidentally don't search our tile thoroughly.
         int diffw = rng.nextInt(2 * tilewidth), diffh = rng.nextInt(2 * tileheight);
