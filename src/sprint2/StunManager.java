@@ -45,8 +45,8 @@ public class StunManager {
         long temp = 0;
         long mask0 = 0x7FFFFFFFFFFFFFFFL;
         long mask1 = 0x3FFFFL;
-        long loverflow = 0x7fbfdfeff7fbfdfeL & mask0;
-        long roverflow = 0x3fdfeff7fbfdfeffL & mask1;
+        long loverflow = 0x7fbfdfeff7fbfdfeL;
+        long roverflow = 0x3fdfeff7fbfdfeffL;
 
         long stun0 = mt.stun_mask0;
         long stun1 = mt.stun_mask1;
@@ -69,18 +69,23 @@ public class StunManager {
         }
         long detonate0 = stun0;
         long detonate1 = stun1;
+        // Util.displayMask(rc, detonate0, detonate1);
 
-        int mod = (rc.getRoundNum() % 5);
+        int expire_rounds = 3;
+        int mod = (rc.getRoundNum() % expire_rounds);
         detonated_stun_mask0[mod] = detonate0 & nt.enemy_mask0;
         detonated_stun_mask1[mod] = detonate1 & nt.enemy_mask1;
+        //Util.displayMask(rc, detonated_stun_mask0[mod], detonated_stun_mask1[mod]);
+
         prev_stun_trap_mask0 = mt.stun_mask0;
         prev_stun_trap_mask1 = mt.stun_mask1;
         stunned_mask0 = 0;
         stunned_mask1 = 0;
-        for (int i = 5; i-- > 0;) {
+        for (int i = expire_rounds; i-- > 0;) {
             stunned_mask0 |= detonated_stun_mask0[i];
             stunned_mask1 |= detonated_stun_mask1[i];
         }
+        //Util.displayMask(rc, stunned_mask0, stunned_mask1);
     }
 
     // This is not that expensive.
@@ -88,29 +93,30 @@ public class StunManager {
     // Store everything in a huge global array, actively mantain and delete every square...
     public void shiftMasks() {
         Direction dir = rc.getLocation().directionTo(prevloc);
-        long loverflow = 0x7fbfdfeff7fbfdfeL & 0x7FFFFFFFFFFFFFFFL;
-        long roverflow = 0x3fdfeff7fbfdfeffL & 0x3FFFFL;
-        long overflow = 0;
+        long loverflow = 0x7fbfdfeff7fbfdfeL;
+        long roverflow = 0x3fdfeff7fbfdfeffL;
+        long overflow = 0xFFFFFFFFFFFFFFFFL;
         long tm0 = 0;
         long tm1 = 0;
 
         int shift = 0;
         int right = 0;
         switch (dir) {
-            case NORTHEAST: shift = 10;  right = 1;  break;
+            case NORTHEAST: shift = 10;  right = -1; break;
             case NORTH:     shift = 9;               break;
-            case NORTHWEST: shift = 8;   right = -1; break;
-            case EAST:      shift = 1;   right = 1;  break;
+            case NORTHWEST: shift = 8;   right = 1;  break;
+            case EAST:      shift = 1;   right = -1; break;
             case CENTER:    shift = 0;               break;
-            case WEST:      shift = -1;  right = -1; break;
-            case SOUTHEAST: shift = -8;  right = 1;  break;
+            case WEST:      shift = -1;  right = 1;  break;
+            case SOUTHEAST: shift = -8;  right = -1; break;
             case SOUTH:     shift = -9;              break;
             case SOUTHWEST: shift = -10; right = -1; break;
         }
 
-        boolean positive = shift > 0;
+        boolean positive = shift >= 0;
         shift = (positive) ? shift : -shift;
-        overflow = (right >= 0) ? (right == 0) ? -1 : roverflow : loverflow;
+        if (right > 0) overflow = roverflow;
+        else if (right < 0) overflow = loverflow;
         for (int i = 5; i-- > 0;) {
             tm0 = detonated_stun_mask0[i];
             tm1 = detonated_stun_mask1[i];
@@ -123,6 +129,7 @@ public class StunManager {
             }
         }
 
+
         tm0 = prev_stun_trap_mask0;
         tm1 = prev_stun_trap_mask1;
         if (positive) {
@@ -132,5 +139,6 @@ public class StunManager {
             prev_stun_trap_mask0 = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (54 - shift));
             prev_stun_trap_mask1 = ((tm1 >>> shift) & overflow);
         }
+        //Util.displayMask(rc, prev_stun_trap_mask0, prev_stun_trap_mask1);
     }
 }

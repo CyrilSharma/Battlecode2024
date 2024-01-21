@@ -2,7 +2,7 @@ package sprint2;
 import battlecode.common.*;
 
 public class Util {
-    public static void displayMask(RobotController rc, long mask0, long mask1) throws GameActionException {
+    public static void displayMask(RobotController rc, long mask0, long mask1) {
         int FE_MASK_WIDTH = 9;
         int FE_MASK_HEIGHT = 7;
         MapLocation bl = (rc.getLocation()).translate(-4, -4);

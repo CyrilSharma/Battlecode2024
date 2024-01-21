@@ -261,7 +261,7 @@ public class AttackMicro {
             long loverflow = 0x7fbfdfeff7fbfdfeL;
             long roverflow = 0x3fdfeff7fbfdfeffL;            
             long t_close0 = (action0 & passible0);
-            long t_close1 = (action1 & passible1);;
+            long t_close1 = (action1 & passible1);
             long temp = 0;
             for (int i = 1; i-- > 0;) {
                 t_close0 = (t_close0 | ((t_close0 << 1) & loverflow) | ((t_close0 >>> 1) & roverflow));
