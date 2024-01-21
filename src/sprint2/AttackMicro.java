@@ -270,8 +270,8 @@ public class AttackMicro {
                 t_close0 = (t_close0 | (t_close0 << 9) | (t_close0 >>> 9) | (t_close1 << 54)) & passible0;
                 t_close1 = (t_close1 | (t_close1 << 9) | (t_close1 >>> 9) | (temp >>> 54)) & passible1;
             }
-            close0 = (t_close0 | (nt.enemy_mask0 & action0)) & (~sm.stunned_mask0);
-            close1 = (t_close1 | (nt.enemy_mask1 & action1)) & (~sm.stunned_mask1);
+            close0 = (t_close0 | (nt.enemy_mask0 & action0)); // & (~sm.stunned_mask0);
+            close1 = (t_close1 | (nt.enemy_mask1 & action1)); // & (~sm.stunned_mask1);
         }
 
         long canHitSoon(MapLocation loc) throws GameActionException {
