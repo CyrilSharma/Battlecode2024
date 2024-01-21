@@ -182,7 +182,7 @@ public class AttackMicro {
             iters++;
         }
 
-        Util.displayMask(rc, sm.stunned_mask0, sm.stunned_mask1);
+        // Util.displayMask(rc, sm.stunned_mask0, sm.stunned_mask1);
         // microtargets[0].displayHitMask();
         // microtargets[0].displayHitMask();
 

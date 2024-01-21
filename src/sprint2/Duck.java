@@ -187,7 +187,13 @@ public class Duck extends Robot {
     }
 
     public void tryHeal() throws GameActionException {
-        if(communications.order >= 30 && rc.getExperience(SkillType.HEAL) >= 98) return;
+        if (communications.order >= 30) {
+            if (rc.getLevel(SkillType.ATTACK) < 3) {
+                if (rc.getExperience(SkillType.HEAL) >= 98) return;
+            } else {
+                if (rc.getRoundNum() - am.lastactivated <= 3) return;
+            }
+        }
         // return;
         // if (rc.getRoundNum() % 3 == 0) return;
         // if (am.lastactivated < 3) return;
@@ -308,6 +314,7 @@ public class Duck extends Robot {
             tm.placeTrap();
             return;
         }
+        
         // still have a fail-safe where regular bots can place traps
         RobotInfo[] enemies = rc.senseNearbyRobots(13, rc.getTeam().opponent());
         if (enemies.length >= 9) {
