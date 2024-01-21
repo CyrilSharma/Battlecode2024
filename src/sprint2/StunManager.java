@@ -94,22 +94,22 @@ public class StunManager {
         long tm1 = 0;
 
         int shift = 0;
-        boolean right = false;
+        int right = 0;
         switch (dir) {
-            case NORTHEAST: shift = 10;  right = true; break;
-            case NORTH:     shift = 9;   break;
-            case NORTHWEST: shift = 8;   break;
-            case EAST:      shift = 1;   right = true; break;
-            case CENTER:    shift = 0;   break;
-            case WEST:      shift = -1;  break;
-            case SOUTHEAST: shift = -8;  right = true; break;
-            case SOUTH:     shift = -9;  break;
-            case SOUTHWEST: shift = -10; break;
+            case NORTHEAST: shift = 10;  right = 1;  break;
+            case NORTH:     shift = 9;               break;
+            case NORTHWEST: shift = 8;   right = -1; break;
+            case EAST:      shift = 1;   right = 1;  break;
+            case CENTER:    shift = 0;               break;
+            case WEST:      shift = -1;  right = -1; break;
+            case SOUTHEAST: shift = -8;  right = 1;  break;
+            case SOUTH:     shift = -9;              break;
+            case SOUTHWEST: shift = -10; right = -1; break;
         }
 
         boolean positive = shift > 0;
         shift = (positive) ? shift : -shift;
-        overflow = (right) ? roverflow : loverflow;
+        overflow = (right >= 0) ? (right == 0) ? -1 : roverflow : loverflow;
         for (int i = 5; i-- > 0;) {
             tm0 = detonated_stun_mask0[i];
             tm1 = detonated_stun_mask1[i];
