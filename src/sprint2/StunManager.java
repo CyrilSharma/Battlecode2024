@@ -128,8 +128,8 @@ public class StunManager {
             prev_stun_trap_mask0 = ((tm0 << shift) & overflow);
             prev_stun_trap_mask1 = ((tm1 << shift) & overflow) | ((tm0 >> (54 - shift)) & 0x1FF);
         } else {
-            prev_stun_trap_mask0 = ((tm0 >>> -shift) & overflow) | ((tm1 & 0x1FF) << (54 - shift));
-            prev_stun_trap_mask1 = ((tm1 >>> -shift) & overflow);
+            prev_stun_trap_mask0 = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (54 - shift));
+            prev_stun_trap_mask1 = ((tm1 >>> shift) & overflow);
         }
     }
 }
