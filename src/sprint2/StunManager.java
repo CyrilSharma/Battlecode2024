@@ -37,6 +37,7 @@ public class StunManager {
 
         shiftMasks();
         computeStunnable();
+        prevloc = rc.getLocation();
     }
 
     // Precomputes the region friendly stuns protect for use in micro.
@@ -46,8 +47,6 @@ public class StunManager {
         long mask1 = 0x3FFFFL;
         long loverflow = 0x7fbfdfeff7fbfdfeL & mask0;
         long roverflow = 0x3fdfeff7fbfdfeffL & mask1;
-        long detonate0 = (prev_stun_trap_mask0 & ~mt.stun_mask0);
-        long detonate1 = (prev_stun_trap_mask1 & ~mt.stun_mask1);
 
         long stun0 = mt.stun_mask0;
         long stun1 = mt.stun_mask1;
@@ -59,15 +58,17 @@ public class StunManager {
         stun_trap_mask0 = stun0;
         stun_trap_mask1 = stun1;
 
-        stun0 = detonate0;
-        stun1 = detonate1;
-        stun0 = (stun0 | ((stun0 << 1) & loverflow) | ((stun0 >>> 1) & roverflow));
-        stun1 = (stun1 | ((stun1 << 1) & loverflow) | ((stun1 >>> 1) & roverflow));
-        temp = stun0;
-        stun0 = (stun0 | (stun0 << 9) | (stun0 >>> 9) | (stun1 << 54)) & mask0;
-        stun1 = (stun1 | (stun1 << 9) | (stun1 >>> 9) | (temp >>> 54)) & mask1;
-        detonate0 = stun0;
-        detonate1 = stun1;
+        stun0 = (~stun_trap_mask0 & prev_stun_trap_mask0);
+        stun1 = (~stun_trap_mask1 & prev_stun_trap_mask1);
+        for (int i = 3; i-- > 0;) {
+            stun0 = (stun0 | ((stun0 << 1) & loverflow) | ((stun0 >>> 1) & roverflow));
+            stun1 = (stun1 | ((stun1 << 1) & loverflow) | ((stun1 >>> 1) & roverflow));
+            temp = stun0;
+            stun0 = (stun0 | (stun0 << 9) | (stun0 >>> 9) | (stun1 << 54)) & mask0;
+            stun1 = (stun1 | (stun1 << 9) | (stun1 >>> 9) | (temp >>> 54)) & mask1;
+        }
+        long detonate0 = stun0;
+        long detonate1 = stun1;
 
         int mod = (rc.getRoundNum() % 5);
         detonated_stun_mask0[mod] = detonate0 & nt.enemy_mask0;
