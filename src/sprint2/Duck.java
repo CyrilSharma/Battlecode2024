@@ -386,7 +386,7 @@ public class Duck extends Robot {
             }
         }
         if (rc.getLocation().distanceSquaredTo(loc) > 12) path.moveTo(loc);
-        else if (rc.getLocation().distanceSquaredTo(loc) < 6) {
+        else if (rc.getLocation().distanceSquaredTo(loc) < 3) {
             Direction dir = loc.directionTo(rc.getLocation());
             if(rc.canMove(dir)) rc.move(dir);
         }
@@ -413,7 +413,7 @@ public class Duck extends Robot {
             for (int i = carriers.length; i-- > 0;) {
                 MapLocation loc = carriers[i].m;
                 int d = loc.distanceSquaredTo(myloc);
-                if (d < closest && carriers[i].num < 10) {
+                if (d < closest && carriers[i].num < 15) {
                     closest = d;
                     closestCarrier = loc;
                     spa = carriers[i].score;
