@@ -114,11 +114,27 @@ public class Communications {
             int item = rc.readSharedArray(Channels.FLAG_CARRIERS + i);
             if (item == 0) continue;
             AttackTarget at = dehashAttackTarget(item);
+            at.num = rc.readSharedArray(Channels.CARRIER_DEFENDER + i);
             targets[ctr++] = at;
         }
         AttackTarget[] trim = new AttackTarget[ctr];
         while (ctr-- > 0) trim[ctr] = targets[ctr];
         return trim;
+    }
+
+    public void markCarrier(MapLocation loc) throws GameActionException {
+        int start = Channels.FLAG_CARRIERS;
+        for (int i = start; i < start + Channels.FLAG_NUM; i++) {
+            int data = rc.readSharedArray(i);
+            if (data != 0) {
+                AttackTarget cur = dehashAttackTarget(data);
+                if (cur.m.equals(loc)) {
+                    int v = rc.readSharedArray(Channels.CARRIER_DEFENDER + (i - start));
+                    rc.writeSharedArray(Channels.CARRIER_DEFENDER + (i - start), v + 1);
+                    break;
+                }
+            }
+        }
     }
 
     public AttackTarget[] getAttackTargets() throws GameActionException {
@@ -168,6 +184,7 @@ public class Communications {
 
     public void refreshTargets() throws GameActionException {
         if (order != 0) return;
+        for (int i = 0; i < Channels.CARRIER_DEFENDER_NUM; i++) rc.writeSharedArray(Channels.CARRIER_DEFENDER + i, 0);
         if (rc.getRoundNum() % 5 != 0) return;
         for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
             rc.writeSharedArray(Channels.ATTACK_TARGETS + i, 0);
@@ -200,6 +217,7 @@ public class Communications {
     public class AttackTarget {
         MapLocation m;
         int score;
+        int num = 0;
         public AttackTarget(MapLocation m, int score) {
             this.m = m;
             this.score = score;
