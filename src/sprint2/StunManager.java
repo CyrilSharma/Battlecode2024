@@ -71,7 +71,7 @@ public class StunManager {
         long detonate1 = stun1;
         // Util.displayMask(rc, detonate0, detonate1);
 
-        int expire_rounds = 3;
+        int expire_rounds = 2;
         int mod = (rc.getRoundNum() % expire_rounds);
         detonated_stun_mask0[mod] = detonate0 & nt.enemy_mask0;
         detonated_stun_mask1[mod] = detonate1 & nt.enemy_mask1;
