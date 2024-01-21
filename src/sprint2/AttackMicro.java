@@ -2,10 +2,8 @@ package sprint2;
 import battlecode.common.*;
 
 public class AttackMicro {
-    int mydmg;
+    int mydmg = -1;
     int lastactivated = -1;
-    boolean canAttack;
-    RobotController rc;
     long enemy_mask0 = 0;
     long enemy_mask1 = 0;
     long friend_mask0 = 0;
@@ -15,20 +13,47 @@ public class AttackMicro {
     int[] healscores = new int[7];
     int[] dmgscores = new int[7];
 
+    // Flags
+    boolean canAttack = false;
+    boolean attacker = false;
     boolean updatedScores = false;
     boolean seeEnemyFlagCarrier = false;
+
+    // Utilities
+    RobotController rc;
+    StunManager sm;
     MapLocation carrier = null;
     NeighborLoader nl;
     Communications comms;
-    boolean attacker = false;
     MapTracker mt;
-    public AttackMicro(Robot r) {
-        this.rc = r.rc;
-        this.comms = r.communications;
-        this.mt = r.mt;
+    public AttackMicro(Duck d) {
+        this.rc = d.rc;
+        this.comms = d.communications;
+        this.mt = d.mt;
         if (comms.order >= 30) attacker = true;
+        this.sm = d.sm;
         this.nl = new NeighborLoader(rc);
         computeScores(false);
+    }
+
+    public boolean tryAttack() throws GameActionException {
+        if (!rc.isActionReady()) return false;
+        RobotInfo bestenemy = null;
+        int besthealth = 1 << 30;
+        for (int i = enemies.length; i-- > 0;) {
+            if ((enemies[i].health < besthealth) && (rc.canAttack(enemies[i].location))) {
+                bestenemy = enemies[i];
+                besthealth = enemies[i].health;
+            }
+        }
+        for (int i = enemies.length; i-- > 0;) {
+            if (enemies[i].hasFlag && rc.canAttack(enemies[i].location)) bestenemy = enemies[i];
+        }
+        if ((bestenemy != null) && (rc.canAttack(bestenemy.location))) {
+            rc.attack(bestenemy.location);
+            return true;
+        }
+        return false;
     }
 
     public boolean hasAttackUpgrade() {
@@ -50,6 +75,14 @@ public class AttackMicro {
         }
     } 
 
+    // Tracks density of enemies.
+    public void addBestTarget() throws GameActionException {
+        comms.addAttackTarget(
+            rc.getLocation(),
+            Math.min(enemies.length, 15)
+        );
+    }
+
     public boolean runMicro() throws GameActionException {
         nl.load(this);
         if (enemies.length == 0) return false;
@@ -61,180 +94,47 @@ public class AttackMicro {
         }
         seeEnemyFlagCarrier = false;
         addBestTarget();
-        // int bombcount = Long.bitCount(mt.bomb_mask0) + Long.bitCount(mt.bomb_mask1);
-        // if ((bombcount >= 3 && enemies.length >= 3)) {
-        //     bombpath();
-        //     rc.setIndicatorDot(rc.getLocation(), 179, 3, 33);
-        // } else {
-        //     maneuver();
-        // }
-        maneuver();
+        while (tryAttack()) ;
+        micro();
+        while (tryAttack()) ;
         return true;
     }
 
-    // public boolean shouldRunMicro(MapLocation target) throws GameActionException {
-    //     if (target == null) return enemies.length != 0;
-    //     MapLocation myloc = rc.getLocation();
-    //     Direction dirtarget = myloc.directionTo(target);
-    //     for (int i = enemies.length; i-- > 0;) {
-    //         MapLocation eloc = enemies[i].location;
-    //         Direction direnemy = myloc.directionTo(eloc);
-    //         if ((direnemy != dirtarget.opposite()) &&
-    //             (direnemy != dirtarget.opposite().rotateRight()) &&
-    //             (direnemy != dirtarget.opposite().rotateLeft())) {
-    //             continue;
-    //         }
-    //         return true;
-    //     }
-    //     return false;
-    // }
-
-    // Tracks density of enemies.
-    public void addBestTarget() throws GameActionException {
-        comms.addAttackTarget(
-            rc.getLocation(),
-            Math.min(enemies.length, 15)
-        );
+    public void micro() throws GameActionException {
+        // We can compute more stats here too, like,
+        // Am I in a 1v1? Is every enemy stunned? etc.
+        boolean hasFlag = false;
+        MapLocation floc = null;
+        for (int i = enemies.length; i-- > 0; ) {
+            RobotInfo e = enemies[i];
+            if (e.hasFlag) {
+                hasFlag = true;
+                floc = e.location;
+            }
+        }
+        if (hasFlag) defendFlag(floc);
+        else maneuver();
     }
 
-    public void bombpath() throws GameActionException {
-        rc.setIndicatorString("Bomb Pathing!");
-        long mask0 = 0x7FFFFFFFFFFFFFFFL;
-        long mask1 = 0x3FFFFL;
-        long loverflow0 = 0x7fbfdfeff7fbfdfeL & mask0;
-        long roverflow0 = 0x3fdfeff7fbfdfeffL & mask0;
-        long loverflow1 = 0x7fbfdfeff7fbfdfeL & mask1;
-        long roverflow1 = 0x3fdfeff7fbfdfeffL & mask1;
-        long passible0 = 0;
-        long passible1 = 0;
-        long temp = 0;
-
-        // Compute the reachability mask.
-        long reach0 = 1099511627776L;
-        long reach1 = 0L;
-        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked) & mask0;
-        passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
-        for (int i = 10; i-- > 0;) {
-            reach0 = (reach0 | ((reach0 << 1) & loverflow0) | ((reach0 >>> 1) & roverflow0));
-            reach1 = (reach1 | ((reach1 << 1) & loverflow1) | ((reach1 >>> 1) & roverflow1));
-            temp = reach0;
-            reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
-            reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+    public void defendFlag(MapLocation floc) throws GameActionException {
+        Direction[] dirs = Direction.values();
+        EnemyFlagTarget[] flagtargets = new EnemyFlagTarget[9];
+        for (int i = 9; i-- > 0;) {
+            flagtargets[i] = new EnemyFlagTarget(floc, dirs[i]);
         }
-
-        // Using the enemy mask as a starting point, shift it around, assuming impassible bombs,
-        // Using our normal bitmasking tricks. Do this until you reach a fixed point.
-        long pprev0 = 0;
-        long pprev1 = 0;
-        long prev0 = 0;
-        long prev1 = 0;
-        long cur0 = enemy_mask0;
-        long cur1 = enemy_mask1;
-        passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.bomb_mask0) & mask0;
-        passible1 = ~(mt.wall_mask1 | mt.water_mask1 | mt.bomb_mask1) & mask1;
-        while ((cur0 != prev0 || cur1 != prev1)) {
-            rc.setIndicatorString("Stuck in L1!");
-            pprev0 = prev0;
-            pprev1 = prev1;
-            prev0 = cur0;
-            prev1 = cur1;
-            cur0 = (cur0 | ((cur0 << 1) & loverflow0) | ((cur0 >>> 1) & roverflow0));
-            cur1 = (cur1 | ((cur1 << 1) & loverflow1) | ((cur1 >>> 1) & roverflow1));
-            temp = cur0;
-            cur0 = (cur0 | (cur0 << 9) | (cur0 >>> 9) | (cur1 << 54)) & passible0;
-            cur1 = (cur1 | (cur1 << 9) | (cur1 >>> 9) | (temp >>> 54)) & passible1;
-        }
-
-        // Reset it to before the redundant iteration.
-        prev0 = pprev0;
-        prev1 = pprev1;
-        rc.setIndicatorString("Past L1!");
-        if ((cur0 & reach0) == 0 && (cur1 & reach1) == 0) {
-            MapLocation myloc = rc.getLocation();
-            int dists[] = new int[9];
-            for (Direction d: Direction.values()) {
-                dists[d.ordinal()] = 1 << 30;
-                MapLocation loc = myloc.add(d);
-                if (!rc.canMove(d)) continue;
-                int bestdist = 1 << 30;
-                for (RobotInfo r: enemies) {
-                    int dist = loc.distanceSquaredTo(r.location);
-                    if ((dist < bestdist)) {
-                        bestdist = dist;
-                    }
-                }
-                dists[d.ordinal()] = bestdist;
-            }
-
-            int bestd = -1;
-            Direction bestdir = null;
-            for (Direction d: Direction.values()) {
-                if (!rc.canMove(d)) continue;
-                int dist = dists[d.ordinal()];
-                if (dist > bestd) {
-                    bestd = dist;
-                    bestdir = d;
-                }
-            }
-            if ((bestdir != null) && (rc.canMove(bestdir))) {
-                rc.move(bestdir);
+        EnemyFlagTarget bestTarget = flagtargets[Direction.CENTER.ordinal()];
+        for (int i = 9; i-- > 0;) {
+            if (flagtargets[i].isBetterThan(bestTarget)) {
+                bestTarget = flagtargets[i];
             }
         }
-
-        // should probably choose the location furthest from enemies.
-        // should be guaranteed reachable?
-        long del0 = cur0 & ~prev0;
-        long del1 = cur1 & ~prev1;
-        
-        int idx = 0;
-        int nz0 = Long.numberOfTrailingZeros(del0);
-        int nz1 = Long.numberOfTrailingZeros(del1);
-        if (nz0 == 64) idx = 63 + nz1;
-        else idx = nz0;
-        int dy = (idx / 9);
-        int dx = (idx % 9);
-        MapLocation target = rc.getLocation().translate(dx - 4, dy - 4);
-        rc.setIndicatorDot(target, 0, 0, 0);
-
-        // passible0 = ~(mt.wall_mask0 | mt.water_mask0 | mt.adjblocked) & mask0;
-        // passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
-        // while ((del0 & 0x70381c0000000L) == 0) {
-        //     rc.setIndicatorString("Stuck in L4!");
-        //     del0 = (del0 | ((del0 << 1) & loverflow0) | ((del0 >>> 1) & roverflow0));
-        //     del1 = (del1 | ((del1 << 1) & loverflow1) | ((del1 >>> 1) & roverflow1));
-        //     temp = del0;
-        //     del0 = (del0 | (del0 << 9) | (del0 >>> 9) | (del1 << 54)) & passible0;
-        //     del1 = (del1 | (del1 << 9) | (del1 >>> 9) | (temp >>> 54)) & passible1;
-        // }
-        // rc.setIndicatorString("Past L4!");
-
-        // Target square is in vision range so no need to compute
-        // `best` direction, i.e closest to target location.
-        Direction bestDir = null;
-        int bestDist = (1 << 30);
-        MapLocation loc = null;
-        int d = 0;
-
-        for (Direction dir: Direction.values()) {
-            loc = rc.adjacentLocation(dir);
-            d = target.distanceSquaredTo(loc);
-            if ((d < bestDist) && rc.canMove(dir)) {
-                bestDir = dir;
-                bestDist = d;
-            }
-        }
-        
-        if (bestDir != null) {
-            rc.setIndicatorString("Best Dir: " + bestDir);
-            if (rc.canMove(bestDir)) {
-                rc.move(bestDir);
-            }
+        if (rc.canMove(bestTarget.dir)) {
+            rc.move(bestTarget.dir);
         }
     }
 
     void maneuver() throws GameActionException {
-        while (tryAttack()) ;
-
+        sm.computeStunnable();
         canAttack = rc.isActionReady();
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
 
@@ -308,40 +208,15 @@ public class AttackMicro {
             enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
         rc.setIndicatorString("Iters: " + iters);
-        while (tryAttack()) ;
-    }
-
-    public boolean tryAttack() throws GameActionException {
-        if (!rc.isActionReady()) return false;
-        RobotInfo bestenemy = null;
-        int besthealth = 1 << 30;
-        for (int i = enemies.length; i-- > 0;) {
-            if ((enemies[i].health < besthealth) && (rc.canAttack(enemies[i].location))) {
-                bestenemy = enemies[i];
-                besthealth = enemies[i].health;
-            }
-        }
-        for (int i = enemies.length; i-- > 0;) {
-            if (enemies[i].hasFlag && rc.canAttack(enemies[i].location)) bestenemy = enemies[i];
-        }
-        if ((bestenemy != null) && (rc.canAttack(bestenemy.location))) {
-            rc.attack(bestenemy.location);
-            return true;
-        }
-        return false;
     }
 
     // Choose best candidate for maneuvering in close encounters.
     class MicroTarget {
-        // Debugging purposes only.
-        // long hits0 = 0;
-        // long hits1 = 0;
         int offset = 0;
         long close0 = 0;
         long close1 = 0;
         int minDistToEnemy = 100000;
         int minDistToAlly = 100000;
-        int minDistToFlag = 100000;
         int healAttackRange = 0;
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
@@ -386,8 +261,8 @@ public class AttackMicro {
 
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;
-            long passible0 = ~(mt.wall_mask0 | mt.water_mask0) & mask0;
-            long passible1 = ~(mt.wall_mask1 | mt.water_mask1) & mask1;
+            long passible0 = ~(mt.wall_mask0 | mt.water_mask0 | sm.stun_trap_mask0) & mask0;
+            long passible1 = ~(mt.wall_mask1 | mt.water_mask1 | sm.stun_trap_mask1) & mask1;
             long loverflow = 0x7fbfdfeff7fbfdfeL;
             long roverflow = 0x3fdfeff7fbfdfeffL;            
             long t_close0 = (action0 & passible0);
@@ -400,8 +275,8 @@ public class AttackMicro {
                 t_close0 = (t_close0 | (t_close0 << 9) | (t_close0 >>> 9) | (t_close1 << 54)) & passible0;
                 t_close1 = (t_close1 | (t_close1 << 9) | (t_close1 >>> 9) | (temp >>> 54)) & passible1;
             }
-            close0 = t_close0;
-            close1 = t_close1;
+            close0 = t_close0 | (enemy_mask0 & action0);
+            close1 = t_close1 | (enemy_mask1 & action1);
         }
 
         long canHitSoon(MapLocation loc) throws GameActionException {
@@ -496,18 +371,13 @@ public class AttackMicro {
             if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
                 canLandHit = mydmg;
             }
-            if (r.hasFlag) {
-                if (dist < minDistToFlag) {
-                    minDistToFlag = dist;
-                    carrier = r.location;
-                }
-                return;
-            }
             if (dist < minDistToEnemy) minDistToEnemy = dist;
-
-            int dmg = dmgscores[r.attackLevel];
-            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED) dmgAttackRange += dmg;
-            if (canHitSoon(r.location) != 0) dmgVisionRange += dmg;
+            if (canHitSoon(r.location) != 0) {
+                int dmg = dmgscores[r.attackLevel];
+                dmgVisionRange += dmg;
+                if (dist <= GameConstants.ATTACK_RADIUS_SQUARED)
+                    dmgAttackRange += dmg;
+            }
         }
         
         void addAlly(RobotInfo r) throws GameActionException {
@@ -534,11 +404,6 @@ public class AttackMicro {
 
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
-            if (seeEnemyFlagCarrier && rc.getLocation().distanceSquaredTo(carrier) > 3) {
-                if (minDistToFlag < mt.minDistToFlag) return true;
-                if (minDistToFlag > mt.minDistToFlag) return false;
-            }
-
             if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
                 return minDistToEnemy > mt.minDistToEnemy;
             }
@@ -557,6 +422,26 @@ public class AttackMicro {
 
             if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
             else return minDistToEnemy <= mt.minDistToEnemy;
+        }
+    }
+
+
+    class EnemyFlagTarget {
+        int distToFlag;
+        boolean canMove;
+        MapLocation nloc;
+        Direction dir;
+
+        EnemyFlagTarget(MapLocation floc, Direction dir) throws GameActionException {
+            nloc = rc.getLocation().add(dir);
+            canMove = rc.canMove(dir);
+            distToFlag = nloc.distanceSquaredTo(floc);
+            this.dir = dir;
+        }
+
+        boolean isBetterThan(EnemyFlagTarget ft) {
+            if (!canMove) return false;
+            return distToFlag < ft.distToFlag;
         }
     }
 }

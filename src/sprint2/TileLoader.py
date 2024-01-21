@@ -3,7 +3,7 @@ MASK_HEIGHT = 7
 VISION = 9
 CLASS_NAME = "TileLoader"
 BITS_PER_MASK = 63
-TILES = ["water", "wall", "bomb"]
+TILES = ["water", "wall", "bomb", "stun"]
 
 
 class ClassPrinter:
@@ -62,10 +62,15 @@ def load_tiles():
         cp.print(f"}} else if ({name}.isWall()) {{")
         with cp: load_switch(f"t_wall_mask")
         cp.print("}")
-        cp.print(f"if ({name}.getTrapType() != TrapType.NONE) {{")
-        with cp: load_switch(f"t_bomb_mask")
+        cp.print(f"switch ({name}.getTrapType()) {{")
+        with cp: 
+            cp.print("case EXPLOSIVE:")
+            with cp: load_switch(f"t_bomb_mask")
+        with cp: 
+            cp.print("case STUN:")
+            with cp: load_switch(f"t_stun_mask")
+            cp.print("default: break;")
         cp.print("}")
-
     cp.print("}")
     cp.print()
 
@@ -108,9 +113,9 @@ def load_switch(mask):
             # we don't store bit 0 at position 0, instead we store directly in it's final position.
             block = idx // BITS_PER_MASK
             index = idx % (BITS_PER_MASK)
-            line += f"{mask}{block} += {hex(1 << index)}L; continue;"
+            line += f"{mask}{block} += {hex(1 << index)}L; break;"
             cp.print(line)
-        cp.print('default: System.out.println("This shouldn\'t happen..."); continue;')
+        cp.print('default: System.out.println("This shouldn\'t happen..."); break;')
     cp.print("}")
 
 

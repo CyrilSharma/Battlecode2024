@@ -10,6 +10,8 @@ public class MapTracker {
     long wall_mask1 = 0;
     long bomb_mask0 = 0;
     long bomb_mask1 = 0;
+    long stun_mask0 = 0;
+    long stun_mask1 = 0;
     // This is fully contained in the bottom mask.
     long adjblocked = 0;
     MapInfo[] infos = null;

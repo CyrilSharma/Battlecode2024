@@ -5,6 +5,7 @@ import battlecode.common.*;
 public abstract class Robot {
     RobotController rc;
     MapTracker mt;
+    StunManager sm;
     final Random rng = new Random();
     Communications communications;
     SymmetryChecker sc;
@@ -26,10 +27,12 @@ public abstract class Robot {
         communications = new Communications(rc);
         mt = new MapTracker(rc);
         sc = new SymmetryChecker(rc);
+        sm = new StunManager(rc, mt);
     }
     
     public void init_turn() throws GameActionException {
         mt.run();
+        sm.run();
         communications.refreshTargets();
     }
 
