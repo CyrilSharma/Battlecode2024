@@ -37,7 +37,7 @@ public class TrapMicro {
 
         int crumbs = rc.getCrumbs();
         // if (rc.getLevel(SkillType.BUILD) < 3) crumbs /= 2;
-        if ((!best.probTriggered) && crumbs <= 1500) return;
+        if ((!best.probTriggered)) return;
         if ((best.enemyDamageScore >= 500 * 5) ||
             (best.enemyDamageScore >= 500 * 3 && crumbs > 500) ||
             (best.enemyDamageScore >= 500 * 2 && crumbs >= 1500)) {
