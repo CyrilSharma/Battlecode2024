@@ -5,12 +5,13 @@ public class NeighborLoader {
     public NeighborLoader(RobotController rc) {
         this.rc = rc;
     }
-    public void load(AttackMicro am) throws GameActionException {
+    public void load(NeighborTracker am) throws GameActionException {
+        if (!rc.isSpawned()) return;
         load_allies(am);
         load_enemies(am);
     }
     
-    public void load_allies(AttackMicro am) throws GameActionException {
+    public void load_allies(NeighborTracker am) throws GameActionException {
         int diff = -4;
         int offset = rc.getLocation().translate(diff, diff).hashCode();
         long t_mask0 = 0;
@@ -108,7 +109,7 @@ public class NeighborLoader {
         am.friends = robots;
     }
     
-    public void load_enemies(AttackMicro am) throws GameActionException {
+    public void load_enemies(NeighborTracker am) throws GameActionException {
         int diff = -4;
         int offset = rc.getLocation().translate(diff, diff).hashCode();
         long t_mask0 = 0;

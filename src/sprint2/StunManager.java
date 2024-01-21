@@ -14,9 +14,11 @@ public class StunManager {
     MapLocation prevloc = null;
     RobotController rc;
     MapTracker mt;
-    public StunManager(RobotController rc, MapTracker mt) {
+    NeighborTracker nt;
+    public StunManager(RobotController rc, MapTracker mt, NeighborTracker nt) {
         this.rc = rc;
         this.mt = mt;
+        this.nt = nt;
     }
 
     // Handles mantaining all of the stuff involving stuns.
@@ -34,15 +36,7 @@ public class StunManager {
         }
 
         shiftMasks();
-        long stun0 = mt.stun_mask0;
-        long stun1 = mt.stun_mask1;
-        int mod = (rc.getRoundNum() % 5);
-        detonated_stun_mask0[mod] = (prev_stun_trap_mask0 & ~stun0);
-        detonated_stun_mask1[mod] = (prev_stun_trap_mask1 & ~stun1);
-        for (int i = 5; i-- > 0;) {
-            stunned_mask0 |= detonated_stun_mask0[i];
-            stunned_mask1 |= detonated_stun_mask1[i];
-        }
+        computeStunnable();
     }
 
     // Precomputes the region friendly stuns protect for use in micro.
@@ -61,6 +55,16 @@ public class StunManager {
         stun1 = (stun1 | (stun1 << 9) | (stun1 >>> 9) | (temp >>> 54)) & mask1;
         stun_trap_mask0 = stun0;
         stun_trap_mask1 = stun1;
+
+        int mod = (rc.getRoundNum() % 5);
+        detonated_stun_mask0[mod] = (prev_stun_trap_mask0 & ~stun_trap_mask0) & nt.enemy_mask0;
+        detonated_stun_mask1[mod] = (prev_stun_trap_mask1 & ~stun_trap_mask1) & nt.enemy_mask1;
+        for (int i = 5; i-- > 0;) {
+            stunned_mask0 |= detonated_stun_mask0[i];
+            stunned_mask1 |= detonated_stun_mask1[i];
+        }
+        prev_stun_trap_mask0 = stun_trap_mask0;
+        prev_stun_trap_mask1 = stun_trap_mask1;
     }
 
     // This is not that expensive.

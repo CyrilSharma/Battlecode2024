@@ -11,7 +11,6 @@ import static java.util.Arrays.sort;
 public class Duck extends Robot {
     Pathing path;
     Exploration exploration;
-    AttackMicro am;
     TrapMicro tm;
     MapLocation[] spawnCenters;
     boolean putDefenses;
@@ -231,7 +230,7 @@ public class Duck extends Robot {
                     break;
                 }
             }
-            mt.run();
+            init_turn();
             return;
         }
         
@@ -258,7 +257,7 @@ public class Duck extends Robot {
         } else if (rc.canSpawn(bestloc)) {
             rc.spawn(bestloc);
         }
-        mt.run();
+        init_turn();
     }
 
     void updateFlags() throws GameActionException {

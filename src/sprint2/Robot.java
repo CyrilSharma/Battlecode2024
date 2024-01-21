@@ -3,10 +3,11 @@ import java.util.Random;
 import battlecode.common.*;
 
 public abstract class Robot {
+    AttackMicro am;
     RobotController rc;
     MapTracker mt;
     StunManager sm;
-    final Random rng = new Random();
+    NeighborTracker nt;
     Communications communications;
     SymmetryChecker sc;
     static final Direction[] directions = {
@@ -20,18 +21,20 @@ public abstract class Robot {
         Direction.NORTHWEST,
         Direction.CENTER
     };
-
+    final Random rng = new Random();
     public Robot(RobotController rc){
         this.rc = rc;
         rng.setSeed((long) rc.getID());
         communications = new Communications(rc);
         mt = new MapTracker(rc);
         sc = new SymmetryChecker(rc);
-        sm = new StunManager(rc, mt);
+        nt = new NeighborTracker(rc);
+        sm = new StunManager(rc, mt, nt);
     }
     
     public void init_turn() throws GameActionException {
         mt.run();
+        nt.run();
         sm.run();
         communications.refreshTargets();
     }

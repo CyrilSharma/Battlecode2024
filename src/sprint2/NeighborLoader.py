@@ -25,7 +25,7 @@ class ClassPrinter:
 cp = ClassPrinter()
 
 def printLoader():
-    cp.print("package initialBot;")
+    cp.print("package sprint2;")
     cp.print("import battlecode.common.*;")
     cp.print(f"public class {CLASS_NAME} {{")
     with cp:
@@ -34,8 +34,9 @@ def printLoader():
         with cp:
             cp.print("this.rc = rc;")
         cp.print("}")
-        cp.print("public void load(AttackMicro am) throws GameActionException {")
+        cp.print("public void load(NeighborTracker am) throws GameActionException {")
         with cp:
+            cp.print("if (!rc.isSpawned()) return;")
             cp.print("load_allies(am);")
             cp.print("load_enemies(am);")
         cp.print("}")
@@ -46,12 +47,12 @@ def printLoader():
     cp.print("}")
 
 def load_allies():
-    cp.print("public void load_allies(AttackMicro am) throws GameActionException {")
+    cp.print("public void load_allies(NeighborTracker am) throws GameActionException {")
     with cp: load_pieces(True)
     cp.print("}")
 
 def load_enemies():
-    cp.print("public void load_enemies(AttackMicro am) throws GameActionException {")
+    cp.print("public void load_enemies(NeighborTracker am) throws GameActionException {")
     with cp: load_pieces(False)
     cp.print("}")
 

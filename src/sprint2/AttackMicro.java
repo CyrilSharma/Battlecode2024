@@ -4,12 +4,6 @@ import battlecode.common.*;
 public class AttackMicro {
     int mydmg = -1;
     int lastactivated = -1;
-    long enemy_mask0 = 0;
-    long enemy_mask1 = 0;
-    long friend_mask0 = 0;
-    long friend_mask1 = 0;
-    RobotInfo[] friends = null;
-    RobotInfo[] enemies = null;
     int[] healscores = new int[7];
     int[] dmgscores = new int[7];
 
@@ -23,23 +17,24 @@ public class AttackMicro {
     RobotController rc;
     StunManager sm;
     MapLocation carrier = null;
-    NeighborLoader nl;
     Communications comms;
     MapTracker mt;
+    NeighborTracker nt;
     public AttackMicro(Duck d) {
         this.rc = d.rc;
         this.comms = d.communications;
         this.mt = d.mt;
-        if (comms.order >= 30) attacker = true;
         this.sm = d.sm;
-        this.nl = new NeighborLoader(rc);
+        this.nt = d.nt;
         computeScores(false);
+        if (comms.order >= 30) attacker = true;
     }
 
     public boolean tryAttack() throws GameActionException {
         if (!rc.isActionReady()) return false;
         RobotInfo bestenemy = null;
         int besthealth = 1 << 30;
+        RobotInfo[] enemies = nt.enemies;
         for (int i = enemies.length; i-- > 0;) {
             if ((enemies[i].health < besthealth) && (rc.canAttack(enemies[i].location))) {
                 bestenemy = enemies[i];
@@ -79,13 +74,12 @@ public class AttackMicro {
     public void addBestTarget() throws GameActionException {
         comms.addAttackTarget(
             rc.getLocation(),
-            Math.min(enemies.length, 15)
+            Math.min(nt.enemies.length, 15)
         );
     }
 
     public boolean runMicro() throws GameActionException {
-        nl.load(this);
-        if (enemies.length == 0) return false;
+        if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
@@ -105,6 +99,7 @@ public class AttackMicro {
         // Am I in a 1v1? Is every enemy stunned? etc.
         boolean hasFlag = false;
         MapLocation floc = null;
+        RobotInfo[] enemies = nt.enemies;
         for (int i = enemies.length; i-- > 0; ) {
             RobotInfo e = enemies[i];
             if (e.hasFlag) {
@@ -134,7 +129,6 @@ public class AttackMicro {
     }
 
     void maneuver() throws GameActionException {
-        sm.computeStunnable();
         canAttack = rc.isActionReady();
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
 
@@ -155,7 +149,7 @@ public class AttackMicro {
 
 
         int iters = 0;
-        RobotInfo[] robots = friends;
+        RobotInfo[] robots = nt.friends;
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
@@ -171,7 +165,7 @@ public class AttackMicro {
             iters++;
         }
 
-        robots = enemies;
+        robots = nt.enemies;
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
@@ -188,6 +182,7 @@ public class AttackMicro {
             iters++;
         }
 
+        Util.displayMask(rc, sm.stunned_mask0, sm.stunned_mask1);
         // microtargets[0].displayHitMask();
         // microtargets[0].displayHitMask();
 
@@ -204,8 +199,8 @@ public class AttackMicro {
         if (rc.canMove(best.dir)) {
             rc.move(best.dir);
             Team myteam = rc.getTeam();
-            friends = rc.senseNearbyRobots(-1, myteam);
-            enemies = rc.senseNearbyRobots(-1, myteam.opponent());
+            nt.friends = rc.senseNearbyRobots(-1, myteam);
+            nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
         rc.setIndicatorString("Iters: " + iters);
     }
@@ -275,8 +270,8 @@ public class AttackMicro {
                 t_close0 = (t_close0 | (t_close0 << 9) | (t_close0 >>> 9) | (t_close1 << 54)) & passible0;
                 t_close1 = (t_close1 | (t_close1 << 9) | (t_close1 >>> 9) | (temp >>> 54)) & passible1;
             }
-            close0 = t_close0 | (enemy_mask0 & action0);
-            close1 = t_close1 | (enemy_mask1 & action1);
+            close0 = (t_close0 | (nt.enemy_mask0 & action0)) & (~sm.stunned_mask0);
+            close1 = (t_close1 | (nt.enemy_mask1 & action1)) & (~sm.stunned_mask1);
         }
 
         long canHitSoon(MapLocation loc) throws GameActionException {
