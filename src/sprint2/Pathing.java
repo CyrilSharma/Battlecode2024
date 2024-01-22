@@ -55,7 +55,12 @@ public class Pathing {
         if (gp.shouldBug) {
             gp.bug(goal);
         }
-        //bug stuff ends
-        opt.moveTo(target);
+
+        // bug stuff ends
+        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS - 30) {
+            opt.moveToNoWater(target);
+        } else {
+            opt.moveTo(target);
+        }
     }
 }

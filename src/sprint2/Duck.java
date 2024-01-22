@@ -312,6 +312,7 @@ public class Duck extends Robot {
     }
 
     void considerTrap() throws GameActionException {
+        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return;
         if (rc.getLevel(SkillType.BUILD) >= 4) {
             tm.placeTrap();
             return;
