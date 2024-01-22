@@ -10,7 +10,6 @@ public class AttackMicro {
     boolean canAttack = false;
     boolean attacker = false;
     boolean updatedScores = false;
-    boolean seeEnemyFlagCarrier = false;
 
     // Utilities
     RobotController rc;
@@ -82,22 +81,19 @@ public class AttackMicro {
     }
 
     public boolean runMicro(MapLocation t) throws GameActionException {
-        if(rc.hasFlag()) return false;
-        target = t;
+        if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS + 2) return false;
+        target = t;
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
             computeScores(true);
             updatedScores = true;
         }
         computeClosestSpawn();
-        seeEnemyFlagCarrier = false;
         addBestTarget();
         while (tryAttack()) ;
-        if (!micro()) {
-            return false;
-        }
+        if (!micro()) return false;
         while (tryAttack()) ;
         return true;
     }
@@ -113,6 +109,33 @@ public class AttackMicro {
     public boolean micro() throws GameActionException {
         // We can compute more stats here too, like,
         // Am I in a 1v1? Is every enemy stunned? etc.
+        long action0 = 0b000010000000111000001111100000111000000010000000000000000000000L;
+        if ((nt.enemy_mask0 & action0) == 0) {
+            // you couldn't attack an enemy from this location.
+            // Additionally, the terrain is highly impassable, indicated by the fact
+            // that there is no short path to the enemy. (or there is no path at all)
+            long loverflow = 0x7fbfdfeff7fbfdfeL;
+            long roverflow = 0x3fdfeff7fbfdfeffL;
+            long mask0 = 0x7FFFFFFFFFFFFFFFL;
+            long mask1 = 0x3FFFFL;
+            // water and walls, since attack micro never goes in water
+            long passible0 = (~(mt.wall_mask0 | mt.water_mask0 | (nt.friend_mask0 & ~action0))) & mask0;
+            long passible1 = (~(mt.wall_mask1 | mt.water_mask1 | nt.friend_mask1)) & mask1;
+            long reach0 = 1099511627776L;
+            long reach1 = 0;
+            int i = 0;
+            while ((((reach0 & nt.enemy_mask0) | (reach1 & nt.enemy_mask1)) == 0) && i < 8) {
+                reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+                reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
+                long temp = reach0;
+                reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+                reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+                i++;
+            }
+            if (i >= 8) {
+                return false;
+            }
+        }
         boolean hasFlag = false;
         MapLocation floc = null;
         RobotInfo[] enemies = nt.enemies;
@@ -124,9 +147,7 @@ public class AttackMicro {
             }
         }
         if (hasFlag) defendFlag(floc);
-        else if (!maneuver()) {
-            return false;
-        }
+        else maneuver();
         return true;
     }
 
@@ -147,7 +168,7 @@ public class AttackMicro {
         }
     }
 
-    boolean maneuver() throws GameActionException {
+    void maneuver() throws GameActionException {
         canAttack = rc.isActionReady();
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
 
@@ -185,14 +206,9 @@ public class AttackMicro {
         }
 
         robots = nt.enemies;
-        int numWithinAttackRadius = 0;
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
-            if (r.hasFlag) seeEnemyFlagCarrier = true;
-            if (r.location.distanceSquaredTo(rc.getLocation()) <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                numWithinAttackRadius++;
-            }
             microtargets[0].addEnemy(r);
             microtargets[1].addEnemy(r);
             microtargets[2].addEnemy(r);
@@ -203,34 +219,6 @@ public class AttackMicro {
             microtargets[7].addEnemy(r);
             microtargets[8].addEnemy(r);
             iters++;
-        }
-
-        if (numWithinAttackRadius == 0) {
-            // you couldn't attack an enemy from this location.
-            // Additionally, the terrain is highly impassable, indicated by the fact
-            // that there is no short path to the enemy. (or there is no path at all)
-            long loverflow = 0x7fbfdfeff7fbfdfeL;
-            long roverflow = 0x3fdfeff7fbfdfeffL;
-            long mask0 = 0x7FFFFFFFFFFFFFFFL;
-            long mask1 = 0x3FFFFL;
-            // water and walls, since attack micro never goes in water
-            long passible0 = (~(mt.wall_mask0 | mt.water_mask0)) & mask0;
-            long passible1 = (~(mt.wall_mask1 | mt.water_mask1)) & mask1;
-            long reach0 = 1099511627776L;
-            long reach1 = 0;
-            int i = 0;
-            while ((((reach0 & nt.enemy_mask0) | (reach1 & nt.enemy_mask1)) == 0) && i < 8) {
-                reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
-                reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
-                long temp = reach0;
-                reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
-                reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
-                
-                i++;
-            }
-            if (i >= 8) {
-                return false;
-            }
         }
 
         // Util.displayMask(rc, sm.stunned_mask0, sm.stunned_mask1);
@@ -254,7 +242,6 @@ public class AttackMicro {
             nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
         rc.setIndicatorString("Iters: " + iters);
-        return true;
     }
 
     // Choose best candidate for maneuvering in close encounters.

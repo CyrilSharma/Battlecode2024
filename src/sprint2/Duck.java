@@ -226,7 +226,9 @@ public class Duck extends Robot {
         RobotInfo bestfriend = null;
         RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
         for (int i = friends.length; i-- > 0;) {
-            int score = friends[i].health - 100 * friends[i].buildLevel - (friends[i].attackLevel >= 3 ? 200 * friends[i].attackLevel : 0);
+            RobotInfo f = friends[i];
+            int score = f.health - 100 * f.buildLevel - (f.attackLevel >= 3 ? 200 * f.attackLevel : 0);
+            if (f.hasFlag) score = 0;
             if ((score < besthealth) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
                 besthealth = score;
