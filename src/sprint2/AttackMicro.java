@@ -19,12 +19,16 @@ public class AttackMicro {
     Communications comms;
     MapTracker mt;
     NeighborTracker nt;
+    MapLocation target;
+    MapLocation[] spawnCenters;
+    int distToSpawn;
     public AttackMicro(Duck d) {
         this.rc = d.rc;
         this.comms = d.communications;
         this.mt = d.mt;
         this.sm = d.sm;
         this.nt = d.nt;
+        this.spawnCenters = d.spawnCenters;
         computeScores(false);
         if (comms.order >= 30) attacker = true;
     }
@@ -77,7 +81,9 @@ public class AttackMicro {
         );
     }
 
-    public boolean runMicro() throws GameActionException {
+    public boolean runMicro(MapLocation t) throws GameActionException {
+        if(rc.hasFlag()) return false;
+        target = t;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS + 2) return false;
         lastactivated = rc.getRoundNum();
@@ -85,6 +91,7 @@ public class AttackMicro {
             computeScores(true);
             updatedScores = true;
         }
+        computeClosestSpawn();
         seeEnemyFlagCarrier = false;
         addBestTarget();
         while (tryAttack()) ;
@@ -93,6 +100,14 @@ public class AttackMicro {
         }
         while (tryAttack()) ;
         return true;
+    }
+
+    public void computeClosestSpawn() throws GameActionException {
+        distToSpawn = 1000000;
+        for (int i = 0; i < 3; i++) {
+            int d = rc.getLocation().distanceSquaredTo(spawnCenters[i]);
+            if(d < distToSpawn) distToSpawn = d;
+        }
     }
 
     public boolean micro() throws GameActionException {
@@ -252,6 +267,7 @@ public class AttackMicro {
         int healAttackRange = 0;
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
+        int distToGoal = 1000000;
         boolean canMove;
         int canLandHit;
         MapLocation nloc;
@@ -264,6 +280,7 @@ public class AttackMicro {
             bl = myloc.translate(-4, -4);
             offset = bl.hashCode();
             canMove = rc.canMove(dir);
+            if(target != null) distToGoal = nloc.distanceSquaredTo(target);
             this.dir = dir;
             computeHitMask();
         }
@@ -451,6 +468,13 @@ public class AttackMicro {
 
             if (minDistToAlly < mt.minDistToAlly) return true;
             if (minDistToAlly > mt.minDistToAlly) return false;
+
+            /*
+            if (distToSpawn >= 50) {
+                if (distToGoal < mt.distToGoal) return true;
+                if (distToGoal > mt.distToGoal) return false;
+            }
+             */
 
             if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
             else return minDistToEnemy <= mt.minDistToEnemy;

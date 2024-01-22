@@ -30,7 +30,7 @@ public class Pathing {
         //bug stuff starts
         //if we have not made progress for 15 turns, we turn to bug
         //then we just continue bugging until bug decides we are over the obstacle
-        if (target != goal) {
+        if (!target.equals(goal)) {
             gp.shouldBug = false;
         }
         if (!gp.shouldBug) {
@@ -56,6 +56,10 @@ public class Pathing {
             gp.bug(goal);
         }
         //bug stuff ends
-        opt.moveTo(target);
+        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS - 30) {
+            opt.moveToNoWater(target);
+        } else {
+            opt.moveTo(target);
+        }
     }
 }

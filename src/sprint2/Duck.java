@@ -37,10 +37,11 @@ public class Duck extends Robot {
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
-
+        ranFlagMicro();
+        MapLocation target = getHuntTarget(true);
+        if(rc.hasFlag()) target = getReturnSpawn();
         if (builder()) {}
-        else if (am.runMicro()) {}
-        else if (ranFlagMicro()) {}
+        else if (am.runMicro(target)) {}
         else if (tryLevelUp()) {}
         // else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
@@ -56,6 +57,20 @@ public class Duck extends Robot {
             (rc.getRoundNum() % 20 != 0)) return false;
         trainBuilder();
         return true;
+    }
+
+    public MapLocation getReturnSpawn() throws GameActionException{
+        int bestdist = 1 << 30;
+        MapLocation bestloc = null;
+        for (int i = spawnCenters.length; i-- > 0; ) {
+            MapLocation m = spawnCenters[i];
+            int d = m.distanceSquaredTo(rc.getLocation());
+            if (d < bestdist) {
+                bestdist = d;
+                bestloc = m;
+            }
+        }
+        return bestloc;
     }
 
     public void collectCrumbs() throws GameActionException {
@@ -288,7 +303,7 @@ public class Duck extends Robot {
         for (int j = flags.length; j-- > 0;) {
             if (!flags[j].isPickedUp()) continue;
             MapLocation floc = flags[j].getLocation();
-            communications.log_runaway_flag(floc);
+            communications.log_runaway_flag(floc, flags[j].getID());
         }
 
         flags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
@@ -312,6 +327,7 @@ public class Duck extends Robot {
     }
 
     void considerTrap() throws GameActionException {
+        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return;
         if (rc.getLevel(SkillType.BUILD) >= 4) {
             tm.placeTrap();
             return;
@@ -362,7 +378,7 @@ public class Duck extends Robot {
     }
 
     public void hunt() throws GameActionException {
-        MapLocation target = getHuntTarget();
+        MapLocation target = getHuntTarget(false);
         if (target != null) path.moveTo(target);
     }
 
@@ -390,7 +406,7 @@ public class Duck extends Robot {
         while(am.tryAttack());
     }
 
-    public MapLocation getHuntTarget() throws GameActionException {
+    public MapLocation getHuntTarget(boolean justTell) throws GameActionException {
         // Defend nearby carriers!
         MapLocation myloc = rc.getLocation();
         AttackTarget[] carriers = communications.get_carriers();
@@ -412,7 +428,8 @@ public class Duck extends Robot {
             if (closest <= 100) {
                 communications.markCarrier(closestCarrier);
                 //rc.setIndicatorString("there are " + numb);
-                protectCarrier(closestCarrier, spa);
+                if(!justTell) protectCarrier(closestCarrier, spa);
+                else return closestCarrier;
                 return null;
             }
         }
@@ -431,7 +448,8 @@ public class Duck extends Robot {
                 }
             }
             if (closest <= 100) {
-                attackCarrier(closestCarrier);
+                if(!justTell) attackCarrier(closestCarrier);
+                else return closestCarrier;
                 return null;
             }
         }

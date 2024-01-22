@@ -1,12 +1,18 @@
 package sprint2;
 import battlecode.common.*;
 
+import static java.util.Arrays.sort;
+
 public class Communications {
     int order;
     boolean flagdead = false;
     RobotController rc;
+    MapLocation[] spawnCenters;
+    int W, H;
     public Communications(RobotController rc) {
         this.rc = rc;
+        W = rc.getMapWidth();
+        H = rc.getMapHeight();
     }
 
     public void establishOrder() throws GameActionException {
@@ -55,21 +61,27 @@ public class Communications {
         return trim;
     }
 
-    public void log_runaway_flag(MapLocation m) throws GameActionException {
-        int hash = hashLocation(m);
+    public void log_runaway_flag(MapLocation m, int id) throws GameActionException {
+        int hash = hashAttackTarget(new AttackTarget(m, 1));
         int start = Channels.RUNAWAY_FLAGS;
+        boolean wrote = false;
+        for (int i = start; i < start + Channels.FLAG_NUM; i++) {
+            int data = rc.readSharedArray(i);
+            if(data != 0) {
+                if(id == rc.readSharedArray(Channels.RUNAWAY_FLAGS_ID + (i - start))) {
+                    rc.writeSharedArray(i, hash);
+                    wrote = true;
+                    break;
+                }
+            }
+        }
+        if(wrote) return;
         for (int i = start; i < start + Channels.FLAG_NUM; i++) {
             int data = rc.readSharedArray(i);
             if (data == 0) {
                 rc.writeSharedArray(i, hash);
+                rc.writeSharedArray(Channels.RUNAWAY_FLAGS_ID + (i - start), id);
                 break;
-            }
-            else {
-                MapLocation dh = dehashLocation(data);
-                if(dh.distanceSquaredTo(rc.getLocation()) <= 4) {
-                    rc.writeSharedArray(i, hash);
-                    break;
-                }
             }
         }
     }
@@ -91,18 +103,24 @@ public class Communications {
     public void log_carrier(MapLocation m, int sp) throws GameActionException {
         int hash = hashAttackTarget(new AttackTarget(m, sp));
         int start = Channels.FLAG_CARRIERS;
+        boolean wrote = false;
+        for (int i = start; i < start + Channels.FLAG_NUM; i++) {
+            int data = rc.readSharedArray(i);
+            if(data != 0) {
+                AttackTarget dh = dehashAttackTarget(data);
+                if (dh.m.distanceSquaredTo(rc.getLocation()) <= 4) {
+                    rc.writeSharedArray(i, hash);
+                    wrote = true;
+                    break;
+                }
+            }
+        }
+        if (wrote) return;
         for (int i = start; i < start + Channels.FLAG_NUM; i++) {
             int data = rc.readSharedArray(i);
             if (data == 0) {
                 rc.writeSharedArray(i, hash);
                 break;
-            }
-            else {
-                AttackTarget dh = dehashAttackTarget(data);
-                if(dh.m.distanceSquaredTo(rc.getLocation()) <= 4) {
-                    rc.writeSharedArray(i, hash);
-                    break;
-                }
             }
         }
     }
@@ -182,16 +200,83 @@ public class Communications {
         }
     }
 
+    public void getSpawnCenters() {
+        spawnCenters = new MapLocation[3];
+        int ind = 0;
+        MapLocation[] sp = rc.getAllySpawnLocations();
+        for (MapLocation m : sp) {
+            int cnt = 0;
+            for (MapLocation x : sp) {
+                if(x.isAdjacentTo(m) && !x.equals(m)) {
+                    cnt++;
+                }
+            }
+            if (cnt == 8) spawnCenters[ind++] = m;
+            if (ind == 3) break;
+        }
+        sort(spawnCenters);
+    }
+
+    MapLocation getHSym(MapLocation a) {
+        return new MapLocation(a.x, H - a.y - 1);
+    }
+
+    MapLocation getVSym(MapLocation a) {
+        return new MapLocation(W - a.x - 1, a.y);
+    }
+
+    MapLocation getRSym(MapLocation a) {
+        return new MapLocation(W - a.x - 1, H - a.y - 1);
+    }
+
+    public MapLocation advanceToEnemySpawn(MapLocation loc) throws GameActionException {
+        if (spawnCenters == null) getSpawnCenters();
+        int bestDist = 1000000;
+        MapLocation bestSpawn = null;
+        for (int i = 0; i < 3; i++) {
+            MapLocation cur = getHSym(spawnCenters[i]);
+            if (cur == null) {
+                int status = rc.readSharedArray(Channels.SYMMETRY);
+                if ((status & 1) == 0) cur = getHSym(spawnCenters[i]);
+                else if (((status >> 1) & 1) == 0) cur = getVSym(spawnCenters[i]);
+                else cur = getRSym(spawnCenters[i]);
+            }
+            int d = cur.distanceSquaredTo(loc);
+            if (d < bestDist) {
+                bestDist = d;
+                bestSpawn = cur;
+            }
+        }
+        return loc.add(loc.directionTo(bestSpawn));
+    }
+
     public void refreshTargets() throws GameActionException {
         if (order != 0) return;
         for (int i = 0; i < Channels.CARRIER_DEFENDER_NUM; i++) rc.writeSharedArray(Channels.CARRIER_DEFENDER + i, 0);
+        for (int i = 0; i < Channels.FLAG_NUM; i++) {
+            int data = rc.readSharedArray(Channels.RUNAWAY_FLAGS + i);
+            if(data == 0) continue;
+            AttackTarget a = dehashAttackTarget(data);
+            MapLocation loc = a.m;
+            if (a.score == 0) {
+                loc = advanceToEnemySpawn(a.m);
+            }
+            a = new AttackTarget(loc, 0);
+            rc.writeSharedArray(Channels.RUNAWAY_FLAGS + i, hashAttackTarget(a));
+        }
+        if (rc.getRoundNum() % 5 == 0) {
+            for (int i = 0; i < Channels.FLAG_NUM; i++) {
+                rc.writeSharedArray(Channels.RUNAWAY_FLAGS + i, 0);
+                rc.writeSharedArray(Channels.RUNAWAY_FLAGS_ID + i, 0);
+            }
+        }
         if (rc.getRoundNum() % 5 != 0) return;
         for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
             rc.writeSharedArray(Channels.ATTACK_TARGETS + i, 0);
         }
         for (int i = 0; i < Channels.FLAG_NUM; i++) {
             rc.writeSharedArray(Channels.FLAG_CARRIERS + i, 0);
-            rc.writeSharedArray(Channels.RUNAWAY_FLAGS + i, 0);
+            //rc.writeSharedArray(Channels.RUNAWAY_FLAGS + i, 0);
         }
     }
 
