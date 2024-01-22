@@ -34,7 +34,7 @@ public class Pathing {
             gp.shouldBug = false;
         }
         if (!gp.shouldBug) {
-            if (target != goal) {
+            if (!target.equals(goal)) {
                 goal = target;
                 bestDistance = rc.getLocation().distanceSquaredTo(goal);
                 turnsWithoutProgress = 0;
