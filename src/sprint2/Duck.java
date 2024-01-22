@@ -42,7 +42,7 @@ public class Duck extends Robot {
         else if (am.runMicro()) {}
         else if (ranFlagMicro()) {}
         else if (tryLevelUp()) {}
-        else if (H.needHeist()) { H.runHeist(); }
+        // else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
@@ -495,6 +495,11 @@ public class Duck extends Robot {
             }
             if (bestloc != null) {
                 rc.setIndicatorString("Hunting Approximate flag: " + bestloc);
+                if (rc.getLocation().equals(bestloc)) {
+                    // don't just stay stuck there, try a place nearby!
+                    bestloc = new MapLocation(bestloc.x + rng.nextInt(15) - 7, bestloc.y + rng.nextInt(15) - 7);
+
+                }
                 return bestloc;
             }
         }

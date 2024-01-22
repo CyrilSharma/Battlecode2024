@@ -1,6 +1,5 @@
 package sprint2;
 import battlecode.common.*;
-
 public class AttackMicro {
     int mydmg = -1;
     int lastactivated = -1;
@@ -89,12 +88,14 @@ public class AttackMicro {
         seeEnemyFlagCarrier = false;
         addBestTarget();
         while (tryAttack()) ;
-        micro();
+        if (!micro()) {
+            return false;
+        }
         while (tryAttack()) ;
         return true;
     }
 
-    public void micro() throws GameActionException {
+    public boolean micro() throws GameActionException {
         // We can compute more stats here too, like,
         // Am I in a 1v1? Is every enemy stunned? etc.
         boolean hasFlag = false;
@@ -108,7 +109,10 @@ public class AttackMicro {
             }
         }
         if (hasFlag) defendFlag(floc);
-        else maneuver();
+        else if (!maneuver()) {
+            return false;
+        }
+        return true;
     }
 
     public void defendFlag(MapLocation floc) throws GameActionException {
@@ -128,7 +132,7 @@ public class AttackMicro {
         }
     }
 
-    void maneuver() throws GameActionException {
+    boolean maneuver() throws GameActionException {
         canAttack = rc.isActionReady();
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
 
@@ -166,10 +170,14 @@ public class AttackMicro {
         }
 
         robots = nt.enemies;
+        int numWithinAttackRadius = 0;
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
             if (r.hasFlag) seeEnemyFlagCarrier = true;
+            if (r.location.distanceSquaredTo(rc.getLocation()) <= GameConstants.ATTACK_RADIUS_SQUARED) {
+                numWithinAttackRadius++;
+            }
             microtargets[0].addEnemy(r);
             microtargets[1].addEnemy(r);
             microtargets[2].addEnemy(r);
@@ -180,6 +188,37 @@ public class AttackMicro {
             microtargets[7].addEnemy(r);
             microtargets[8].addEnemy(r);
             iters++;
+        }
+
+        if (numWithinAttackRadius == 0) {
+            if (rc.getID() == 13069) {
+                System.out.println("here");
+            }
+            // you couldn't attack an enemy from this location.
+            // Additionally, the terrain is highly impassable, indicated by the fact
+            // that there is no short path to the enemy. (or there is no path at all)
+            long loverflow = 0x7fbfdfeff7fbfdfeL;
+            long roverflow = 0x3fdfeff7fbfdfeffL;
+            long mask0 = 0x7FFFFFFFFFFFFFFFL;
+            long mask1 = 0x3FFFFL;
+            // water and walls, since attack micro never goes in water
+            long passible0 = (~(mt.wall_mask0 | mt.water_mask0)) & mask0;
+            long passible1 = (~(mt.wall_mask1 | mt.water_mask1)) & mask1;
+            long reach0 = 1099511627776L;
+            long reach1 = 0;
+            int i = 0;
+            while ((((reach0 & nt.enemy_mask0) | (reach1 & nt.enemy_mask1)) == 0) && i < 6) {
+                reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
+                reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
+                long temp = reach0;
+                reach0 = (reach0 | (reach0 << 9) | (reach0 >>> 9) | (reach1 << 54)) & passible0;
+                reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
+                
+                i++;
+            }
+            if (i >= 6) {
+                return false;
+            }
         }
 
         // Util.displayMask(rc, sm.stunned_mask0, sm.stunned_mask1);
@@ -203,6 +242,7 @@ public class AttackMicro {
             nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
         rc.setIndicatorString("Iters: " + iters);
+        return true;
     }
 
     // Choose best candidate for maneuvering in close encounters.
@@ -256,8 +296,8 @@ public class AttackMicro {
 
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;
-            long passible0 = ~(mt.wall_mask0 | mt.water_mask0 | sm.stun_trap_mask0) & mask0;
-            long passible1 = ~(mt.wall_mask1 | mt.water_mask1 | sm.stun_trap_mask1) & mask1;
+            long passible0 = (~(mt.wall_mask0 | mt.water_mask0 | sm.stun_trap_mask0)) & mask0;
+            long passible1 = (~(mt.wall_mask1 | mt.water_mask1 | sm.stun_trap_mask1)) & mask1;
             long loverflow = 0x7fbfdfeff7fbfdfeL;
             long roverflow = 0x3fdfeff7fbfdfeffL;            
             long t_close0 = (action0 & passible0);
