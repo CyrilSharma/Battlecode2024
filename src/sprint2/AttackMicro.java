@@ -18,7 +18,6 @@ public class AttackMicro {
     Communications comms;
     MapTracker mt;
     NeighborTracker nt;
-    MapLocation target;
     MapLocation[] spawnCenters;
     int distToSpawn;
     public AttackMicro(Duck d) {
@@ -80,11 +79,10 @@ public class AttackMicro {
         );
     }
 
-    public boolean runMicro(MapLocation t) throws GameActionException {
+    public boolean runMicro() throws GameActionException {
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS + 2) return false;
-        target = t;
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
             computeScores(true);
@@ -267,7 +265,6 @@ public class AttackMicro {
             bl = myloc.translate(-4, -4);
             offset = bl.hashCode();
             canMove = rc.canMove(dir);
-            if(target != null) distToGoal = nloc.distanceSquaredTo(target);
             this.dir = dir;
             computeHitMask();
         }
@@ -455,13 +452,6 @@ public class AttackMicro {
 
             if (minDistToAlly < mt.minDistToAlly) return true;
             if (minDistToAlly > mt.minDistToAlly) return false;
-
-            /*
-            if (distToSpawn >= 50) {
-                if (distToGoal < mt.distToGoal) return true;
-                if (distToGoal > mt.distToGoal) return false;
-            }
-             */
 
             if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
             else return minDistToEnemy <= mt.minDistToEnemy;
