@@ -38,12 +38,9 @@ public class Duck extends Robot {
         considerTrap();
         collectCrumbs();
         ranFlagMicro();
-        MapLocation target = getHuntTarget(true);
-        if(rc.hasFlag()) target = getReturnSpawn();
         if (builder()) {}
-        else if (am.runMicro(target)) {}
+        else if (am.runMicro()) {}
         else if (tryLevelUp()) {}
-        // else if (H.needHeist()) { H.runHeist(); }
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
