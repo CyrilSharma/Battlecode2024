@@ -191,9 +191,6 @@ public class AttackMicro {
         }
 
         if (numWithinAttackRadius == 0) {
-            if (rc.getID() == 13069) {
-                System.out.println("here");
-            }
             // you couldn't attack an enemy from this location.
             // Additionally, the terrain is highly impassable, indicated by the fact
             // that there is no short path to the enemy. (or there is no path at all)
@@ -207,7 +204,7 @@ public class AttackMicro {
             long reach0 = 1099511627776L;
             long reach1 = 0;
             int i = 0;
-            while ((((reach0 & nt.enemy_mask0) | (reach1 & nt.enemy_mask1)) == 0) && i < 6) {
+            while ((((reach0 & nt.enemy_mask0) | (reach1 & nt.enemy_mask1)) == 0) && i < 8) {
                 reach0 = (reach0 | ((reach0 << 1) & loverflow) | ((reach0 >>> 1) & roverflow));
                 reach1 = (reach1 | ((reach1 << 1) & loverflow) | ((reach1 >>> 1) & roverflow));
                 long temp = reach0;
@@ -216,7 +213,7 @@ public class AttackMicro {
                 
                 i++;
             }
-            if (i >= 6) {
+            if (i >= 8) {
                 return false;
             }
         }
