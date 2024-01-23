@@ -4,6 +4,7 @@ public class Pathing {
     MapTracker mt;
     RobotController rc;
     OptimalPathing opt;
+    Communications comms;
     //bug stuff
     MapLocation goal;
     int bestDistance;
@@ -14,6 +15,7 @@ public class Pathing {
     public Pathing(Robot robot) {
         this.rc = robot.rc;
         this.mt = robot.mt;
+        this.comms = robot.communications;
         this.opt = new OptimalPathing(robot);
         //bug stuff
         this.gp = new GreedyPath(rc);
@@ -55,11 +57,17 @@ public class Pathing {
         if (gp.shouldBug) {
             gp.bug(goal);
         }
+
         //bug stuff ends
-        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS - 30) {
-            opt.moveToNoWater(target);
+        int initial = Clock.getBytecodesLeft();
+        if (rc.hasFlag()) {
+            opt.moveTo(target, true, false);
+        } else if (comms.order > 5 && comms.order < 10 && rc.getRoundNum() < GameConstants.SETUP_ROUNDS) {
+            opt.moveTo(target, false, true);
         } else {
-            opt.moveTo(target);
+            opt.moveTo(target, false, false);
         }
+        int end = Clock.getBytecodesLeft();
+        System.out.println("used: " + (initial - end));
     }
 }
