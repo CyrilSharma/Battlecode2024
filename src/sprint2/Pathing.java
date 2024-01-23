@@ -59,7 +59,6 @@ public class Pathing {
         }
 
         //bug stuff ends
-        int initial = Clock.getBytecodesLeft();
         if (rc.hasFlag()) {
             opt.moveTo(target, true, false);
         } else if (comms.order > 5 && comms.order < 10 && rc.getRoundNum() < GameConstants.SETUP_ROUNDS) {
@@ -67,7 +66,5 @@ public class Pathing {
         } else {
             opt.moveTo(target, false, false);
         }
-        int end = Clock.getBytecodesLeft();
-        System.out.println("used: " + (initial - end));
     }
 }
