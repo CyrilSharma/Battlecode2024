@@ -87,17 +87,17 @@ class SymmetryChecker {
             MapLocation mloc = m.getMapLocation();
             s = getHSym(mloc);
             mi = tiles[s.x][s.y];
-            if (mi != null && (mi.isWall() != m.isWall() || mi.isDam() != m.isDam()))
+            if (mi != null && (mi.isWall() != m.isWall() || (mi.isDam() != m.isDam() && rc.getRoundNum() < 200)))
                 status |= 1;
             
             s = getVSym(mloc);
             mi = tiles[s.x][s.y];
-            if (mi != null && (mi.isWall() != m.isWall() || mi.isDam() != m.isDam()))
+            if (mi != null && (mi.isWall() != m.isWall() || (mi.isDam() != m.isDam() && rc.getRoundNum() < 200)))
                 status |= 2;
 
             s = getRSym(mloc);
             mi = tiles[s.x][s.y];
-            if (mi != null && (mi.isWall() != m.isWall() || mi.isDam() != m.isDam()))
+            if (mi != null && (mi.isWall() != m.isWall() || (mi.isDam() != m.isDam() && rc.getRoundNum() < 200)))
                 status |= 4;
                 
             tiles[mloc.x][mloc.y] = mi;
