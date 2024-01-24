@@ -2,8 +2,8 @@ package sprint2;
 import battlecode.common.*;
 
 public class StunManager {
-    long prev_stun_trap_mask0 = 0;
-    long prev_stun_trap_mask1 = 0;
+    long prev_stun_mask0 = 0;
+    long prev_stun_mask1 = 0;
     long stun_trap_mask0 = 0;
     long stun_trap_mask1 = 0;
     long stunned_mask0 = 0;
@@ -29,8 +29,8 @@ public class StunManager {
                 stunned_mask0 = 0;
                 stunned_mask1 = 0;
             }
-            prev_stun_trap_mask0 = 0;
-            prev_stun_trap_mask1 = 0;
+            prev_stun_mask0 = 0;
+            prev_stun_mask1 = 0;
             prevloc = rc.getLocation();
             return;
         }
@@ -58,8 +58,12 @@ public class StunManager {
         stun_trap_mask0 = stun0;
         stun_trap_mask1 = stun1;
 
-        stun0 = (~stun_trap_mask0 & prev_stun_trap_mask0);
-        stun1 = (~stun_trap_mask1 & prev_stun_trap_mask1);
+        stun0 = (~mt.stun_mask0 & prev_stun_mask0) & mask0;
+        stun1 = (~mt.stun_mask1 & prev_stun_mask1) & mask1;
+        prev_stun_mask0 = mt.stun_mask0;
+        prev_stun_mask1 = mt.stun_mask1;
+
+
         for (int i = 3; i-- > 0;) {
             stun0 = (stun0 | ((stun0 << 1) & loverflow) | ((stun0 >>> 1) & roverflow));
             stun1 = (stun1 | ((stun1 << 1) & loverflow) | ((stun1 >>> 1) & roverflow));
@@ -67,25 +71,22 @@ public class StunManager {
             stun0 = (stun0 | (stun0 << 9) | (stun0 >>> 9) | (stun1 << 54)) & mask0;
             stun1 = (stun1 | (stun1 << 9) | (stun1 >>> 9) | (temp >>> 54)) & mask1;
         }
-        long detonate0 = stun0;
-        long detonate1 = stun1;
-        // Util.displayMask(rc, detonate0, detonate1);
 
-        int expire_rounds = 2;
+        int expire_rounds = 5;
         int mod = (rc.getRoundNum() % expire_rounds);
-        detonated_stun_mask0[mod] = detonate0 & nt.enemy_mask0;
-        detonated_stun_mask1[mod] = detonate1 & nt.enemy_mask1;
-        //Util.displayMask(rc, detonated_stun_mask0[mod], detonated_stun_mask1[mod]);
+        detonated_stun_mask0[mod] = stun0 & nt.enemy_mask0;
+        detonated_stun_mask1[mod] = stun1 & nt.enemy_mask1;
+        for (int i = expire_rounds; i-- > 0;) {
+            detonated_stun_mask0[i] &= nt.enemy_mask0;
+            detonated_stun_mask1[i] &= nt.enemy_mask1;
+        }
 
-        prev_stun_trap_mask0 = mt.stun_mask0;
-        prev_stun_trap_mask1 = mt.stun_mask1;
         stunned_mask0 = 0;
         stunned_mask1 = 0;
-        for (int i = expire_rounds; i-- > 0;) {
+        for (int i = (mod + 1) % expire_rounds; i != mod; i = (i + 1) % expire_rounds) {
             stunned_mask0 |= detonated_stun_mask0[i];
             stunned_mask1 |= detonated_stun_mask1[i];
         }
-        //Util.displayMask(rc, stunned_mask0, stunned_mask1);
     }
 
     // This is not that expensive.
@@ -110,7 +111,7 @@ public class StunManager {
             case WEST:      shift = -1;  right = 1;  break;
             case SOUTHEAST: shift = -8;  right = -1; break;
             case SOUTH:     shift = -9;              break;
-            case SOUTHWEST: shift = -10; right = -1; break;
+            case SOUTHWEST: shift = -10; right = 1; break;
         }
 
         boolean positive = shift >= 0;
@@ -122,23 +123,22 @@ public class StunManager {
             tm1 = detonated_stun_mask1[i];
             if (positive) {
                 detonated_stun_mask0[i] = ((tm0 << shift) & overflow);
-                detonated_stun_mask1[i] = ((tm1 << shift) & overflow) | ((tm0 >> (54 - shift)) & 0x1FF);
+                detonated_stun_mask1[i] = ((tm1 << shift) & overflow) | ((tm0 >>> (63 - shift)) & 0x1FF);
             } else {
-                detonated_stun_mask0[i] = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (54 - shift));
+                detonated_stun_mask0[i] = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (63 - shift));
                 detonated_stun_mask1[i] = ((tm1 >>> shift) & overflow);
             }
         }
 
 
-        tm0 = prev_stun_trap_mask0;
-        tm1 = prev_stun_trap_mask1;
+        tm0 = prev_stun_mask0;
+        tm1 = prev_stun_mask1;
         if (positive) {
-            prev_stun_trap_mask0 = ((tm0 << shift) & overflow);
-            prev_stun_trap_mask1 = ((tm1 << shift) & overflow) | ((tm0 >> (54 - shift)) & 0x1FF);
+            prev_stun_mask0 = ((tm0 << shift) & overflow);
+            prev_stun_mask1 = ((tm1 << shift) & overflow) | ((tm0 >>> (63 - shift)) & 0x1FF);
         } else {
-            prev_stun_trap_mask0 = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (54 - shift));
-            prev_stun_trap_mask1 = ((tm1 >>> shift) & overflow);
+            prev_stun_mask0 = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (63 - shift));
+            prev_stun_mask1 = ((tm1 >>> shift) & overflow);
         }
-        //Util.displayMask(rc, prev_stun_trap_mask0, prev_stun_trap_mask1);
     }
 }

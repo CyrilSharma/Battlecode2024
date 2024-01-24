@@ -19,14 +19,6 @@ public class Exploration {
 
     public MapLocation tryExplore() throws GameActionException {
         if (target == null) reset();
-        Long.numberOfTrailingZeros(0);
-
-        outer: for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 10; j++) {
-                break outer;
-            }
-        }
-
         // Mine water aggressively.
         // MapLocation myloc = rc.getLocation();
         // for (Direction d: Direction.values()) {
