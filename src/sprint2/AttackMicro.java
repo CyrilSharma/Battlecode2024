@@ -185,9 +185,99 @@ public class AttackMicro {
         microtargets[7] = new MicroTarget(Direction.SOUTHEAST);
         microtargets[8] = new MicroTarget(Direction.SOUTHWEST);
 
+        int bloffset = rc.getLocation().translate(-4, -4).hashCode();
+        boolean[] stunned = new boolean[nt.enemies.length];
+        RobotInfo[] robots = nt.enemies;
+        for (int i = robots.length; i-- > 0;) {
+            switch (robots[i].location.hashCode() - bloffset) {
+                case 0: stunned[i] = (sm.stunned_mask0 & 0x1) != 0; break;
+                case 65536: stunned[i] = (sm.stunned_mask0 & 0x2) != 0; break;
+                case 131072: stunned[i] = (sm.stunned_mask0 & 0x4) != 0; break;
+                case 196608: stunned[i] = (sm.stunned_mask0 & 0x8) != 0; break;
+                case 262144: stunned[i] = (sm.stunned_mask0 & 0x10) != 0; break;
+                case 327680: stunned[i] = (sm.stunned_mask0 & 0x20) != 0; break;
+                case 393216: stunned[i] = (sm.stunned_mask0 & 0x40) != 0; break;
+                case 458752: stunned[i] = (sm.stunned_mask0 & 0x80) != 0; break;
+                case 524288: stunned[i] = (sm.stunned_mask0 & 0x100) != 0; break;
+                case 1: stunned[i] = (sm.stunned_mask0 & 0x200) != 0; break;
+                case 65537: stunned[i] = (sm.stunned_mask0 & 0x400) != 0; break;
+                case 131073: stunned[i] = (sm.stunned_mask0 & 0x800) != 0; break;
+                case 196609: stunned[i] = (sm.stunned_mask0 & 0x1000) != 0; break;
+                case 262145: stunned[i] = (sm.stunned_mask0 & 0x2000) != 0; break;
+                case 327681: stunned[i] = (sm.stunned_mask0 & 0x4000) != 0; break;
+                case 393217: stunned[i] = (sm.stunned_mask0 & 0x8000) != 0; break;
+                case 458753: stunned[i] = (sm.stunned_mask0 & 0x10000) != 0; break;
+                case 524289: stunned[i] = (sm.stunned_mask0 & 0x20000) != 0; break;
+                case 2: stunned[i] = (sm.stunned_mask0 & 0x40000) != 0; break;
+                case 65538: stunned[i] = (sm.stunned_mask0 & 0x80000) != 0; break;
+                case 131074: stunned[i] = (sm.stunned_mask0 & 0x100000) != 0; break;
+                case 196610: stunned[i] = (sm.stunned_mask0 & 0x200000) != 0; break;
+                case 262146: stunned[i] = (sm.stunned_mask0 & 0x400000) != 0; break;
+                case 327682: stunned[i] = (sm.stunned_mask0 & 0x800000) != 0; break;
+                case 393218: stunned[i] = (sm.stunned_mask0 & 0x1000000) != 0; break;
+                case 458754: stunned[i] = (sm.stunned_mask0 & 0x2000000) != 0; break;
+                case 524290: stunned[i] = (sm.stunned_mask0 & 0x4000000) != 0; break;
+                case 3: stunned[i] = (sm.stunned_mask0 & 0x8000000) != 0; break;
+                case 65539: stunned[i] = (sm.stunned_mask0 & 0x10000000) != 0; break;
+                case 131075: stunned[i] = (sm.stunned_mask0 & 0x20000000) != 0; break;
+                case 196611: stunned[i] = (sm.stunned_mask0 & 0x40000000) != 0; break;
+                case 262147: stunned[i] = (sm.stunned_mask0 & 0x80000000) != 0; break;
+                case 327683: stunned[i] = (sm.stunned_mask0 & 0x100000000L) != 0; break;
+                case 393219: stunned[i] = (sm.stunned_mask0 & 0x200000000L) != 0; break;
+                case 458755: stunned[i] = (sm.stunned_mask0 & 0x400000000L) != 0; break;
+                case 524291: stunned[i] = (sm.stunned_mask0 & 0x800000000L) != 0; break;
+                case 4: stunned[i] = (sm.stunned_mask0 & 0x1000000000L) != 0; break;
+                case 65540: stunned[i] = (sm.stunned_mask0 & 0x2000000000L) != 0; break;
+                case 131076: stunned[i] = (sm.stunned_mask0 & 0x4000000000L) != 0; break;
+                case 196612: stunned[i] = (sm.stunned_mask0 & 0x8000000000L) != 0; break;
+                case 262148: stunned[i] = (sm.stunned_mask0 & 0x10000000000L) != 0; break;
+                case 327684: stunned[i] = (sm.stunned_mask0 & 0x20000000000L) != 0; break;
+                case 393220: stunned[i] = (sm.stunned_mask0 & 0x40000000000L) != 0; break;
+                case 458756: stunned[i] = (sm.stunned_mask0 & 0x80000000000L) != 0; break;
+                case 524292: stunned[i] = (sm.stunned_mask0 & 0x100000000000L) != 0; break;
+                case 5: stunned[i] = (sm.stunned_mask0 & 0x200000000000L) != 0; break;
+                case 65541: stunned[i] = (sm.stunned_mask0 & 0x400000000000L) != 0; break;
+                case 131077: stunned[i] = (sm.stunned_mask0 & 0x800000000000L) != 0; break;
+                case 196613: stunned[i] = (sm.stunned_mask0 & 0x1000000000000L) != 0; break;
+                case 262149: stunned[i] = (sm.stunned_mask0 & 0x2000000000000L) != 0; break;
+                case 327685: stunned[i] = (sm.stunned_mask0 & 0x4000000000000L) != 0; break;
+                case 393221: stunned[i] = (sm.stunned_mask0 & 0x8000000000000L) != 0; break;
+                case 458757: stunned[i] = (sm.stunned_mask0 & 0x10000000000000L) != 0; break;
+                case 524293: stunned[i] = (sm.stunned_mask0 & 0x20000000000000L) != 0; break;
+                case 6: stunned[i] = (sm.stunned_mask0 & 0x40000000000000L) != 0; break;
+                case 65542: stunned[i] = (sm.stunned_mask0 & 0x80000000000000L) != 0; break;
+                case 131078: stunned[i] = (sm.stunned_mask0 & 0x100000000000000L) != 0; break;
+                case 196614: stunned[i] = (sm.stunned_mask0 & 0x200000000000000L) != 0; break;
+                case 262150: stunned[i] = (sm.stunned_mask0 & 0x400000000000000L) != 0; break;
+                case 327686: stunned[i] = (sm.stunned_mask0 & 0x800000000000000L) != 0; break;
+                case 393222: stunned[i] = (sm.stunned_mask0 & 0x1000000000000000L) != 0; break;
+                case 458758: stunned[i] = (sm.stunned_mask0 & 0x2000000000000000L) != 0; break;
+                case 524294: stunned[i] = (sm.stunned_mask0 & 0x4000000000000000L) != 0; break;
+                case 7: stunned[i] = (sm.stunned_mask1 & 0x1L) != 0; break;
+                case 65543: stunned[i] = (sm.stunned_mask1 & 0x2L) != 0; break;
+                case 131079: stunned[i] = (sm.stunned_mask1 & 0x4L) != 0; break;
+                case 196615: stunned[i] = (sm.stunned_mask1 & 0x8L) != 0; break;
+                case 262151: stunned[i] = (sm.stunned_mask1 & 0x10L) != 0; break;
+                case 327687: stunned[i] = (sm.stunned_mask1 & 0x20L) != 0; break;
+                case 393223: stunned[i] = (sm.stunned_mask1 & 0x40L) != 0; break;
+                case 458759: stunned[i] = (sm.stunned_mask1 & 0x80L) != 0; break;
+                case 524295: stunned[i] = (sm.stunned_mask1 & 0x100L) != 0; break;
+                case 8: stunned[i] = (sm.stunned_mask1 & 0x200L) != 0; break;
+                case 65544: stunned[i] = (sm.stunned_mask1 & 0x400L) != 0; break;
+                case 131080: stunned[i] = (sm.stunned_mask1 & 0x800L) != 0; break;
+                case 196616: stunned[i] = (sm.stunned_mask1 & 0x1000L) != 0; break;
+                case 262152: stunned[i] = (sm.stunned_mask1 & 0x2000L) != 0; break;
+                case 327688: stunned[i] = (sm.stunned_mask1 & 0x4000L) != 0; break;
+                case 393224: stunned[i] = (sm.stunned_mask1 & 0x8000L) != 0; break;
+                case 458760: stunned[i] = (sm.stunned_mask1 & 0x10000L) != 0; break;
+                case 524296: stunned[i] = (sm.stunned_mask1 & 0x20000L) != 0; break;
+                default: continue;
+            }
+        }
+        Util.displayMask(rc, sm.stunned_mask0, sm.stunned_mask1);
 
         int iters = 0;
-        RobotInfo[] robots = nt.friends;
+        robots = nt.friends;
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
@@ -206,17 +296,15 @@ public class AttackMicro {
         robots = nt.enemies;
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
-            RobotInfo r = robots[i];
-            microtargets[0].addEnemy(r);
-            microtargets[1].addEnemy(r);
-            microtargets[2].addEnemy(r);
-            microtargets[3].addEnemy(r);
-            microtargets[4].addEnemy(r);
-            microtargets[5].addEnemy(r);
-            microtargets[6].addEnemy(r);
-            microtargets[7].addEnemy(r);
-            microtargets[8].addEnemy(r);
-            iters++;
+            if (stunned[i]) {
+                for (int j = 9; j-- > 0;) {
+                    microtargets[j].addStunnedEnemy(robots[i]);
+                }
+            } else {
+                for (int j = 9; j-- > 0;) {
+                    microtargets[j].addEnemy(robots[i]);
+                }
+            }
         }
 
         // Util.displayMask(rc, sm.stunned_mask0, sm.stunned_mask1);
@@ -412,6 +500,17 @@ public class AttackMicro {
             if (canHitSoon(r.location) != 0) {
                 int dmg = dmgscores[r.attackLevel];
                 dmgVisionRange += dmg;
+                if (dist <= GameConstants.ATTACK_RADIUS_SQUARED)
+                    dmgAttackRange += dmg;
+            }
+        }
+
+        void addStunnedEnemy(RobotInfo r) throws GameActionException {
+            // if (dist < minDistToEnemy) minDistToEnemy = dist;
+            if (canHitSoon(r.location) != 0) {
+                int dmg = dmgscores[r.attackLevel] / 3;
+                dmgVisionRange += dmg;
+                int dist = r.location.distanceSquaredTo(nloc);
                 if (dist <= GameConstants.ATTACK_RADIUS_SQUARED)
                     dmgAttackRange += dmg;
             }
