@@ -417,7 +417,7 @@ public class Duck extends Robot {
             for (int i = carriers.length; i-- > 0;) {
                 MapLocation loc = carriers[i].m;
                 int d = loc.distanceSquaredTo(myloc);
-                if (d < closest && carriers[i].num < 15) {
+                if (d < closest && carriers[i].num < 7) {
                     closest = d;
                     closestCarrier = loc;
                     spa = carriers[i].score;

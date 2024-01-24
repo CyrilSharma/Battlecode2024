@@ -246,8 +246,8 @@ public class AttackMicro {
         if (rc.canMove(best.dir)) {
             rc.move(best.dir);
             Team myteam = rc.getTeam();
-            //nt.friends = rc.senseNearbyRobots(-1, myteam);
-            //nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
+            nt.friends = rc.senseNearbyRobots(-1, myteam);
+            nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
         rc.setIndicatorString("Iters: " + iters);
     }
