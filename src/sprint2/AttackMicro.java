@@ -19,6 +19,7 @@ public class AttackMicro {
     MapTracker mt;
     NeighborTracker nt;
     MapLocation[] spawnCenters;
+    boolean seeEnemyFlagCarrier;
     int distToSpawn;
     public AttackMicro(Duck d) {
         this.rc = d.rc;
@@ -204,9 +205,15 @@ public class AttackMicro {
         }
 
         robots = nt.enemies;
+        seeEnemyFlagCarrier = false;
+        carrier = null;
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
+            if(r.hasFlag) {
+                seeEnemyFlagCarrier = true;
+                carrier = r.location;
+            }
             microtargets[0].addEnemy(r);
             microtargets[1].addEnemy(r);
             microtargets[2].addEnemy(r);
@@ -253,6 +260,7 @@ public class AttackMicro {
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
         int distToGoal = 1000000;
+        int minDistToFlag = 1000000;
         boolean canMove;
         int canLandHit;
         MapLocation nloc;
@@ -404,6 +412,12 @@ public class AttackMicro {
             if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
                 canLandHit = mydmg;
             }
+            if (r.hasFlag) {
+                if (dist < minDistToFlag) {
+                    minDistToFlag = dist;
+                }
+                return;
+            }
             if (dist < minDistToEnemy) minDistToEnemy = dist;
             if (canHitSoon(r.location) != 0) {
                 int dmg = dmgscores[r.attackLevel];
@@ -437,6 +451,10 @@ public class AttackMicro {
 
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
+            if (seeEnemyFlagCarrier && rc.getLocation().distanceSquaredTo(carrier) > 3) {
+                if (minDistToFlag < mt.minDistToFlag) return true;
+                if (minDistToFlag > mt.minDistToFlag) return false;
+            }
             if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
                 return minDistToEnemy > mt.minDistToEnemy;
             }
