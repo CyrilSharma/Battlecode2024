@@ -412,7 +412,7 @@ public class Duck extends Robot {
         if (carriers.length != 0) {
             int closest = 1 << 30;
             int spa = -1;
-            //int numb = 0;
+           // int numb = 0;
             MapLocation closestCarrier = null;
             for (int i = carriers.length; i-- > 0;) {
                 MapLocation loc = carriers[i].m;
@@ -421,12 +421,13 @@ public class Duck extends Robot {
                     closest = d;
                     closestCarrier = loc;
                     spa = carriers[i].score;
-                  //  numb = carriers[i].num;
+                    //numb = carriers[i].num;
                 }
             }
             if (closest <= 100) {
                 communications.markCarrier(closestCarrier);
                 //rc.setIndicatorString("there are " + numb);
+                protectCarrier(closestCarrier, spa);
                 return null;
             }
         }
