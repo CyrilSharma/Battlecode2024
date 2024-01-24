@@ -254,9 +254,7 @@ public class AttackMicro {
         int dmgVisionRange = 0;
         int distToGoal = 1000000;
         boolean canMove;
-        int canLandHit = 0;
-        int healmult;
-        int attackmult;
+        int canLandHit;
         MapLocation nloc;
         MapLocation bl;
         Direction dir;
@@ -267,10 +265,8 @@ public class AttackMicro {
             bl = myloc.translate(-4, -4);
             offset = bl.hashCode();
             canMove = rc.canMove(dir);
-            healmult = (attacker) ? 2 : 1;
-            attackmult = (attacker) ? 2 : 1;
             this.dir = dir;
-            computeMasks();
+            computeHitMask();
         }
 
         void displayHitMask() throws GameActionException {
@@ -281,7 +277,7 @@ public class AttackMicro {
         }
 
         // It's not too much overhead I promise.
-        void computeMasks() throws GameActionException {
+        void computeHitMask() throws GameActionException {
             long action0 = 0b000010000000111000001111100000111000000010000000000000000000000L;
             long action1 = 0;
             switch (dir) {
@@ -294,9 +290,6 @@ public class AttackMicro {
                 case SOUTHEAST:     action0 >>>= 8;  break;
                 case SOUTH:         action0 >>>= 9;  break;
                 case SOUTHWEST:     action0 >>>= 10; break;
-            }
-            if (((nt.enemy_mask0 & action0) | (nt.enemy_mask1 & action1)) != 0){
-                canLandHit = (canAttack) ? mydmg * attackmult : 0;
             }
 
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
@@ -408,6 +401,9 @@ public class AttackMicro {
         
         void addEnemy(RobotInfo r) throws GameActionException {
             int dist = r.location.distanceSquaredTo(nloc);
+            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
+                canLandHit = mydmg;
+            }
             if (dist < minDistToEnemy) minDistToEnemy = dist;
             if (canHitSoon(r.location) != 0) {
                 int dmg = dmgscores[r.attackLevel];
@@ -423,7 +419,7 @@ public class AttackMicro {
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                healAttackRange += healscores[r.healLevel] * healmult;
+                healAttackRange += healscores[r.healLevel] * (attacker ? 2 : 1);
             }
         }
 
@@ -432,11 +428,11 @@ public class AttackMicro {
         }
 
         int attackScore() {
-            return (Math.max(dmgAttackRange - healAttackRange, 0) - canLandHit);
+            return (Math.max(dmgAttackRange - healAttackRange, 0) - canLandHit * (attacker ? 2 : 1));
         }
 
         int visionScore() {
-            return (Math.max(dmgVisionRange - healAttackRange, 0) - canLandHit);
+            return (Math.max(dmgVisionRange - healAttackRange, 0) - canLandHit * (attacker ? 2 : 1));
         }
 
         boolean isBetterThan(MicroTarget mt) {
