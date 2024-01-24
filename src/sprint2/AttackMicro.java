@@ -83,7 +83,7 @@ public class AttackMicro {
     public boolean runMicro() throws GameActionException {
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
-        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS + 2) return false;
+        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
             computeScores(true);
@@ -145,8 +145,11 @@ public class AttackMicro {
                 floc = e.location;
             }
         }
+        /*
         if (hasFlag) defendFlag(floc);
         else maneuver();
+         */
+        maneuver();
         return true;
     }
 
@@ -243,8 +246,8 @@ public class AttackMicro {
         if (rc.canMove(best.dir)) {
             rc.move(best.dir);
             Team myteam = rc.getTeam();
-            nt.friends = rc.senseNearbyRobots(-1, myteam);
-            nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
+            //nt.friends = rc.senseNearbyRobots(-1, myteam);
+            //nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
         rc.setIndicatorString("Iters: " + iters);
     }
@@ -455,6 +458,7 @@ public class AttackMicro {
                 if (minDistToFlag < mt.minDistToFlag) return true;
                 if (minDistToFlag > mt.minDistToFlag) return false;
             }
+
             if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
                 return minDistToEnemy > mt.minDistToEnemy;
             }
