@@ -1,5 +1,6 @@
 package sprint2;
 import battlecode.common.*;
+import sprint2.AttackMicro.EnemyFlagTarget;
 public class AttackMicro {
     int mydmg = -1;
     int lastactivated = -1;
@@ -62,12 +63,12 @@ public class AttackMicro {
     }
 
     public void computeScores(boolean attackupgrade) {
-        int atop = (attackupgrade) ? 225 : 150;
+        int atop = (attackupgrade) ? 210 : 150;
         int abottom = 150;
         for (int i = 0; i < 7; i++) {
             healscores[i] = (100 + SkillType.HEAL.getSkillEffect(i)) * 100 /
                     (100 + SkillType.HEAL.getCooldown(i));
-            dmgscores[i] = (5 * atop * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100) /
+            dmgscores[i] = (3 * atop * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100) /
                         (abottom * (100 + SkillType.ATTACK.getCooldown(i)));
         }
     } 
@@ -110,8 +111,8 @@ public class AttackMicro {
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;
             // water and walls, since attack micro never goes in water
-            long passible0 = (~(mt.wall_mask0 | mt.water_mask0 | (nt.friend_mask0 & ~action0))) & mask0;
-            long passible1 = (~(mt.wall_mask1 | mt.water_mask1 | nt.friend_mask1)) & mask1;
+            long passible0 = (~(mt.wall_mask0 | mt.water_mask0)) & mask0;
+            long passible1 = (~(mt.wall_mask1 | mt.water_mask1)) & mask1;
             long reach0 = 1099511627776L;
             long reach1 = 0;
             int i = 0;
@@ -253,10 +254,13 @@ public class AttackMicro {
         int offset = 0;
         long close0 = 0;
         long close1 = 0;
+        int minDistToAlly = 100000;
         int minDistToEnemy = 100000;
         int dmgReceived = 0;
         int dmgVisionRange = 0;
         int defVisionRange = 0;
+        int dmgAttackRange = 0;
+        int healAttackRange = 0;
         int distToGoal = 1000000;
         int minDistToFlag = 1000000;
         boolean canMove;
@@ -272,7 +276,6 @@ public class AttackMicro {
             offset = bl.hashCode();
             canMove = (rc.canMove(dir) || dir == Direction.CENTER);
             this.dir = dir;
-            dmgReceived -= mydmg;
             computeHitMask();
         }
 
@@ -437,24 +440,27 @@ public class AttackMicro {
             return minDistToEnemy <= 4;
         }
 
-        int safe(){
-            if (dmgReceived > 0) return 0;
+        int safe() {
+            if (dmgReceived - (defVisionRange / 3) > 0) return 0;
             if (dmgVisionRange > defVisionRange) return 1;
             return 2;
         }
 
         boolean isBetterThan(MicroTarget mt) {
             if (!canMove) return false;
+            if (rc.getHealth() <= 500) {
+                return minDistToEnemy > mt.minDistToEnemy;
+            }
+
             if (safe() > mt.safe()) return true;
             if (safe() < mt.safe()) return false;
 
+            if (dmgVisionRange - defVisionRange < mt.dmgVisionRange - mt.defVisionRange) return true;
+            if (dmgVisionRange - defVisionRange > mt.dmgVisionRange - mt.defVisionRange) return false;
+
             if (inRange() && !mt.inRange()) return true;
             if (!inRange() && mt.inRange()) return false;
-
-            if (rc.getHealth() <= 250) {
-                if (defVisionRange > mt.defVisionRange) return true;
-                if (defVisionRange < mt.defVisionRange) return false;
-            }
+            
 
             // Kiting
             if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
