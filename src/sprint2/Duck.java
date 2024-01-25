@@ -37,7 +37,6 @@ public class Duck extends Robot {
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
-        collectCrumbs();
         ranFlagMicro();
         if (builder()) {}
         else if (am.runMicro()) {}
