@@ -39,7 +39,7 @@ public class Duck extends Robot {
         considerTrap();
         collectCrumbs();
         if (fm.run()) {}
-        if (builder()) {}
+        else if (builder()) {}
         else if (am.runMicro()) {}
         else if (tryLevelUp()) {}
         else if (guardFlag()) {}
@@ -132,16 +132,6 @@ public class Duck extends Robot {
         else return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
     }
 
-    // public boolean trainBuilder() throws GameActionException {
-    //     for (Direction dir : directions) {
-    //         MapLocation loc = rc.getLocation().add(dir);
-    //         if(rc.canDig(rc.getLocation().add(dir))) {
-    //             rc.dig(loc);
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // }
     public boolean trainBuilder() throws GameActionException {
         // returns true if the builder is next to land
         for (Direction dir : directions) {
@@ -203,6 +193,7 @@ public class Duck extends Robot {
     }
 
     public void tryHeal() throws GameActionException {
+        if (!rc.isActionReady()) return;
         if (communications.order >= 30) {
             if (rc.getLevel(SkillType.ATTACK) < 3) {
                 if (rc.getExperience(SkillType.HEAL) >= 98) return;
@@ -210,16 +201,6 @@ public class Duck extends Robot {
                 if (rc.getRoundNum() - am.lastactivated <= 3) return;
             }
         }
-        // return;
-        // if (rc.getRoundNum() % 3 == 0) return;
-        // if (am.lastactivated < 3) return;
-        // Basic Leveling cap.
-        // if (communications.order >= 10 && communications.order < 20) {
-        //     if (rc.getLevel(SkillType.ATTACK) < 3) return;
-        //     // int cur = rc.getExperience(SkillType.HEAL);
-        //     // int needed = SkillType.HEAL.getExperience(3);
-        //     // if (needed - cur <= 5) return;
-        // }
 
         int besthealth = 1001;
         RobotInfo bestfriend = null;
@@ -392,10 +373,6 @@ public class Duck extends Robot {
             }
         }
         if (rc.getLocation().distanceSquaredTo(loc) > 12) path.moveTo(loc);
-        else if (rc.getLocation().distanceSquaredTo(loc) < 5) {
-            Direction dir = loc.directionTo(rc.getLocation());
-            if(rc.canMove(dir)) rc.move(dir);
-        }
         else {
             path.moveTo(tar);
         }

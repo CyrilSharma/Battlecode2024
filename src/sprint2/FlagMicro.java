@@ -39,6 +39,7 @@ public class FlagMicro {
     }
 
     public void flee() throws GameActionException {
+        rc.setIndicatorString("Fleeing!");
         FleeTarget[] fleeTargets = new FleeTarget[9];
         for (Direction dir: Direction.values()) {
             fleeTargets[dir.ordinal()] = new FleeTarget(dir);
@@ -58,7 +59,7 @@ public class FlagMicro {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
             for (Direction dir: Direction.values()) {
-                fleeTargets[dir.ordinal()].addAlly(r);
+                fleeTargets[dir.ordinal()].addEnemy(r);
             }
         }
 
@@ -77,6 +78,7 @@ public class FlagMicro {
     }
 
     public void goHome() throws GameActionException {
+        rc.setIndicatorString("Running Home!");
         MapLocation myloc = rc.getLocation();
         int bestdist = 1 << 30;
         MapLocation bestloc = null;
@@ -180,7 +182,7 @@ public class FlagMicro {
             if (!canMove) return false;
             if (safe() > mt.safe()) return true;
             if (safe() < mt.safe()) return false;
-            if (alliesGuarding > mt.alliesGuarding) return true;
+            if (minDistToEnemy > mt.minDistToEnemy) return true;
             return false;
         }
     }
