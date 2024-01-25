@@ -84,6 +84,8 @@ public class AttackMicro {
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
+        rc.setIndicatorDot(rc.getLocation(), 0, 255, 0);
+        if (!closeToEnemies()) return false;
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
             computeScores(true);
@@ -92,7 +94,7 @@ public class AttackMicro {
         computeClosestSpawn();
         addBestTarget();
         while (tryAttack()) ;
-        if (!micro()) return false;
+        micro();
         while (tryAttack()) ;
         return true;
     }
@@ -105,9 +107,7 @@ public class AttackMicro {
         }
     }
 
-    public boolean micro() throws GameActionException {
-        // We can compute more stats here too, like,
-        // Am I in a 1v1? Is every enemy stunned? etc.
+    public boolean closeToEnemies() throws GameActionException {
         long action0 = 0b000010000000111000001111100000111000000010000000000000000000000L;
         if ((nt.enemy_mask0 & action0) == 0) {
             // you couldn't attack an enemy from this location.
@@ -118,8 +118,8 @@ public class AttackMicro {
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;
             // water and walls, since attack micro never goes in water
-            long passible0 = (~(mt.wall_mask0 | mt.water_mask0 | (nt.friend_mask0 & ~action0))) & mask0;
-            long passible1 = (~(mt.wall_mask1 | mt.water_mask1 | nt.friend_mask1)) & mask1;
+            long passible0 = (~(mt.wall_mask0 | mt.water_mask0)) & mask0;
+            long passible1 = (~(mt.wall_mask1 | mt.water_mask1)) & mask1;
             long reach0 = 1099511627776L;
             long reach1 = 0;
             int i = 0;
@@ -131,11 +131,17 @@ public class AttackMicro {
                 reach1 = (reach1 | (reach1 << 9) | (reach1 >>> 9) | (temp >>> 54)) & passible1;
                 i++;
             }
-            if (i >= 8) {
-                return false;
-            }
+            if (i >= 8) return false;
         }
-        boolean hasFlag = false;
+        return true;
+    }
+
+    public void micro() throws GameActionException {
+        // We can compute more stats here too, like,
+        // Am I in a 1v1? Is every enemy stunned? etc.
+        rc.setIndicatorString("Not Movement Ready?");
+        if (!rc.isMovementReady()) return;
+        /* boolean hasFlag = false;
         MapLocation floc = null;
         RobotInfo[] enemies = nt.enemies;
         for (int i = enemies.length; i-- > 0; ) {
@@ -145,15 +151,14 @@ public class AttackMicro {
                 floc = e.location;
             }
         }
-        /*
+        
         if (hasFlag) defendFlag(floc);
-        else maneuver();
-         */
+        else maneuver(); */
         maneuver();
-        return true;
     }
 
     public void defendFlag(MapLocation floc) throws GameActionException {
+        rc.setIndicatorString("Defending the flag!");
         Direction[] dirs = Direction.values();
         EnemyFlagTarget[] flagtargets = new EnemyFlagTarget[9];
         for (int i = 9; i-- > 0;) {
@@ -171,6 +176,8 @@ public class AttackMicro {
     }
 
     void maneuver() throws GameActionException {
+        rc.setIndicatorString("Maneuvering");
+        rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
         canAttack = rc.isActionReady();
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
 
@@ -213,7 +220,7 @@ public class AttackMicro {
         for (int i = robots.length; i-- > 0;) {
             if (Clock.getBytecodesLeft() < 3000) break;
             RobotInfo r = robots[i];
-            if(r.hasFlag) {
+            if (r.hasFlag) {
                 seeEnemyFlagCarrier = true;
                 carrier = r.location;
             }
@@ -249,7 +256,7 @@ public class AttackMicro {
             nt.friends = rc.senseNearbyRobots(-1, myteam);
             nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
-        rc.setIndicatorString("Iters: " + iters);
+        // rc.setIndicatorString("Iters: " + iters);
     }
 
     // Choose best candidate for maneuvering in close encounters.
@@ -285,6 +292,13 @@ public class AttackMicro {
             Util.displayMask(rc, close0, close1);
             // Util.displayMask(rc, hits0, hits1);
             rc.setIndicatorDot(nloc, 255, 165, 0);
+        }
+
+        void log() throws GameActionException {
+            System.out.println("dmgReceived: " + healAttackRange);
+            System.out.println("dmgAttackRange: " + dmgAttackRange);
+            System.out.println("dmgVisionRange: " + dmgVisionRange);
+            System.out.println("minDistToEnemy: " + minDistToEnemy);
         }
 
         // It's not too much overhead I promise.
@@ -416,9 +430,7 @@ public class AttackMicro {
                 canLandHit = mydmg;
             }
             if (r.hasFlag) {
-                if (dist < minDistToFlag) {
-                    minDistToFlag = dist;
-                }
+                if (dist < minDistToFlag) minDistToFlag = dist;
                 return;
             }
             if (dist < minDistToEnemy) minDistToEnemy = dist;
