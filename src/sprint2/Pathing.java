@@ -59,8 +59,8 @@ public class Pathing {
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS - 30) {
             opt.moveToNoWater(target);
         } else {
-            if(rc.hasFlag()) opt.moveToAvoidEnemies(target);
-            else opt.moveTo(target);
+            //if(rc.hasFlag()) opt.moveToAvoidEnemies(target);
+            opt.moveTo(target);
         }
     }
 }

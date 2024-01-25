@@ -13,4 +13,5 @@ public class Channels {
     static int CARRIER_DEFENDER_NUM = 3;
     static int RUNAWAY_FLAGS = CARRIER_DEFENDER + CARRIER_DEFENDER_NUM + 1;
     static int RUNAWAY_FLAGS_ID = RUNAWAY_FLAGS + FLAG_NUM + 1;
+    static int CARRIER_TARGET = RUNAWAY_FLAGS_ID + FLAG_NUM + 1;
 }

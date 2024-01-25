@@ -37,6 +37,7 @@ public class Duck extends Robot {
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
+        collectCrumbs();
         ranFlagMicro();
         if (builder()) {}
         else if (am.runMicro()) {}
@@ -71,6 +72,7 @@ public class Duck extends Robot {
     }
 
     public void collectCrumbs() throws GameActionException {
+        if(rc.hasFlag()) return;
         int bestd = 1 << 30;
         MapLocation bestLocation = null;
         MapLocation myloc = rc.getLocation();
@@ -381,7 +383,7 @@ public class Duck extends Robot {
         if (target != null) path.moveTo(target);
     }
 
-    public void protectCarrier(MapLocation loc, int spa) throws GameActionException {
+    public void protectCarrier(MapLocation loc, MapLocation tar) throws GameActionException {
         RobotInfo[] r = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
         for(int i = r.length; i-- > 0;) {
             if(r[i].hasFlag) {
@@ -395,7 +397,7 @@ public class Duck extends Robot {
             if(rc.canMove(dir)) rc.move(dir);
         }
         else {
-            path.moveTo(spawnCenters[spa]);
+            path.moveTo(tar);
         }
     }
 
@@ -414,6 +416,7 @@ public class Duck extends Robot {
             int spa = -1;
            // int numb = 0;
             MapLocation closestCarrier = null;
+            MapLocation tar = null;
             for (int i = carriers.length; i-- > 0;) {
                 MapLocation loc = carriers[i].m;
                 int d = loc.distanceSquaredTo(myloc);
@@ -421,13 +424,14 @@ public class Duck extends Robot {
                     closest = d;
                     closestCarrier = loc;
                     spa = carriers[i].score;
+                    tar = carriers[i].goal;
                     //numb = carriers[i].num;
                 }
             }
             if (closest <= 100) {
                 communications.markCarrier(closestCarrier);
                 //rc.setIndicatorString("there are " + numb);
-                protectCarrier(closestCarrier, spa);
+                protectCarrier(closestCarrier, tar);
                 return null;
             }
         }
@@ -554,6 +558,19 @@ public class Duck extends Robot {
         return null;
     }
 
+    int distToClosestSpawn(MapLocation loc) {
+       int dist = 100000;
+       for (int i = 0; i < 3; i++) {
+           int d = loc.distanceSquaredTo(spawnCenters[i]);
+           if (d < dist) dist = d;
+       }
+       return dist;
+    }
+
+    MapLocation norm(MapLocation loc) {
+        return new MapLocation(Math.min(rc.getMapWidth(), Math.max(0, loc.x)), Math.min(rc.getMapHeight(), Math.max(0, loc.y)));
+    }
+
     public boolean ranFlagMicro() throws GameActionException {
         if (rc.hasFlag()) {
             MapLocation myloc = rc.getLocation();
@@ -614,7 +631,6 @@ public class Duck extends Robot {
 
             int bestdist = 1 << 30;
             MapLocation bestloc = null;
-            int sp = -1;
             if (bestloc == null) {
                 bestdist = 1 << 30;
                 for (int i = spawnCenters.length; i-- > 0; ) {
@@ -623,11 +639,60 @@ public class Duck extends Robot {
                     if (d < bestdist) {
                         bestdist = d;
                         bestloc = m;
-                        sp = i;
                     }
                 }
             }
-            communications.log_carrier(myloc, sp);
+            if (nt.enemies.length != 0) {
+                MapLocation closestEnemy = null;
+                int dist = 1000000;
+                for (int i = nt.enemies.length; i-- > 0;) {
+                    MapLocation cur = nt.enemies[i].location;
+                    if (cur.distanceSquaredTo(rc.getLocation()) < dist) {
+                        dist = cur.distanceSquaredTo(rc.getLocation());
+                        closestEnemy = cur;
+                    }
+                }
+                int x = rc.getLocation().x;
+                int y = rc.getLocation().y;
+                int dx = (closestEnemy.x - x);
+                int dy = (closestEnemy.y - y);
+                MapLocation a = new MapLocation(x - dy, y + dx);
+                MapLocation b = new MapLocation(x + dy, y - dx);
+                a = norm(a);
+                b = norm(b);
+                MapLocation curBest = null;
+                if (distToClosestSpawn(a) < distToClosestSpawn(b)) curBest = a;
+                else curBest = b;
+                if (distToClosestSpawn(rc.getLocation()) > distToClosestSpawn(closestEnemy)) bestloc = curBest;
+            }
+            else {
+                AttackTarget[] at = communications.getAttackTargets();
+                MapLocation closestEnemy = null;
+                int dist = 1000000;
+                for (int i = at.length; i-- > 0;) {
+                    int d = at[i].m.distanceSquaredTo(rc.getLocation());
+                    if (d < dist) {
+                        dist = d;
+                        closestEnemy = at[i].m;
+                    }
+                }
+                if(closestEnemy != null) {
+                    int x = rc.getLocation().x;
+                    int y = rc.getLocation().y;
+                    int dx = (closestEnemy.x - x);
+                    int dy = (closestEnemy.y - y);
+                    MapLocation a = new MapLocation(x - dy, y + dx);
+                    MapLocation b = new MapLocation(x + dy, y - dx);
+                    a = norm(a);
+                    b = norm(b);
+                    MapLocation curBest = null;
+                    if (distToClosestSpawn(a) < distToClosestSpawn(b)) curBest = a;
+                    else curBest = b;
+                    if (dist <= 80 && distToClosestSpawn(rc.getLocation()) > distToClosestSpawn(closestEnemy))
+                        bestloc = curBest;
+                }
+            }
+            communications.log_carrier(myloc, bestloc);
             path.moveTo(bestloc);
             return true;
         }

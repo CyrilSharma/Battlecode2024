@@ -100,8 +100,8 @@ public class Communications {
         return trim;
     }
 
-    public void log_carrier(MapLocation m, int sp) throws GameActionException {
-        int hash = hashAttackTarget(new AttackTarget(m, sp));
+    public void log_carrier(MapLocation m, MapLocation tar) throws GameActionException {
+        int hash = hashAttackTarget(new AttackTarget(m, 0));
         int start = Channels.FLAG_CARRIERS;
         boolean wrote = false;
         for (int i = start; i < start + Channels.FLAG_NUM; i++) {
@@ -110,6 +110,7 @@ public class Communications {
                 AttackTarget dh = dehashAttackTarget(data);
                 if (dh.m.distanceSquaredTo(rc.getLocation()) <= 4) {
                     rc.writeSharedArray(i, hash);
+                    rc.writeSharedArray(Channels.CARRIER_TARGET + (i - start), hashLocation(tar));
                     wrote = true;
                     break;
                 }
@@ -120,6 +121,7 @@ public class Communications {
             int data = rc.readSharedArray(i);
             if (data == 0) {
                 rc.writeSharedArray(i, hash);
+                rc.writeSharedArray(Channels.CARRIER_TARGET + (i - start), hashLocation(tar));
                 break;
             }
         }
@@ -133,6 +135,7 @@ public class Communications {
             if (item == 0) continue;
             AttackTarget at = dehashAttackTarget(item);
             at.num = rc.readSharedArray(Channels.CARRIER_DEFENDER + i);
+            at.goal = dehashLocation(rc.readSharedArray(Channels.CARRIER_TARGET + i));
             targets[ctr++] = at;
         }
         AttackTarget[] trim = new AttackTarget[ctr];
@@ -276,6 +279,7 @@ public class Communications {
         }
         for (int i = 0; i < Channels.FLAG_NUM; i++) {
             rc.writeSharedArray(Channels.FLAG_CARRIERS + i, 0);
+            rc.writeSharedArray(Channels.CARRIER_TARGET + i, 0);
             //rc.writeSharedArray(Channels.RUNAWAY_FLAGS + i, 0);
         }
     }
@@ -303,6 +307,7 @@ public class Communications {
         MapLocation m;
         int score;
         int num = 0;
+        MapLocation goal;
         public AttackTarget(MapLocation m, int score) {
             this.m = m;
             this.score = score;
