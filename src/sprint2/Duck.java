@@ -36,10 +36,11 @@ public class Duck extends Robot {
         updateFlags();
         purchaseGlobal();
         considerTrap();
-        collectCrumbs();
         ranFlagMicro();
-        if (builder()) {}
-        else if (am.runMicro()) {}
+
+        if (am.runMicro()) {}
+        else if (collectCrumbs()) {}
+        else if (builder()) {}
         else if (tryLevelUp()) {}
         else if (guardFlag()) {}
         else seekTarget();
@@ -70,7 +71,8 @@ public class Duck extends Robot {
         return bestloc;
     }
 
-    public void collectCrumbs() throws GameActionException {
+    public boolean collectCrumbs() throws GameActionException {
+        if (!rc.isMovementReady()) return false;
         int bestd = 1 << 30;
         MapLocation bestLocation = null;
         MapLocation myloc = rc.getLocation();
@@ -85,22 +87,22 @@ public class Duck extends Robot {
                 bestLocation = loc;
             }
         }
-        if (bestLocation != null) {
-            // We still seem to have some bugs in pathing.
-            // This is a bandaid fix.
-            if (bestLocation.isAdjacentTo(myloc)) {
-                MapInfo mi = rc.senseMapInfo(bestLocation);
-                if (mi.isWater()) {
-                    if (rc.canFill(bestLocation)) {
-                        rc.fill(bestLocation);
-                    }
+        if (bestLocation == null) return false;
+        // We still seem to have some bugs in pathing.
+        // This is a bandaid fix.
+        if (bestLocation.isAdjacentTo(myloc)) {
+            MapInfo mi = rc.senseMapInfo(bestLocation);
+            if (mi.isWater()) {
+                if (rc.canFill(bestLocation)) {
+                    rc.fill(bestLocation);
                 }
-                Direction dir = myloc.directionTo(bestLocation);
-                if (rc.canMove(dir)) rc.move(dir);
-            } else {
-                path.moveTo(bestLocation);
             }
+            Direction dir = myloc.directionTo(bestLocation);
+            if (rc.canMove(dir)) rc.move(dir);
+        } else {
+            path.moveTo(bestLocation);
         }
+        return true;
     }
 
     public void getSpawnCenters() {
@@ -340,6 +342,8 @@ public class Duck extends Robot {
     }
 
     void seekTarget() throws GameActionException {
+        if (!rc.isMovementReady()) return;
+        rc.setIndicatorString("Seeking a target....");
         if ((rc.getRoundNum() > GameConstants.SETUP_ROUNDS)) hunt();
         else if (rc.getRoundNum() > GameConstants.SETUP_ROUNDS - 50) wallRush();
         else explore();
