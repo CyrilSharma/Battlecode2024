@@ -145,6 +145,7 @@ public class FlagMicro {
         int enemiesAttacking = 0;
         int enemiesTargetting = 0;
         int alliesGuarding = 0;
+        int closestSpawnDist = 0;
         int spawnDist = 0;
         boolean canMove;
         MapLocation nloc;
@@ -154,6 +155,7 @@ public class FlagMicro {
             MapLocation myloc = rc.getLocation();
             nloc = myloc.add(dir);
             canMove = (rc.canMove(dir) || dir == Direction.CENTER);
+            closestSpawnDist = distToClosestSpawn(nloc);
             this.dir = dir;
         }
         
@@ -183,7 +185,9 @@ public class FlagMicro {
             if (safe() > mt.safe()) return true;
             if (safe() < mt.safe()) return false;
             if (minDistToEnemy > mt.minDistToEnemy) return true;
+            if (minDistToEnemy < mt.minDistToEnemy) return false;
             return false;
+            // return closestSpawnDist < mt.closestSpawnDist;
         }
     }
 }

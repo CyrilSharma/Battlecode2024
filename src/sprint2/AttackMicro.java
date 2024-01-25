@@ -2,6 +2,7 @@ package sprint2;
 import battlecode.common.*;
 public class AttackMicro {
     int mydmg = -1;
+    boolean hurt = false;
     int lastactivated = -1;
     int[] healscores = new int[7];
     int[] dmgscores = new int[7];
@@ -180,6 +181,10 @@ public class AttackMicro {
         rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
         canAttack = rc.isActionReady();
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
+        hurt = rc.getHealth() <= (GameConstants.DEFAULT_HEALTH / 3);
+        if (hurt) {
+            rc.setIndicatorDot(rc.getLocation(), 0, 0, 255);
+        }
 
         // Needs 1k Bytecode.
         MicroTarget[] microtargets = new MicroTarget[9];
@@ -241,8 +246,6 @@ public class AttackMicro {
         // microtargets[0].displayHitMask();
 
         // Needs 1k Bytecode.
-        // if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4)
-        //     rc.setIndicatorDot(rc.getLocation(), 0, 0, 255);
         MicroTarget best = microtargets[0];
         if (microtargets[1].isBetterThan(best)) best = microtargets[1];
         if (microtargets[2].isBetterThan(best)) best = microtargets[2];
@@ -323,8 +326,7 @@ public class AttackMicro {
             //     Util.displayMask(rc, nt.enemy_mask0, nt.enemy_mask1, 0, 0, 0);
             //     rc.setIndicatorDot(rc.getLocation(), 255, 0, 255);
             // }
-            if (canAttack && (rc.getHealth() >= GameConstants.DEFAULT_HEALTH / 2)
-                && ((nt.enemy_mask0 & action0) | (nt.enemy_mask1 & action1)) != 0) {
+            if (canAttack && !hurt && ((nt.enemy_mask0 & action0) | (nt.enemy_mask1 & action1)) != 0) {
                 canLandHit = mydmg;
             }
 
@@ -488,8 +490,19 @@ public class AttackMicro {
             if (canLandHit > mt.canLandHit) return true;
             if (canLandHit < mt.canLandHit) return false;
 
-            if (minDistToAlly < mt.minDistToAlly) return true;
-            if (minDistToAlly > mt.minDistToAlly) return false;
+            // if (hurt) {
+            //     if (minDistToAlly < mt.minDistToAlly) return true;
+            //     if (minDistToAlly > mt.minDistToAlly) return false;
+            // } else {
+            //     if ((minDistToAlly >= 2) && (mt.minDistToAlly < 2)) return true;
+            //     if ((minDistToAlly < 2) && (mt.minDistToAlly >= 2)) return false;
+            // }
+            // if ((minDistToAlly >= 2) && (mt.minDistToAlly < 2)) return true;
+            // if ((minDistToAlly < 2) && (mt.minDistToAlly >= 2)) return false;
+            if ((minDistToAlly <= 4) && (mt.minDistToAlly > 4)) return true;
+            if ((minDistToAlly > 4) && (mt.minDistToAlly <= 4)) return false;
+            // if (minDistToAlly < mt.minDistToAlly) return true;
+            // if (minDistToAlly > mt.minDistToAlly) return false;
 
             if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
             else return minDistToEnemy <= mt.minDistToEnemy;
