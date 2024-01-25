@@ -123,7 +123,7 @@ public class Duck extends Robot {
     public boolean shouldTrainBuilder() throws GameActionException {
         if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
         MapInfo mi = rc.senseMapInfo(rc.getLocation());
-        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 4 && !mi.isSpawnZone());
+        if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 5 && rc.getLevel(SkillType.BUILD) < 4 && !mi.isSpawnZone());
         else if (rc.getRoundNum() > 1000) {
             return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
         }
