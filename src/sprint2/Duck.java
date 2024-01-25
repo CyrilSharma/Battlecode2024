@@ -10,12 +10,13 @@ import static java.util.Arrays.sort;
 
 public class Duck extends Robot {
     Pathing path;
+    FlagMicro fm;
     Exploration exploration;
     TrapMicro tm;
     MapLocation[] spawnCenters;
     boolean putDefenses;
-    Heist H;
     int lastSeen;
+
     public Duck(RobotController rc) {
         super(rc);
         // Placing it here so other things can refer to it.
@@ -24,7 +25,7 @@ public class Duck extends Robot {
         exploration = new Exploration(this);
         am = new AttackMicro(this);
         tm = new TrapMicro(this);
-        H = new Heist(this);
+        fm = new FlagMicro(this);
         putDefenses = false;
         lastSeen = 0;
     }
@@ -37,7 +38,7 @@ public class Duck extends Robot {
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
-        ranFlagMicro();
+        if (fm.run()) {}
         if (builder()) {}
         else if (am.runMicro()) {}
         else if (tryLevelUp()) {}
@@ -456,23 +457,7 @@ public class Duck extends Robot {
         
         int bestd = 1 << 30;
         MapLocation bestloc = null;
-        // if (targets.length != 0) {
-        //     int idx = -1;
-        //     for (int i = targets.length; i-- > 0;) {
-        //         MapLocation loc = targets[i].m;
-        //         int d = loc.distanceSquaredTo(myloc);
-        //         if ((d < bestd) && (d < 64)) { // && (score < 5)) {
-        //             bestd = d;
-        //             bestloc = loc;
-        //             idx = i;
-        //         }
-        //     }
-        //     if (bestloc != null) {
-        //         rc.setIndicatorString("Hunting enemy: " + bestloc);
-        //         communications.markAttackTarget(idx);
-        //         return bestloc;
-        //     }
-        // }
+
 
         boolean dealt_with = false;
         FlagInfo[] nearbyflags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
@@ -555,162 +540,5 @@ public class Duck extends Robot {
             }
         }
         return null;
-    }
-
-    int distToClosestSpawn(MapLocation loc) {
-       int dist = 100000;
-       for (int i = 0; i < 3; i++) {
-           int d = loc.distanceSquaredTo(spawnCenters[i]);
-           if (d < dist) dist = d;
-       }
-       return dist;
-    }
-
-    MapLocation norm(MapLocation loc) {
-        return new MapLocation(Math.min(rc.getMapWidth(), Math.max(0, loc.x)), Math.min(rc.getMapHeight(), Math.max(0, loc.y)));
-    }
-
-    public boolean ranFlagMicro() throws GameActionException {
-        if (rc.hasFlag()) {
-            MapLocation myloc = rc.getLocation();
-            int[] scores = new int[spawnCenters.length];
-            AttackTarget[] targets = communications.getAttackTargets();
-            if (nt.enemies.length * 2 > nt.friends.length) {
-
-            }
-
-            // for (int i = spawnCenters.length; i-- > 0;) {
-            //     MapLocation spawn = spawnCenters[i];
-            //     int Fx = spawn.x - myloc.x;
-            //     int Fy = spawn.y - myloc.y;
-            //     int Fm = (int) Math.sqrt(Fx*Fx + Fy*Fy);
-            //     int Px = -Fy;
-            //     int Py = Fx;
-            //     int Pm = (int) Math.sqrt(Px*Px + Py*Py);
-            //     int det = Px*Fy - Py*Fx;
-            //     for (int j = targets.length; j-- > 0;) {
-            //         AttackTarget target = targets[j];
-            //         int tscore = target.score;
-            //         MapLocation loc = target.m;
-            //         int Tx = loc.x - myloc.x;
-            //         int Ty = loc.y - myloc.y;
-            //         int pcomp = ((Tx*Fy - Ty*Fx) * Pm) / det;
-            //         int fcomp = ((Px*Ty - Py*Tx) * Fm) / det;
-            //         if ((pcomp < 5) && (pcomp > -5)) {
-            //             if (fcomp <= 5) scores[i] += tscore * 3;
-            //             else if (fcomp <= 10) scores[i] += tscore * 2;
-            //             else scores[i] += tscore;
-            //         }
-            //     }
-            // }
-
-            // for (int i = targets.length; i-- > 0;) {
-            //     AttackTarget target = targets[i];
-            //     MapLocation tloc = target.m;
-            //     int tscore = target.score;
-            //     for (int j = spawnCenters.length; j-- > 0;) {
-            //         int d = tloc.distanceSquaredTo(spawnCenters[j]);
-            //         if (d <= 16) scores[j] += tscore * 2;
-            //         if (d <= 64) scores[j] += tscore * 3;
-            //         if (d <= 144) scores[j] += tscore;
-            //     }
-            // }
-
-            
-            // for (int i = spawnCenters.length; i-- > 0; ) {
-            //     MapLocation m = spawnCenters[i];
-            //     int d = m.distanceSquaredTo(myloc);
-            //     int s = scores[i];
-            //     if (s > 12) continue;
-            //     if (d < bestdist) {
-            //         bestdist = d;
-            //         bestloc = m;
-            //     }
-            // }
-
-            int bestdist = 1 << 30;
-            MapLocation bestloc = null;
-            if (bestloc == null) {
-                bestdist = 1 << 30;
-                for (int i = spawnCenters.length; i-- > 0; ) {
-                    MapLocation m = spawnCenters[i];
-                    int d = m.distanceSquaredTo(myloc);
-                    if (d < bestdist) {
-                        bestdist = d;
-                        bestloc = m;
-                    }
-                }
-            }
-            if (nt.enemies.length != 0) {
-                MapLocation closestEnemy = null;
-                int dist = 1000000;
-                for (int i = nt.enemies.length; i-- > 0;) {
-                    MapLocation cur = nt.enemies[i].location;
-                    if (cur.distanceSquaredTo(rc.getLocation()) < dist) {
-                        dist = cur.distanceSquaredTo(rc.getLocation());
-                        closestEnemy = cur;
-                    }
-                }
-                int x = rc.getLocation().x;
-                int y = rc.getLocation().y;
-                int dx = (closestEnemy.x - x);
-                int dy = (closestEnemy.y - y);
-                MapLocation a = new MapLocation(x - dy, y + dx);
-                MapLocation b = new MapLocation(x + dy, y - dx);
-                a = norm(a);
-                b = norm(b);
-                MapLocation curBest = null;
-                if (distToClosestSpawn(a) < distToClosestSpawn(b)) curBest = a;
-                else curBest = b;
-                if (distToClosestSpawn(rc.getLocation()) > distToClosestSpawn(closestEnemy)) bestloc = curBest;
-            }
-            else {
-                AttackTarget[] at = communications.getAttackTargets();
-                MapLocation closestEnemy = null;
-                int dist = 1000000;
-                for (int i = at.length; i-- > 0;) {
-                    int d = at[i].m.distanceSquaredTo(rc.getLocation());
-                    if (d < dist) {
-                        dist = d;
-                        closestEnemy = at[i].m;
-                    }
-                }
-                if(closestEnemy != null) {
-                    int x = rc.getLocation().x;
-                    int y = rc.getLocation().y;
-                    int dx = (closestEnemy.x - x);
-                    int dy = (closestEnemy.y - y);
-                    MapLocation a = new MapLocation(x - dy, y + dx);
-                    MapLocation b = new MapLocation(x + dy, y - dx);
-                    a = norm(a);
-                    b = norm(b);
-                    MapLocation curBest = null;
-                    if (distToClosestSpawn(a) < distToClosestSpawn(b)) curBest = a;
-                    else curBest = b;
-                    if (dist <= 80 && distToClosestSpawn(rc.getLocation()) > distToClosestSpawn(closestEnemy))
-                        bestloc = curBest;
-                }
-            }
-            communications.log_carrier(myloc, bestloc);
-            path.moveTo(bestloc);
-            return true;
-        }
-
-        FlagInfo[] flags = rc.senseNearbyFlags(-1, rc.getTeam().opponent());
-        if (flags.length == 0) return false;
-
-        FlagInfo f = flags[0];
-        if (f.isPickedUp()) return false;
-
-        MapLocation floc = f.getLocation();
-        if (rc.canPickupFlag(floc)) {
-            rc.pickupFlag(floc);
-        } else {
-            // RUSH THE FLAG ALL AT ONCE. 
-            MapLocation myloc = rc.getLocation();
-            if (myloc.distanceSquaredTo(floc) > 9) return false;
-            path.moveTo(floc);
-        }
-        return true;
     }
 }
