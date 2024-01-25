@@ -241,6 +241,8 @@ public class AttackMicro {
         // microtargets[0].displayHitMask();
 
         // Needs 1k Bytecode.
+        // if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4)
+        //     rc.setIndicatorDot(rc.getLocation(), 0, 0, 255);
         MicroTarget best = microtargets[0];
         if (microtargets[1].isBetterThan(best)) best = microtargets[1];
         if (microtargets[2].isBetterThan(best)) best = microtargets[2];
@@ -306,9 +308,9 @@ public class AttackMicro {
             long action0 = 0b000010000000111000001111100000111000000010000000000000000000000L;
             long action1 = 0;
             switch (dir) {
-                case NORTHEAST:     action0 <<= 10; action1 = 0b000001000; break;
+                case NORTHEAST:     action0 <<= 10; action1 = 0b000100000; break;
                 case NORTH:         action0 <<= 9;  action1 = 0b000010000; break;
-                case NORTHWEST:     action0 <<= 8;  action1 = 0b000100000; break;
+                case NORTHWEST:     action0 <<= 8;  action1 = 0b000001000; break;
                 case EAST:          action0 <<= 1;  break;
                 case CENTER:        break;
                 case WEST:          action0 >>>= 1;  break;
@@ -317,10 +319,19 @@ public class AttackMicro {
                 case SOUTHWEST:     action0 >>>= 10; break;
             }
 
+            // if ((dir == Direction.NORTH)) {
+            //     Util.displayMask(rc, nt.enemy_mask0, nt.enemy_mask1, 0, 0, 0);
+            //     rc.setIndicatorDot(rc.getLocation(), 255, 0, 255);
+            // }
+            if (canAttack && (rc.getHealth() >= GameConstants.DEFAULT_HEALTH / 2)
+                && ((nt.enemy_mask0 & action0) | (nt.enemy_mask1 & action1)) != 0) {
+                canLandHit = mydmg;
+            }
+
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;
-            long passible0 = (~(mt.wall_mask0 | mt.water_mask0 | sm.stun_trap_mask0)) & mask0;
-            long passible1 = (~(mt.wall_mask1 | mt.water_mask1 | sm.stun_trap_mask1)) & mask1;
+            long passible0 = (~(mt.wall_mask0 | mt.water_mask0)) & mask0;
+            long passible1 = (~(mt.wall_mask1 | mt.water_mask1)) & mask1;
             long loverflow = 0x7fbfdfeff7fbfdfeL;
             long roverflow = 0x3fdfeff7fbfdfeffL;            
             long t_close0 = (action0 & passible0);
@@ -333,8 +344,8 @@ public class AttackMicro {
                 t_close0 = (t_close0 | (t_close0 << 9) | (t_close0 >>> 9) | (t_close1 << 54)) & passible0;
                 t_close1 = (t_close1 | (t_close1 << 9) | (t_close1 >>> 9) | (temp >>> 54)) & passible1;
             }
-            close0 = (t_close0 | (nt.enemy_mask0 & action0)); // & (~sm.stunned_mask0);
-            close1 = (t_close1 | (nt.enemy_mask1 & action1)); // & (~sm.stunned_mask1);
+            close0 = (t_close0 | action0);// & (~sm.stunned_mask0);
+            close1 = (t_close1 | action1);// & (~sm.stunned_mask1);
         }
 
         long canHitSoon(MapLocation loc) throws GameActionException {
@@ -426,9 +437,6 @@ public class AttackMicro {
         
         void addEnemy(RobotInfo r) throws GameActionException {
             int dist = r.location.distanceSquaredTo(nloc);
-            if (dist <= GameConstants.ATTACK_RADIUS_SQUARED && canAttack){
-                canLandHit = mydmg;
-            }
             if (r.hasFlag) {
                 if (dist < minDistToFlag) minDistToFlag = dist;
                 return;
@@ -469,10 +477,6 @@ public class AttackMicro {
             if (seeEnemyFlagCarrier && rc.getLocation().distanceSquaredTo(carrier) > 3) {
                 if (minDistToFlag < mt.minDistToFlag) return true;
                 if (minDistToFlag > mt.minDistToFlag) return false;
-            }
-
-            if (rc.getHealth() <= GameConstants.DEFAULT_HEALTH / 4) {
-                return minDistToEnemy > mt.minDistToEnemy;
             }
 
             if (attackScore() < mt.attackScore()) return true;
