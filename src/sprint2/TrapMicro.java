@@ -20,7 +20,8 @@ public class TrapMicro {
         int[] scores = new int[9];
         for (Direction d: Direction.values()) {
             MicroTarget t = microtargets[d.ordinal()];
-            if (!t.canPlace || !t.probTriggered || t.close) scores[d.ordinal()] = 0;
+            if (!t.canPlace || !t.probTriggered || t.close || t.enemyDamageScore < 3)
+                scores[d.ordinal()] = 0;
             else scores[d.ordinal()] = t.enemyDamageScore;
         }
         return scores;
@@ -36,7 +37,9 @@ public class TrapMicro {
         
         MicroTarget(Direction dir) throws GameActionException {
             nloc = rc.getLocation().add(dir);
-            canPlace = rc.canBuild(TrapType.STUN, nloc) && ((nloc.x + nloc.y) % 2 == 0);
+            canPlace = rc.canBuild(TrapType.STUN, nloc) &&
+                    (rc.getActionCooldownTurns() <= 5) &&
+                    (rc.getCrumbs() >= 200);
             this.dir = dir;
             computeStats();
         }
@@ -61,10 +64,10 @@ public class TrapMicro {
             int x = nloc.x - (myloc.x - 4);
             int y = nloc.y - (myloc.y - 4);
             long start = (1L << (y * 9 + x));
-            long antidag = (start | (start << 8) | (start >>> 8) | (start << 16) | (start >>> 16));
+            long antidag = (start | (start << 1) | (start >>> 1) | (start << 9) | (start >>> 9));
             Util.displayMask(rc, antidag & mt.stun_mask0, 0);
             close = (Long.bitCount(antidag & mt.stun_mask0)) >= 1;
-            System.out.println("Close: " + close);
+            //System.out.println("Close: " + close);
 
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;

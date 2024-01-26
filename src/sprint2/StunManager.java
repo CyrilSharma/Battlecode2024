@@ -83,7 +83,7 @@ public class StunManager {
 
         stunned_mask0 = 0;
         stunned_mask1 = 0;
-        for (int i = (mod + 1) % expire_rounds; i != mod; i = (i + 1) % expire_rounds) {
+        for (int i = 0; i < expire_rounds; i++) {
             stunned_mask0 |= detonated_stun_mask0[i];
             stunned_mask1 |= detonated_stun_mask1[i];
         }

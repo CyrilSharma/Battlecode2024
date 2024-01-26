@@ -279,8 +279,8 @@ public class AttackMicro {
             bl = myloc.translate(-4, -4);
             offset = bl.hashCode();
             canMove = rc.canMove(dir);
-            dmgAttackRange -= 50 * trapscores[dir.ordinal()];
-            dmgVisionRange -= 50 * trapscores[dir.ordinal()];
+            dmgAttackRange -= 25 * trapscores[dir.ordinal()];
+            dmgVisionRange -= 25 * trapscores[dir.ordinal()];
             computeHitMask();
         }
 
