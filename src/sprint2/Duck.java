@@ -23,8 +23,8 @@ public class Duck extends Robot {
         getSpawnCenters();
         path = new Pathing(this);
         exploration = new Exploration(this);
-        am = new AttackMicro(this);
         tm = new TrapMicro(this);
+        am = new AttackMicro(this);
         fm = new FlagMicro(this);
         putDefenses = false;
         lastSeen = 0;
@@ -36,10 +36,9 @@ public class Duck extends Robot {
         if (!rc.isSpawned()) return;
         updateFlags();
         purchaseGlobal();
-        considerTrap();
+        // considerTrap();
         collectCrumbs();
         if (fm.run()) {}
-        else if (builder()) {}
         else if (am.runMicro()) {}
         else if (tryLevelUp()) {}
         else if (guardFlag()) {}
@@ -310,16 +309,17 @@ public class Duck extends Robot {
 
     void considerTrap() throws GameActionException {
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return;
-        if (rc.getLevel(SkillType.BUILD) >= 4) {
-            tm.placeTrap();
-            return;
-        }
+        // tm.placeTrap();
+        // if (rc.getLevel(SkillType.BUILD) >= 4) {
+        //     tm.placeTrap();
+        //     return;
+        // }
         
-        // still have a fail-safe where regular bots can place traps
-        RobotInfo[] enemies = rc.senseNearbyRobots(13, rc.getTeam().opponent());
-        if (enemies.length >= 9) {
-            tm.placeTrap();
-        }
+        // // still have a fail-safe where regular bots can place traps
+        // RobotInfo[] enemies = rc.senseNearbyRobots(13, rc.getTeam().opponent());
+        // if (enemies.length >= 9) {
+        //     tm.placeTrap();
+        // }
     }
 
     void seekTarget() throws GameActionException {

@@ -4,11 +4,13 @@ public class AttackMicro {
     int mydmg = -1;
     boolean hurt = false;
     int lastactivated = -1;
+    int[] trapscores;
     int[] healscores = new int[7];
     int[] dmgscores = new int[7];
 
     // Flags
     boolean canAttack = false;
+    boolean canPlaceTrap = false;
     boolean attacker = false;
     boolean updatedScores = false;
 
@@ -19,6 +21,7 @@ public class AttackMicro {
     Communications comms;
     MapTracker mt;
     NeighborTracker nt;
+    TrapMicro tm;
     MapLocation[] spawnCenters;
     boolean seeEnemyFlagCarrier;
     int distToSpawn;
@@ -29,6 +32,7 @@ public class AttackMicro {
         this.sm = d.sm;
         this.nt = d.nt;
         this.spawnCenters = d.spawnCenters;
+        this.tm = d.tm;
         computeScores(false);
         if (comms.order >= 30) attacker = true;
     }
@@ -158,28 +162,12 @@ public class AttackMicro {
         maneuver();
     }
 
-    public void defendFlag(MapLocation floc) throws GameActionException {
-        rc.setIndicatorString("Defending the flag!");
-        Direction[] dirs = Direction.values();
-        EnemyFlagTarget[] flagtargets = new EnemyFlagTarget[9];
-        for (int i = 9; i-- > 0;) {
-            flagtargets[i] = new EnemyFlagTarget(floc, dirs[i]);
-        }
-        EnemyFlagTarget bestTarget = flagtargets[Direction.CENTER.ordinal()];
-        for (int i = 9; i-- > 0;) {
-            if (flagtargets[i].isBetterThan(bestTarget)) {
-                bestTarget = flagtargets[i];
-            }
-        }
-        if (rc.canMove(bestTarget.dir)) {
-            rc.move(bestTarget.dir);
-        }
-    }
-
     void maneuver() throws GameActionException {
         rc.setIndicatorString("Maneuvering");
         rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
         canAttack = rc.isActionReady();
+        trapscores = tm.getTrapStats();
+
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
         hurt = rc.getHealth() <= (GameConstants.DEFAULT_HEALTH / 3);
         if (hurt) {
@@ -257,6 +245,8 @@ public class AttackMicro {
         if (microtargets[8].isBetterThan(best)) best = microtargets[8];
         if (rc.canMove(best.dir)) {
             rc.move(best.dir);
+            if (trapscores[best.dir.ordinal()] > 0)
+                rc.build(TrapType.STUN, rc.getLocation());
             Team myteam = rc.getTeam();
             nt.friends = rc.senseNearbyRobots(-1, myteam);
             nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
@@ -283,12 +273,14 @@ public class AttackMicro {
         Direction dir;
 
         MicroTarget(Direction dir) throws GameActionException {
+            this.dir = dir;
             MapLocation myloc = rc.getLocation();
             nloc = myloc.add(dir);
             bl = myloc.translate(-4, -4);
             offset = bl.hashCode();
             canMove = rc.canMove(dir);
-            this.dir = dir;
+            dmgAttackRange -= 50 * trapscores[dir.ordinal()];
+            dmgVisionRange -= 50 * trapscores[dir.ordinal()];
             computeHitMask();
         }
 
@@ -332,8 +324,8 @@ public class AttackMicro {
 
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;
-            long passible0 = (~(mt.wall_mask0 | mt.water_mask0)) & mask0;
-            long passible1 = (~(mt.wall_mask1 | mt.water_mask1)) & mask1;
+            long passible0 = (~(mt.wall_mask0 | mt.water_mask0 | sm.stun_trap_mask0)) & mask0;
+            long passible1 = (~(mt.wall_mask1 | mt.water_mask1 | sm.stun_trap_mask1)) & mask1;
             long loverflow = 0x7fbfdfeff7fbfdfeL;
             long roverflow = 0x3fdfeff7fbfdfeffL;            
             long t_close0 = (action0 & passible0);
@@ -506,26 +498,6 @@ public class AttackMicro {
 
             if (mt.inRange()) return minDistToEnemy >= mt.minDistToEnemy;
             else return minDistToEnemy <= mt.minDistToEnemy;
-        }
-    }
-
-
-    class EnemyFlagTarget {
-        int distToFlag;
-        boolean canMove;
-        MapLocation nloc;
-        Direction dir;
-
-        EnemyFlagTarget(MapLocation floc, Direction dir) throws GameActionException {
-            nloc = rc.getLocation().add(dir);
-            canMove = rc.canMove(dir);
-            distToFlag = nloc.distanceSquaredTo(floc);
-            this.dir = dir;
-        }
-
-        boolean isBetterThan(EnemyFlagTarget ft) {
-            if (!canMove) return false;
-            return distToFlag < ft.distToFlag;
         }
     }
 }

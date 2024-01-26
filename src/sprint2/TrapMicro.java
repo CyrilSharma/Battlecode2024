@@ -11,38 +11,19 @@ public class TrapMicro {
         this.nt = r.nt;
     }
 
-    void placeTrap() throws GameActionException {
-        if (!rc.isActionReady()) return;
+    int[] getTrapStats() throws GameActionException {
         MicroTarget[] microtargets = new MicroTarget[9];
-
-        microtargets[0] = new MicroTarget(Direction.CENTER);
-        microtargets[1] = new MicroTarget(Direction.NORTH);
-        microtargets[2] = new MicroTarget(Direction.NORTHEAST);
-        microtargets[3] = new MicroTarget(Direction.NORTHWEST);
-        microtargets[4] = new MicroTarget(Direction.EAST);
-        microtargets[5] = new MicroTarget(Direction.WEST);
-        microtargets[6] = new MicroTarget(Direction.SOUTH);
-        microtargets[7] = new MicroTarget(Direction.SOUTHEAST);
-        microtargets[8] = new MicroTarget(Direction.SOUTHWEST);
-
-        MicroTarget best = microtargets[0];
-        if (microtargets[1].isBetterThan(best)) best = microtargets[1];
-        if (microtargets[2].isBetterThan(best)) best = microtargets[2];
-        if (microtargets[3].isBetterThan(best)) best = microtargets[3];
-        if (microtargets[4].isBetterThan(best)) best = microtargets[4];
-        if (microtargets[5].isBetterThan(best)) best = microtargets[5];
-        if (microtargets[6].isBetterThan(best)) best = microtargets[6];
-        if (microtargets[7].isBetterThan(best)) best = microtargets[7];
-        if (microtargets[8].isBetterThan(best)) best = microtargets[8];
-
-        int crumbs = rc.getCrumbs();
-        // if (rc.getLevel(SkillType.BUILD) < 3) crumbs /= 2;
-        if ((!best.probTriggered)) return;
-        if ((best.enemyDamageScore >= 500 * 5) ||
-            (best.enemyDamageScore >= 500 * 3 && crumbs > 500) ||
-            (best.enemyDamageScore >= 500 * 2 && crumbs >= 1500) || (best.enemyDamageScore >= 500 && crumbs >= 5000)) {
-            rc.build(TrapType.STUN, best.nloc);
+        for (Direction d: Direction.values()) {
+            microtargets[d.ordinal()] = new MicroTarget(d);
         }
+
+        int[] scores = new int[9];
+        for (Direction d: Direction.values()) {
+            MicroTarget t = microtargets[d.ordinal()];
+            if (!t.canPlace || !t.probTriggered || t.close) scores[d.ordinal()] = 0;
+            else scores[d.ordinal()] = t.enemyDamageScore;
+        }
+        return scores;
     }
 
     class MicroTarget {
@@ -55,7 +36,7 @@ public class TrapMicro {
         
         MicroTarget(Direction dir) throws GameActionException {
             nloc = rc.getLocation().add(dir);
-            canPlace = rc.canBuild(TrapType.STUN, nloc);
+            canPlace = rc.canBuild(TrapType.STUN, nloc) && ((nloc.x + nloc.y) % 2 == 0);
             this.dir = dir;
             computeStats();
         }
@@ -75,7 +56,15 @@ public class TrapMicro {
                 case SOUTH:         action0 >>>= 9;  break;
                 case SOUTHWEST:     action0 >>>= 10; break;
             }
-            // close = ((action0 & mt.stun_mask0) != 0 || (action1 & mt.stun_mask1) != 0);
+            
+            MapLocation myloc = rc.getLocation();
+            int x = nloc.x - (myloc.x - 4);
+            int y = nloc.y - (myloc.y - 4);
+            long start = (1L << (y * 9 + x));
+            long antidag = (start | (start << 8) | (start >>> 8) | (start << 16) | (start >>> 16));
+            Util.displayMask(rc, antidag & mt.stun_mask0, 0);
+            close = (Long.bitCount(antidag & mt.stun_mask0)) >= 1;
+            System.out.println("Close: " + close);
 
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;
@@ -95,10 +84,6 @@ public class TrapMicro {
             }
             long enemyreach0 = t_close0;
             long enemyreach1 = t_close1;
-            // if (dir == Direction.CENTER) {
-            //     Util.displayMask(rc, enemyreach0 & action0, enemyreach1 & action1);
-            //     rc.setIndicatorDot(nloc, 0, 0, 0);
-            // }
             probTriggered = ((enemyreach0 & action0) != 0 || (enemyreach1 & action1) != 0);
 
 
@@ -113,12 +98,10 @@ public class TrapMicro {
             }
             long explosion0 = t_close0;
             long explosion1 = t_close1;
-            // if (dir == Direction.CENTER) {
-            //     Util.displayMask(rc, explosion0, explosion1);
-            //     rc.setIndicatorDot(nloc, 0, 0, 0);
-            // }
-            enemyDamageScore += 500 * Long.bitCount(explosion0 & nt.enemy_mask0);
-            enemyDamageScore += 500 * Long.bitCount(explosion1 & nt.enemy_mask1);
+            enemyDamageScore = (
+                Long.bitCount(explosion0 & nt.enemy_mask0) +
+                Long.bitCount(explosion1 & nt.enemy_mask1)
+            );
         }
 
         boolean isBetterThan(MicroTarget mt) {
