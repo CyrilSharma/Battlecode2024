@@ -11,6 +11,7 @@ public class AttackMicro {
     boolean canAttack = false;
     boolean attacker = false;
     boolean updatedScores = false;
+    int[] lastStunned = null;
 
     // Utilities
     RobotController rc;
@@ -81,12 +82,68 @@ public class AttackMicro {
         );
     }
 
+    public void updateStun() throws GameActionException {
+        long triggered_stuns0 = (mt.stun_mask0 ^ mt.prev_stun_trap0) & mt.prev_stun_trap0;
+        long triggered_stuns1 = (mt.stun_mask1 ^ mt.prev_stun_trap1) & mt.prev_stun_trap1;
+        Util.displayMask(rc, triggered_stuns0, triggered_stuns1, 150, 50, 50);
+        //ok i can make it faster later, rn i just want to test it out
+        while (triggered_stuns0 > 0) {
+            long lsb = triggered_stuns0 & (-triggered_stuns0);
+            int pos = (int)Math.round(Math.log(lsb) / Math.log(2));
+            int dy = (pos / 9) - 4;
+            int dx = (pos % 9) - 4;
+            MapLocation explosion = new MapLocation(rc.getLocation().x + dx, rc.getLocation().y + dy);
+            //rc.setIndicatorDot(explosion, 0, 0, 255);
+            for(int i = nt.enemies.length; i-- > 0;) {
+                int d = nt.enemies[i].location.distanceSquaredTo(explosion);
+                if (d <= 13) {
+                    if (lastStunned[nt.enemies[i].ID - 10000] != rc.getRoundNum() - 1) {
+                        lastStunned[nt.enemies[i].ID - 10000] = rc.getRoundNum();
+                        comms.addStunned(nt.enemies[i].ID - 10000);
+                    }
+                }
+            }
+            triggered_stuns0 -= lsb;
+        }
+        while (triggered_stuns1 > 0) {
+            long lsb = triggered_stuns1 & (-triggered_stuns1);
+            int pos = (int)Math.round(Math.log(lsb) / Math.log(2));
+            int dy = (pos / 9) + 3;
+            int dx = (pos % 9) - 4;
+            MapLocation explosion = new MapLocation(rc.getLocation().x + dx, rc.getLocation().y + dy);
+            //rc.setIndicatorDot(explosion, 0, 0, 255);
+            for(int i = nt.enemies.length; i-- > 0;) {
+                int d = nt.enemies[i].location.distanceSquaredTo(explosion);
+                if (d <= 13) {
+                    if (lastStunned[nt.enemies[i].ID - 10000] != rc.getRoundNum() - 1) {
+                        lastStunned[nt.enemies[i].ID - 10000] = rc.getRoundNum();
+                        comms.addStunned(nt.enemies[i].ID - 10000);
+                    }
+                }
+            }
+            triggered_stuns1 -= lsb;
+        }
+    }
+
+    public void getLatest() throws GameActionException {
+        for (int i = Channels.STUNNED_UNITS; i < Channels.STUNNED_UNITS_NUM + Channels.STUNNED_UNITS; i++) {
+            int data = rc.readSharedArray(i);
+            if(data == 0) continue;
+            int id = data >> 3;
+            int turns = data & 0b111;
+            lastStunned[id] = rc.getRoundNum() - turns;
+        }
+    }
+
     public boolean runMicro() throws GameActionException {
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
+        if (lastStunned == null) lastStunned = new int[4097];
         rc.setIndicatorDot(rc.getLocation(), 0, 255, 0);
         if (!closeToEnemies()) return false;
+        getLatest();
+        updateStun();
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
             computeScores(true);
@@ -441,6 +498,9 @@ public class AttackMicro {
             int dist = r.location.distanceSquaredTo(nloc);
             if (r.hasFlag) {
                 if (dist < minDistToFlag) minDistToFlag = dist;
+                return;
+            }
+            if (rc.getRoundNum() - lastStunned[r.ID - 10000] < 3) {
                 return;
             }
             if (dist < minDistToEnemy) minDistToEnemy = dist;

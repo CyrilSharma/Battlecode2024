@@ -140,5 +140,15 @@ public class StunManager {
             prev_stun_mask0 = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (63 - shift));
             prev_stun_mask1 = ((tm1 >>> shift) & overflow);
         }
+
+        tm0 = mt.prev_stun_trap0;
+        tm1 = mt.prev_stun_trap1;
+        if (positive) {
+            mt.prev_stun_trap0 = ((tm0 << shift) & overflow);
+            mt.prev_stun_trap1 = ((tm1 << shift) & overflow) | ((tm0 >>> (63 - shift)) & 0x1FF);
+        } else {
+            mt.prev_stun_trap0 = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (63 - shift));
+            mt.prev_stun_trap1 = ((tm1 >>> shift) & overflow);
+        }
     }
 }

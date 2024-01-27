@@ -12,6 +12,8 @@ public class MapTracker {
     long bomb_mask1 = 0;
     long stun_mask0 = 0;
     long stun_mask1 = 0;
+    long prev_stun_trap0 = 0;
+    long prev_stun_trap1 = 0;
     // This is fully contained in the bottom mask.
     long adjblocked = 0;
     MapInfo[] infos = null;
@@ -25,6 +27,8 @@ public class MapTracker {
         // So we keep it seperate.
         if (!rc.isSpawned()) return;
         int initial = Clock.getBytecodesLeft();
+        prev_stun_trap0 = stun_mask0;
+        prev_stun_trap1 = stun_mask1;
         tl.load(this);
         int end = Clock.getBytecodesLeft();
         // System.out.println("Used: " + (initial - end));
