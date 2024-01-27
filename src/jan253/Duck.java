@@ -1,6 +1,6 @@
-package sprint2;
+package jan253;
 import battlecode.common.*;
-import sprint2.Communications.AttackTarget;
+import jan253.Communications.AttackTarget;
 
 import static java.util.Arrays.sort;
 
@@ -32,15 +32,15 @@ public class Duck extends Robot {
 
     void run() throws GameActionException {
         if (rc.getRoundNum() == 1) communications.establishOrder();
-        if (!rc.isSpawned() && rc.getRoundNum() > 1) spawn();
+        if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
         updateFlags();
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
         if (fm.run()) {}
-        else if (am.runMicro()) {}
         else if (builder()) {}
+        else if (am.runMicro()) {}
         else if (tryLevelUp()) {}
         else if (guardFlag()) {}
         else seekTarget();
@@ -72,8 +72,7 @@ public class Duck extends Robot {
     }
 
     public void collectCrumbs() throws GameActionException {
-        if (rc.hasFlag()) return;
-        if (rc.getRoundNum() > 300) return;
+        if(rc.hasFlag()) return;
         int bestd = 1 << 30;
         MapLocation bestLocation = null;
         MapLocation myloc = rc.getLocation();
@@ -251,8 +250,8 @@ public class Duck extends Robot {
                 }
             }
         }
-        if (((bestloc == null) || (bestd >= 144))) {
-            int st = (rc.getRoundNum() > 20) ? rng.nextInt(spawns.length) : communications.order; 
+        if ((bestloc == null) || (bestd >= 144)) {
+            int st = rng.nextInt(spawns.length);
             for (int i = spawns.length; i-- > 0;) {
                 MapLocation loc = spawns[(i + st) % spawns.length];
                 if (rc.canSpawn(loc)) {
