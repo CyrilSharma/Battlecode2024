@@ -39,8 +39,8 @@ public class Duck extends Robot {
         considerTrap();
         collectCrumbs();
         if (fm.run()) {}
-        else if (builder()) {}
         else if (am.runMicro()) {}
+        else if (builder()) {}
         else if (tryLevelUp()) {}
         else if (guardFlag()) {}
         else seekTarget();
@@ -72,7 +72,8 @@ public class Duck extends Robot {
     }
 
     public void collectCrumbs() throws GameActionException {
-        if(rc.hasFlag()) return;
+        if (rc.hasFlag()) return;
+        if (rc.getRoundNum() > 300) return;
         int bestd = 1 << 30;
         MapLocation bestLocation = null;
         MapLocation myloc = rc.getLocation();

@@ -37,6 +37,7 @@ public class TrapMicro {
 
         int crumbs = rc.getCrumbs();
         // if (rc.getLevel(SkillType.BUILD) < 3) crumbs /= 2;
+        if ((best.close)) return;
         if ((!best.probTriggered)) return;
         if ((best.enemyDamageScore >= 500 * 5) ||
             (best.enemyDamageScore >= 500 * 3 && crumbs > 500) ||
@@ -75,7 +76,11 @@ public class TrapMicro {
                 case SOUTH:         action0 >>>= 9;  break;
                 case SOUTHWEST:     action0 >>>= 10; break;
             }
-            // close = ((action0 & mt.stun_mask0) != 0 || (action1 & mt.stun_mask1) != 0);
+
+            MapLocation myloc = rc.getLocation();
+            long start = 1L << (9 * (nloc.y - (myloc.y - 4)) + (nloc.x - (myloc.x - 4)));
+            long adjacent = (start << 9) | (start >>> 9) | (start << 1) | (start >>> 1);
+            close = ((adjacent & mt.stun_mask0) != 0);
 
             long mask0 = 0x7FFFFFFFFFFFFFFFL;
             long mask1 = 0x3FFFFL;
