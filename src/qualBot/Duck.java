@@ -1,6 +1,6 @@
-package sprint2;
+package qualBot;
 import battlecode.common.*;
-import sprint2.Communications.AttackTarget;
+import qualBot.Communications.AttackTarget;
 
 import static java.util.Arrays.sort;
 
@@ -32,16 +32,15 @@ public class Duck extends Robot {
 
     void run() throws GameActionException {
         if (rc.getRoundNum() == 1) communications.establishOrder();
-        if (!rc.isSpawned() && rc.getRoundNum() > 1) spawn();
+        if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
         updateFlags();
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
-        //if(communications.order >= 10 && communications.order < 15) tryHeal();
         if (fm.run()) {}
-        else if (am.runMicro()) {}
         else if (builder()) {}
+        else if (am.runMicro()) {}
         else if (tryLevelUp()) {}
         else if (guardFlag()) {}
         else seekTarget();
@@ -74,7 +73,7 @@ public class Duck extends Robot {
 
     public void collectCrumbs() throws GameActionException {
         if (rc.hasFlag()) return;
-        if (rc.getRoundNum() > 300) return;
+        if (rc.getRoundNum() > 300) return; // give up.
         int bestd = 1 << 30;
         MapLocation bestLocation = null;
         MapLocation myloc = rc.getLocation();
@@ -196,13 +195,9 @@ public class Duck extends Robot {
 
     public void tryHeal() throws GameActionException {
         if (!rc.isActionReady()) return;
-        if (communications.order >= 20) {
-            if (rc.getLevel(SkillType.ATTACK) <= 3) {
-                if (rc.getExperience(SkillType.HEAL) >= 98) return;
-            }
-        //    if (rc.getRoundNum() - am.lastactivated <= 3) return;
-            RobotInfo[] r = rc.senseNearbyRobots(5, rc.getTeam().opponent());
-            if (r.length > 0) return;
+        if (communications.order >= 30) {
+            if (rc.getExperience(SkillType.HEAL) >= 98) return;
+            if (rc.getRoundNum() - am.lastactivated <= 3) return;
         }
 
         int besthealth = 1001;
@@ -253,8 +248,8 @@ public class Duck extends Robot {
                 }
             }
         }
-        if (((bestloc == null) || (bestd >= 144))) {
-            int st = (rc.getRoundNum() > 20) ? rng.nextInt(spawns.length) : communications.order; 
+        if ((bestloc == null) || (bestd >= 144)) {
+            int st = rng.nextInt(spawns.length);
             for (int i = spawns.length; i-- > 0;) {
                 MapLocation loc = spawns[(i + st) % spawns.length];
                 if (rc.canSpawn(loc)) {

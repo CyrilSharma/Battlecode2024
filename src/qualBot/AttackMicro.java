@@ -1,4 +1,4 @@
-package sprint2;
+package qualBot;
 import battlecode.common.*;
 public class AttackMicro {
     int mydmg = -1;
@@ -11,7 +11,6 @@ public class AttackMicro {
     boolean canAttack = false;
     boolean attacker = false;
     boolean updatedScores = false;
-    int[] lastStunned = null;
 
     // Utilities
     RobotController rc;
@@ -23,6 +22,7 @@ public class AttackMicro {
     MapLocation[] spawnCenters;
     boolean seeEnemyFlagCarrier;
     int distToSpawn;
+    boolean healer = false;
     public AttackMicro(Duck d) {
         this.rc = d.rc;
         this.comms = d.communications;
@@ -31,7 +31,8 @@ public class AttackMicro {
         this.nt = d.nt;
         this.spawnCenters = d.spawnCenters;
         computeScores(false);
-        if (comms.order >= 20) attacker = true;
+        if (comms.order >= 30) attacker = true;
+        if (comms.order >= 10 && comms.order <= 20) healer = true;
     }
 
     public boolean tryAttack() throws GameActionException {
@@ -82,68 +83,12 @@ public class AttackMicro {
         );
     }
 
-    public void updateStun() throws GameActionException {
-        long triggered_stuns0 = (mt.stun_mask0 ^ mt.prev_stun_trap0) & mt.prev_stun_trap0;
-        long triggered_stuns1 = (mt.stun_mask1 ^ mt.prev_stun_trap1) & mt.prev_stun_trap1;
-        Util.displayMask(rc, triggered_stuns0, triggered_stuns1, 150, 50, 50);
-        //ok i can make it faster later, rn i just want to test it out
-        while (triggered_stuns0 > 0) {
-            long lsb = triggered_stuns0 & (-triggered_stuns0);
-            int pos = (int)Math.round(Math.log(lsb) / Math.log(2));
-            int dy = (pos / 9) - 4;
-            int dx = (pos % 9) - 4;
-            MapLocation explosion = new MapLocation(rc.getLocation().x + dx, rc.getLocation().y + dy);
-            //rc.setIndicatorDot(explosion, 0, 0, 255);
-            for(int i = nt.enemies.length; i-- > 0;) {
-                int d = nt.enemies[i].location.distanceSquaredTo(explosion);
-                if (d <= 13) {
-                    if (lastStunned[nt.enemies[i].ID - 10000] != rc.getRoundNum() - 1) {
-                        lastStunned[nt.enemies[i].ID - 10000] = rc.getRoundNum();
-                        comms.addStunned(nt.enemies[i].ID - 10000);
-                    }
-                }
-            }
-            triggered_stuns0 -= lsb;
-        }
-        while (triggered_stuns1 > 0) {
-            long lsb = triggered_stuns1 & (-triggered_stuns1);
-            int pos = (int)Math.round(Math.log(lsb) / Math.log(2));
-            int dy = (pos / 9) + 3;
-            int dx = (pos % 9) - 4;
-            MapLocation explosion = new MapLocation(rc.getLocation().x + dx, rc.getLocation().y + dy);
-            //rc.setIndicatorDot(explosion, 0, 0, 255);
-            for(int i = nt.enemies.length; i-- > 0;) {
-                int d = nt.enemies[i].location.distanceSquaredTo(explosion);
-                if (d <= 13) {
-                    if (lastStunned[nt.enemies[i].ID - 10000] != rc.getRoundNum() - 1) {
-                        lastStunned[nt.enemies[i].ID - 10000] = rc.getRoundNum();
-                        comms.addStunned(nt.enemies[i].ID - 10000);
-                    }
-                }
-            }
-            triggered_stuns1 -= lsb;
-        }
-    }
-
-    public void getLatest() throws GameActionException {
-        for (int i = Channels.STUNNED_UNITS; i < Channels.STUNNED_UNITS_NUM + Channels.STUNNED_UNITS; i++) {
-            int data = rc.readSharedArray(i);
-            if(data == 0) continue;
-            int id = data >> 3;
-            int turns = data & 0b111;
-            lastStunned[id] = rc.getRoundNum() - turns;
-        }
-    }
-
     public boolean runMicro() throws GameActionException {
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
-        if (lastStunned == null) lastStunned = new int[4097];
         rc.setIndicatorDot(rc.getLocation(), 0, 255, 0);
         if (!closeToEnemies()) return false;
-        getLatest();
-        updateStun();
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
             computeScores(true);
@@ -259,7 +204,24 @@ public class AttackMicro {
         microtargets[8] = new MicroTarget(Direction.SOUTHWEST);
 
 
-        RobotInfo[] robots = nt.enemies;
+        int iters = 0;
+        RobotInfo[] robots = nt.friends;
+        for (int i = robots.length; i-- > 0;) {
+            if (Clock.getBytecodesLeft() < 3000) break;
+            RobotInfo r = robots[i];
+            microtargets[0].addAlly(r);
+            microtargets[1].addAlly(r);
+            microtargets[2].addAlly(r);
+            microtargets[3].addAlly(r);
+            microtargets[4].addAlly(r);
+            microtargets[5].addAlly(r);
+            microtargets[6].addAlly(r);
+            microtargets[7].addAlly(r);
+            microtargets[8].addAlly(r);
+            iters++;
+        }
+
+        robots = nt.enemies;
         seeEnemyFlagCarrier = false;
         carrier = null;
         for (int i = robots.length; i-- > 0;) {
@@ -278,23 +240,6 @@ public class AttackMicro {
             microtargets[6].addEnemy(r);
             microtargets[7].addEnemy(r);
             microtargets[8].addEnemy(r);
-            //iters++;
-        }
-
-        int iters = 0;
-        robots = nt.friends;
-        for (int i = robots.length; i-- > 0;) {
-            if (Clock.getBytecodesLeft() < 3000) break;
-            RobotInfo r = robots[i];
-            microtargets[0].addAlly(r);
-            microtargets[1].addAlly(r);
-            microtargets[2].addAlly(r);
-            microtargets[3].addAlly(r);
-            microtargets[4].addAlly(r);
-            microtargets[5].addAlly(r);
-            microtargets[6].addAlly(r);
-            microtargets[7].addAlly(r);
-            microtargets[8].addAlly(r);
             iters++;
         }
 
@@ -334,8 +279,6 @@ public class AttackMicro {
         int distToGoal = 1000000;
         int minDistToFlag = 1000000;
         boolean canMove;
-        boolean onFrontline = true;
-        MapLocation closestEnemy = null;
         int canLandHit;
         MapLocation nloc;
         MapLocation bl;
@@ -502,17 +445,9 @@ public class AttackMicro {
                 if (dist < minDistToFlag) minDistToFlag = dist;
                 return;
             }
-            int g = 1;
-            if (rc.getRoundNum() - lastStunned[r.ID - 10000] < 3) {
-                if(rc.getRoundNum() - lastStunned[r.ID - 10000] == 2) g = 2;
-                else return;
-            }
-            if (dist < minDistToEnemy) {
-                minDistToEnemy = dist;
-                closestEnemy = r.location;
-            }
+            if (dist < minDistToEnemy) minDistToEnemy = dist;
             if (canHitSoon(r.location) != 0) {
-                int dmg = dmgscores[r.attackLevel] / g;
+                int dmg = dmgscores[r.attackLevel];
                 dmgVisionRange += dmg;
                 if (dist <= GameConstants.ATTACK_RADIUS_SQUARED)
                     dmgAttackRange += dmg;
@@ -524,9 +459,6 @@ public class AttackMicro {
             if (r.hasFlag) return;
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
-            if (closestEnemy != null && r.location.distanceSquaredTo(closestEnemy) < minDistToEnemy) {
-                onFrontline = false;
-            }
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
                 healAttackRange += healscores[r.healLevel] * (attacker ? 2 : 1);
             }
@@ -551,19 +483,22 @@ public class AttackMicro {
                 if (minDistToFlag > mt.minDistToFlag) return false;
             }
 
+            if (healer) {
+               if (!inRange() && mt.inRange()) return true;
+               if (inRange() && !mt.inRange()) return false;
+
+               return minDistToAlly <= mt.minDistToAlly;
+
+            }
+
             if (attackScore() < mt.attackScore()) return true;
             if (attackScore() > mt.attackScore()) return false;
 
             if (visionScore() < mt.visionScore()) return true;
             if (visionScore() > mt.visionScore()) return false;
-
+            
             if (canLandHit > mt.canLandHit) return true;
             if (canLandHit < mt.canLandHit) return false;
-
-            if (attacker) {
-                if(onFrontline && !mt.onFrontline) return true;
-                if(!onFrontline && mt.onFrontline) return false;
-            }
 
             // if (hurt) {
             //     if (minDistToAlly < mt.minDistToAlly) return true;
