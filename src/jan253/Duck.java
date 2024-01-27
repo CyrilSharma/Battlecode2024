@@ -72,7 +72,8 @@ public class Duck extends Robot {
     }
 
     public void collectCrumbs() throws GameActionException {
-        if(rc.hasFlag()) return;
+        if (rc.hasFlag()) return;
+        if (rc.getRoundNum() > 300) return; // give up.
         int bestd = 1 << 30;
         MapLocation bestLocation = null;
         MapLocation myloc = rc.getLocation();
