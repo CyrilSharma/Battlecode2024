@@ -236,7 +236,10 @@ public class AttackMicro {
     void maneuver() throws GameActionException {
         rc.setIndicatorString("Maneuvering");
         rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
-        canAttack = rc.isActionReady();
+        int order = comms.order;
+        canAttack = rc.isActionReady() &&
+                    !(order >= 25 && order < 30) &&
+                    !(order >= 3 && order < 6);
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
         hurt = rc.getHealth() <= (GameConstants.DEFAULT_HEALTH / 3);
         if (hurt) {
