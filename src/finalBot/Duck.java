@@ -1,6 +1,6 @@
-package sprint2;
+package finalBot;
 import battlecode.common.*;
-import sprint2.Communications.AttackTarget;
+import finalBot.Communications.AttackTarget;
 
 import static java.util.Arrays.sort;
 
@@ -32,37 +32,19 @@ public class Duck extends Robot {
 
     void run() throws GameActionException {
         if (rc.getRoundNum() == 1) communications.establishOrder();
-        if (rc.getRoundNum() >= 100 && rc.getRoundNum() < 200) communications.getIDs();
-        if (!rc.isSpawned() && rc.getRoundNum() > 1) spawn();
+        if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
         updateFlags();
         purchaseGlobal();
-        considerTrapTarget();
         considerTrap();
         collectCrumbs();
-        //if(communications.order >= 9 && communications.order < 20) tryHeal();
         if (fm.run()) {}
-        else if (am.runMicro()) {}
         else if (builder()) {}
+        else if (am.runMicro()) {}
         else if (tryLevelUp()) {}
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
-    }
-
-    public void considerTrapTarget() throws GameActionException {
-        int cnt = 0;
-        MapInfo[] mi = rc.senseNearbyMapInfos();
-        for (int i = mi.length; i-- > 0;) {
-            if (mi[i].getTrapType() != TrapType.NONE) cnt++;
-        }
-        if (cnt < nt.enemies.length && nt.enemies.length + nt.friends.length >= 9 && nt.enemies.length >= 5) {
-            communications.addBuilderTarget(rc.getLocation());
-        }
-        AttackTarget[] t = communications.getBuilderTargets();
-        for(int i = t.length; i-- > 0;) {
-            rc.setIndicatorDot(t[i].m, 250, 0, 0);
-        }
     }
 
     public boolean tryLevelUp() throws GameActionException {
@@ -91,7 +73,7 @@ public class Duck extends Robot {
 
     public void collectCrumbs() throws GameActionException {
         if (rc.hasFlag()) return;
-        if (rc.getRoundNum() > 300) return;
+        if (rc.getRoundNum() > 300) return; // give up.
         int bestd = 1 << 30;
         MapLocation bestLocation = null;
         MapLocation myloc = rc.getLocation();
@@ -213,13 +195,12 @@ public class Duck extends Robot {
 
     public void tryHeal() throws GameActionException {
         if (!rc.isActionReady()) return;
-        if (communications.order >= 20) {
-            if (rc.getLevel(SkillType.ATTACK) <= 3) {
+        if (communications.order >= 30) {
+            if (rc.getLevel(SkillType.ATTACK) < 3) {
                 if (rc.getExperience(SkillType.HEAL) >= 98) return;
+            } else {
+                if (rc.getRoundNum() - am.lastactivated <= 3) return;
             }
-        //    if (rc.getRoundNum() - am.lastactivated <= 3) return;
-            RobotInfo[] r = rc.senseNearbyRobots(5, rc.getTeam().opponent());
-            if (r.length > 0) return;
         }
 
         int besthealth = 1001;
@@ -228,12 +209,6 @@ public class Duck extends Robot {
         for (int i = friends.length; i-- > 0;) {
             RobotInfo f = friends[i];
             int score = f.health - 100 * f.buildLevel - (f.attackLevel >= 3 ? 200 * f.attackLevel : 0);
-            if (rc.getRoundNum() >= 200){
-                int o = communications.ord[f.ID - 10000];
-                if (o >= 20) {
-                    if(f.attackLevel < 3) score -= 100 * f.attackLevel;
-                }
-            }
             if (f.hasFlag) score = 0;
             if ((score < besthealth) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
@@ -276,8 +251,8 @@ public class Duck extends Robot {
                 }
             }
         }
-        if (((bestloc == null) || (bestd >= 144))) {
-            int st = (rc.getRoundNum() > 20) ? rng.nextInt(spawns.length) : communications.order; 
+        if ((bestloc == null) || (bestd >= 144)) {
+            int st = rng.nextInt(spawns.length);
             for (int i = spawns.length; i-- > 0;) {
                 MapLocation loc = spawns[(i + st) % spawns.length];
                 if (rc.canSpawn(loc)) {
@@ -343,14 +318,7 @@ public class Duck extends Robot {
         
         // still have a fail-safe where regular bots can place traps
         RobotInfo[] enemies = rc.senseNearbyRobots(13, rc.getTeam().opponent());
-        boolean dontSee = true;
-        for (int i = nt.friends.length; i-- > 0;) {
-            if(nt.friends[i].buildLevel >= 4) {
-                dontSee = false;
-                break;
-            }
-        }
-        if (enemies.length >= 9 && dontSee) {
+        if (enemies.length >= 9) {
             tm.placeTrap();
         }
     }
@@ -464,23 +432,7 @@ public class Duck extends Robot {
                 return null;
             }
         }
-        if (rc.getLevel(SkillType.BUILD) >= 4) {
-            //we are builder, go
-            AttackTarget[] bt = communications.getBuilderTargets();
-            int dist = 1000000;
-            MapLocation bestBT = null;
-            for (int i = bt.length; i-- > 0;) {
-                int d = rc.getLocation().distanceSquaredTo(bt[i].m);
-                if (d < dist && bt[i].score == 0){
-                    dist = d;
-                    bestBT = bt[i].m;
-                }
-            }
-            if (bestBT != null && dist <= 300){
-                communications.markBuilderTarget(bestBT);
-                return bestBT;
-            }
-        }
+        
         int bestd = 1 << 30;
         MapLocation bestloc = null;
 

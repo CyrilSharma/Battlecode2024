@@ -1,4 +1,4 @@
-package sprint2;
+package finalBot;
 import battlecode.common.*;
 
 import static java.util.Arrays.sort;
@@ -9,7 +9,6 @@ public class Communications {
     RobotController rc;
     MapLocation[] spawnCenters;
     int W, H;
-    int[] ord = null;
     public Communications(RobotController rc) {
         this.rc = rc;
         W = rc.getMapWidth();
@@ -19,23 +18,6 @@ public class Communications {
     public void establishOrder() throws GameActionException {
         order = rc.readSharedArray(Channels.FIRST);
         rc.writeSharedArray(Channels.FIRST, order + 1);
-    }
-
-    public void getIDs() throws GameActionException {
-        if(ord == null) ord = new int[4097];
-        if (rc.getRoundNum() % 2 == 0) {
-            //write our id
-            int num = (rc.getRoundNum() - 100) / 2;
-            if (order == num) {
-                rc.writeSharedArray(Channels.ID_CHANNEL, rc.getID() - 10000);
-            }
-        }
-        else {
-            //read ppls id
-            int num = (rc.getRoundNum() - 100) / 2;
-            int v = rc.readSharedArray(Channels.ID_CHANNEL);
-            ord[v] = num;
-        }
     }
 
     public void log_enemy_flag_spawn(MapLocation m) throws GameActionException {
@@ -191,32 +173,6 @@ public class Communications {
         return trim;
     }
 
-    public AttackTarget[] getBuilderTargets() throws GameActionException {
-        int ctr = 0;
-        AttackTarget[] targets = new AttackTarget[Channels.N_BUILDER_TARGETS];
-        for (int i = 0; i < Channels.N_BUILDER_TARGETS; i++) {
-            int item = rc.readSharedArray(Channels.BUILDER_TARGETS + i);
-            if (item == 0) continue;
-            AttackTarget at = dehashAttackTarget(item);
-            targets[ctr++] = at;
-        }
-
-        AttackTarget[] trim = new AttackTarget[ctr];
-        while (ctr-- > 0) trim[ctr] = targets[ctr];
-        return trim;
-    }
-
-    public void markBuilderTarget(MapLocation m) throws GameActionException {
-        for (int i = 0; i < Channels.N_BUILDER_TARGETS; i++) {
-            int data = rc.readSharedArray(Channels.BUILDER_TARGETS + i);
-            if(data == 0) continue;
-            AttackTarget a = dehashAttackTarget(data);
-            if (!a.m.equals(m)) continue;
-            a.score = 1;
-            rc.writeSharedArray(Channels.BUILDER_TARGETS + i, hashAttackTarget(a));
-        }
-    }
-
     // Marks a target as something I'm going to.
     public void markAttackTarget(int id) throws GameActionException {
         int channel = Channels.ATTACK_TARGETS + id;
@@ -242,48 +198,6 @@ public class Communications {
             int item = rc.readSharedArray(Channels.ATTACK_TARGETS + i);
             if (item == 0) {
                 rc.writeSharedArray(Channels.ATTACK_TARGETS + i, hash);
-                return;
-            }
-        }
-    }
-
-    void addStunned(int id) throws GameActionException {
-        boolean found = false;
-        for (int i = Channels.STUNNED_UNITS; i < Channels.STUNNED_UNITS + Channels.STUNNED_UNITS_NUM; i++) {
-            int data = rc.readSharedArray(i);
-            if (data == 0) continue;
-            int ID = data >> 3;
-            if (ID == id) {
-                found = true;
-                break;
-            }
-        }
-        if (found) return;
-        for (int i = Channels.STUNNED_UNITS; i < Channels.STUNNED_UNITS + Channels.STUNNED_UNITS_NUM; i++) {
-            int data = rc.readSharedArray(i);
-            if (data == 0) {
-                rc.writeSharedArray(i, data << i);
-                break;
-            }
-        }
-    }
-
-    public void addBuilderTarget(MapLocation m) throws GameActionException {
-        int hash = hashAttackTarget(new AttackTarget(m, 0));
-        // If we're close to other targets, don't add us.
-        for (int i = 0; i < Channels.N_BUILDER_TARGETS; i++) {
-            int item = rc.readSharedArray(Channels.BUILDER_TARGETS + i);
-            if (item != 0) {
-                AttackTarget at = dehashAttackTarget(item);
-                if (at.m.distanceSquaredTo(m) <= 60) return;
-            }
-        }
-
-        // If there's an empty spot, put us there.
-        for (int i = 0; i < Channels.N_BUILDER_TARGETS; i++) {
-            int item = rc.readSharedArray(Channels.BUILDER_TARGETS + i);
-            if (item == 0) {
-                rc.writeSharedArray(Channels.BUILDER_TARGETS + i, hash);
                 return;
             }
         }
@@ -353,21 +267,6 @@ public class Communications {
             a = new AttackTarget(loc, 0);
             rc.writeSharedArray(Channels.RUNAWAY_FLAGS + i, hashAttackTarget(a));
         }
-        for (int i = Channels.STUNNED_UNITS; i < Channels.STUNNED_UNITS + Channels.STUNNED_UNITS_NUM; i++) {
-            int data = rc.readSharedArray(i);
-            if(data == 0) continue;
-            int num = data & 0b111;
-            int id = data >> 3;
-            if(num >= 3) rc.writeSharedArray(i, 0);
-            else rc.writeSharedArray(i, id << 3 + (num + 1));
-        }
-        for (int i = 0; i < Channels.N_BUILDER_TARGETS; i++) {
-            int data = rc.readSharedArray(Channels.BUILDER_TARGETS + i);
-            if(data == 0) continue;
-            AttackTarget a = dehashAttackTarget(data);
-            a.score = 0;
-            rc.writeSharedArray(Channels.BUILDER_TARGETS + i, hashAttackTarget(a));
-        }
         if (rc.getRoundNum() % 5 == 0) {
             for (int i = 0; i < Channels.FLAG_NUM; i++) {
                 rc.writeSharedArray(Channels.RUNAWAY_FLAGS + i, 0);
@@ -377,9 +276,6 @@ public class Communications {
         if (rc.getRoundNum() % 5 != 0) return;
         for (int i = 0; i < Channels.N_ATTACK_TARGETS; i++) {
             rc.writeSharedArray(Channels.ATTACK_TARGETS + i, 0);
-        }
-        for (int i = 0; i < Channels.N_BUILDER_TARGETS; i++) {
-            rc.writeSharedArray(Channels.BUILDER_TARGETS + i, 0);
         }
         for (int i = 0; i < Channels.FLAG_NUM; i++) {
             rc.writeSharedArray(Channels.FLAG_CARRIERS + i, 0);
