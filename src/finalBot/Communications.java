@@ -9,6 +9,7 @@ public class Communications {
     RobotController rc;
     MapLocation[] spawnCenters;
     int W, H;
+    int[] ord = null;
     public Communications(RobotController rc) {
         this.rc = rc;
         W = rc.getMapWidth();
@@ -18,6 +19,23 @@ public class Communications {
     public void establishOrder() throws GameActionException {
         order = rc.readSharedArray(Channels.FIRST);
         rc.writeSharedArray(Channels.FIRST, order + 1);
+    }
+
+    public void getIDs() throws GameActionException {
+        if(ord == null) ord = new int[4097];
+        if (rc.getRoundNum() % 2 == 0) {
+            //write our id
+            int num = (rc.getRoundNum() - 100) / 2;
+            if (order == num) {
+                rc.writeSharedArray(Channels.ID_CHANNEL, rc.getID() - 10000);
+            }
+        }
+        else {
+            //read ppls id
+            int num = (rc.getRoundNum() - 100) / 2;
+            int v = rc.readSharedArray(Channels.ID_CHANNEL);
+            ord[v] = num;
+        }
     }
 
     public void log_enemy_flag_spawn(MapLocation m) throws GameActionException {

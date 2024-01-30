@@ -32,6 +32,7 @@ public class Duck extends Robot {
 
     void run() throws GameActionException {
         if (rc.getRoundNum() == 1) communications.establishOrder();
+        if (rc.getRoundNum() >= 100 && rc.getRoundNum() < 200) communications.getIDs();
         if (!rc.isSpawned()) spawn();
         if (!rc.isSpawned()) return;
         updateFlags();
