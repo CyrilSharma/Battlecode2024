@@ -39,7 +39,7 @@ public class Duck extends Robot {
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
-        //if (communications.order > 9 && communications.order <= 15) tryHeal();
+        //if (communications.order > 6 && communications.order <= 15) tryHeal();
         if (fm.run()) {}
         else if (builder()) {}
         else if (am.runMicro()) {}

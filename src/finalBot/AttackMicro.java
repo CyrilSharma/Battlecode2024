@@ -479,11 +479,11 @@ public class AttackMicro {
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                healAttackRange += healscores[r.healLevel];
-                healAttackRangeMore += healscores[r.healLevel];
+                healAttackRange += healscores[r.healLevel] / (attacker(r.ID) ? 2 : 1);
+                healAttackRangeMore += healscores[r.healLevel] / (attacker(r.ID) ? 2 : 1);
             }
             else if (d <= 9) {
-                healAttackRangeMore += healscores[r.healLevel];
+                healAttackRangeMore += healscores[r.healLevel] / (attacker(r.ID) ? 2 : 1);
             }
             if (closestEnemy != null && r.location.distanceSquaredTo(closestEnemy) < minDistToEnemy) onFrontline = false;
             if(closestEnemy != null && (r.location.distanceSquaredTo(closestEnemy) <= 4)){
@@ -522,31 +522,22 @@ public class AttackMicro {
             if (safe() > mt.safe()) return true;
             if (safe() < mt.safe()) return false;
 
-            /*
             if (healer) {
 
                 if (even && !mt.even) return false;
                 if (!even && mt.even) return true;
 
-                if(comms.order > 9 && comms.order <= 15) {
-                    if (!onFrontline && mt.onFrontline) return true;
-                    if (onFrontline && !mt.onFrontline) return false;
-                }
-
             }
-             */
 
             if (canLandHit > mt.canLandHit) return true;
             if (canLandHit < mt.canLandHit) return false;
 
-            /*
-            if (attacker && rc.getHealth() >= 300) {
+            if (attacker) {
 
-                if (onFrontline && !mt.onFrontline) return true;
-                if (!onFrontline && mt.onFrontline) return false;
+                if (inRange()) return minDistToEnemy >= mt.minDistToEnemy;
+                else return minDistToEnemy <= mt.minDistToEnemy;
 
             }
-             */
 
             // if (hurt) {
             //     if (minDistToAlly < mt.minDistToAlly) return true;
