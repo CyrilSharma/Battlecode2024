@@ -39,6 +39,7 @@ public class Duck extends Robot {
         purchaseGlobal();
         considerTrap();
         collectCrumbs();
+        //if (communications.order > 9 && communications.order <= 15) tryHeal();
         if (fm.run()) {}
         else if (builder()) {}
         else if (am.runMicro()) {}
@@ -46,6 +47,8 @@ public class Duck extends Robot {
         else if (guardFlag()) {}
         else seekTarget();
         tryHeal();
+        if (communications.order >= 30) rc.setIndicatorString("attack");
+        if (communications.order > 6 && communications.order < 30) rc.setIndicatorString("heal");
     }
 
     public boolean tryLevelUp() throws GameActionException {
@@ -128,9 +131,11 @@ public class Duck extends Robot {
         if(rc.getLevel(SkillType.ATTACK) > 3 || rc.getLevel(SkillType.HEAL) > 3) return false;
         MapInfo mi = rc.senseMapInfo(rc.getLocation());
         if (rc.getRoundNum() < 300) return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 4 && !mi.isSpawnZone());
+        /*
         else if (rc.getRoundNum() > 1000) {
             return (communications.order >= 3 && communications.order < 9 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
         }
+         */
         else return (communications.order >= 3 && communications.order < 6 && rc.getLevel(SkillType.BUILD) < 6 && !mi.isSpawnZone());
     }
 
@@ -197,19 +202,20 @@ public class Duck extends Robot {
     public void tryHeal() throws GameActionException {
         if (!rc.isActionReady()) return;
         if (communications.order >= 30) {
-            if (rc.getLevel(SkillType.ATTACK) < 3) {
-                if (rc.getExperience(SkillType.HEAL) >= 98) return;
-            } else {
-                if (rc.getRoundNum() - am.lastactivated <= 3) return;
-            }
+            if (rc.getExperience(SkillType.HEAL) >= 98) return;
         }
+        RobotInfo[] r = rc.senseNearbyRobots(5, rc.getTeam().opponent());
+        if (r.length > 0) return;
 
         int besthealth = 1001;
         RobotInfo bestfriend = null;
         RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
         for (int i = friends.length; i-- > 0;) {
             RobotInfo f = friends[i];
-            int score = f.health - 100 * f.buildLevel - (f.attackLevel >= 3 ? 200 * f.attackLevel : 0);
+            int score = f.health - 100 * f.buildLevel;
+            if (rc.getRoundNum() >= 200) {
+                if(communications.ord[f.ID - 10000] >= 30) score -= 200 * f.attackLevel;
+            }
             if (f.hasFlag) score = 0;
             if ((score < besthealth) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
