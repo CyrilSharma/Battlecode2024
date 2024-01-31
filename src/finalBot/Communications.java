@@ -38,6 +38,27 @@ public class Communications {
         }
     }
 
+    void addStunned(int id) throws GameActionException {
+        boolean found = false;
+        for (int i = Channels.STUNNED_UNITS; i < Channels.STUNNED_UNITS + Channels.STUNNED_UNITS_NUM; i++) {
+            int data = rc.readSharedArray(i);
+            if (data == 0) continue;
+            int ID = data >> 3;
+            if (ID == id) {
+                found = true;
+                break;
+            }
+        }
+        if (found) return;
+        for (int i = Channels.STUNNED_UNITS; i < Channels.STUNNED_UNITS + Channels.STUNNED_UNITS_NUM; i++) {
+            int data = rc.readSharedArray(i);
+            if (data == 0) {
+                rc.writeSharedArray(i, data << i);
+                break;
+            }
+        }
+    }
+
     public void log_enemy_flag_spawn(MapLocation m) throws GameActionException {
         int hash = hashLocation(m);
         int start = Channels.EFLAGS;
@@ -284,6 +305,14 @@ public class Communications {
             }
             a = new AttackTarget(loc, 0);
             rc.writeSharedArray(Channels.RUNAWAY_FLAGS + i, hashAttackTarget(a));
+        }
+        for (int i = Channels.STUNNED_UNITS; i < Channels.STUNNED_UNITS + Channels.STUNNED_UNITS_NUM; i++) {
+            int data = rc.readSharedArray(i);
+            if(data == 0) continue;
+            int num = data & 0b111;
+            int id = data >> 3;
+            if(num >= 3) rc.writeSharedArray(i, 0);
+            else rc.writeSharedArray(i, id << 3 + (num + 1));
         }
         if (rc.getRoundNum() % 5 == 0) {
             for (int i = 0; i < Channels.FLAG_NUM; i++) {

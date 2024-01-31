@@ -84,6 +84,10 @@ public class AttackMicro {
     public boolean runMicro() throws GameActionException {
         attacker = comms.order >= 30;
         healer = comms.order > 6 && comms.order < 30;
+        if(attacker && rc.getHealth() < 300){
+            attacker = false;
+            healer = true;
+        }
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
@@ -298,6 +302,7 @@ public class AttackMicro {
         boolean even = false;
         int close = 1;
         int close2 = 1;
+        int minDistToInjured = 1000000;
 
         MicroTarget(Direction dir) throws GameActionException {
             MapLocation myloc = rc.getLocation();
@@ -465,6 +470,9 @@ public class AttackMicro {
                 minDistToEnemy = dist;
                 closestEnemy = r.location;
             }
+            if(rc.getRoundNum() > 201 && rc.getRoundNum() - sm.lastStunned[r.ID - 10000] < 2) {
+                return;
+            }
             if (canHitSoon(r.location) != 0) {
                 int dmg = dmgscores[r.attackLevel];
                 dmgVisionRange += dmg;
@@ -484,6 +492,11 @@ public class AttackMicro {
             }
             else if (d <= 9) {
                 healAttackRangeMore += healscores[r.healLevel] / (attacker(r.ID) ? 2 : 1);
+            }
+            if (r.getHealth() < 300) {
+               if (d < minDistToInjured) {
+                   minDistToInjured = d;
+               }
             }
             if (closestEnemy != null && r.location.distanceSquaredTo(closestEnemy) < minDistToEnemy) onFrontline = false;
             if(closestEnemy != null && (r.location.distanceSquaredTo(closestEnemy) <= 4)){
@@ -548,6 +561,13 @@ public class AttackMicro {
             // }
             // if ((minDistToAlly >= 2) && (mt.minDistToAlly < 2)) return true;
             // if ((minDistToAlly < 2) && (mt.minDistToAlly >= 2)) return false;
+            if (healer) {
+
+                if ((minDistToInjured <= 4) && (mt.minDistToInjured > 4)) return true;
+                if ((minDistToInjured > 4) && (mt.minDistToInjured <= 4)) return false;
+
+            }
+
             if ((minDistToAlly <= 4) && (mt.minDistToAlly > 4)) return true;
             if ((minDistToAlly > 4) && (mt.minDistToAlly <= 4)) return false;
             // if (minDistToAlly < mt.minDistToAlly) return true;

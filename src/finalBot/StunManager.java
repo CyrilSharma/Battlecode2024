@@ -10,15 +10,19 @@ public class StunManager {
     long stunned_mask1 = 0;
     long[] detonated_stun_mask0 = { 0, 0, 0, 0, 0 };
     long[] detonated_stun_mask1 = { 0, 0, 0, 0, 0 };
+    int[] lastStunned = null;
 
+
+    Communications comms;
     MapLocation prevloc = null;
     RobotController rc;
     MapTracker mt;
     NeighborTracker nt;
-    public StunManager(RobotController rc, MapTracker mt, NeighborTracker nt) {
+    public StunManager(RobotController rc, MapTracker mt, NeighborTracker nt, Communications comms) {
         this.rc = rc;
         this.mt = mt;
         this.nt = nt;
+        this.comms = comms;
     }
 
     // Handles mantaining all of the stuff involving stuns.
@@ -38,6 +42,66 @@ public class StunManager {
         shiftMasks();
         computeStunnable();
         prevloc = rc.getLocation();
+        if (rc.getRoundNum() > 200) {
+            if(lastStunned == null) lastStunned =  new int[4097];
+            getLatest();
+            updateStun();
+        }
+    }
+
+    public void updateStun() throws GameActionException {
+        long triggered_stuns0 = (mt.stun_mask0 ^ mt.prev_stun_trap0) & mt.prev_stun_trap0;
+        long triggered_stuns1 = (mt.stun_mask1 ^ mt.prev_stun_trap1) & mt.prev_stun_trap1;
+        Util.displayMask(rc, triggered_stuns0, triggered_stuns1, 150, 50, 50);
+        //ok i can make it faster later, rn i just want to test it out
+        while (triggered_stuns0 > 0) {
+            long lsb = triggered_stuns0 & (-triggered_stuns0);
+            int pos = (int)Math.round(Math.log(lsb) / Math.log(2));
+            int dy = (pos / 9) - 4;
+            int dx = (pos % 9) - 4;
+            MapLocation explosion = new MapLocation(rc.getLocation().x + dx, rc.getLocation().y + dy);
+            //rc.setIndicatorDot(explosion, 0, 0, 255);
+            for(int i = nt.enemies.length; i-- > 0;) {
+                int d = nt.enemies[i].location.distanceSquaredTo(explosion);
+                if (d <= 13) {
+                    if (lastStunned[nt.enemies[i].ID - 10000] != rc.getRoundNum() - 1) {
+                        lastStunned[nt.enemies[i].ID - 10000] = rc.getRoundNum();
+                        rc.setIndicatorDot(nt.enemies[i].location, 255, 0, 0);
+                        comms.addStunned(nt.enemies[i].ID - 10000);
+                    }
+                }
+            }
+            triggered_stuns0 -= lsb;
+        }
+        while (triggered_stuns1 > 0) {
+            long lsb = triggered_stuns1 & (-triggered_stuns1);
+            int pos = (int)Math.round(Math.log(lsb) / Math.log(2));
+            int dy = (pos / 9) + 3;
+            int dx = (pos % 9) - 4;
+            MapLocation explosion = new MapLocation(rc.getLocation().x + dx, rc.getLocation().y + dy);
+            //rc.setIndicatorDot(explosion, 0, 0, 255);
+            for(int i = nt.enemies.length; i-- > 0;) {
+                int d = nt.enemies[i].location.distanceSquaredTo(explosion);
+                if (d <= 13) {
+                    if (lastStunned[nt.enemies[i].ID - 10000] != rc.getRoundNum() - 1) {
+                        lastStunned[nt.enemies[i].ID - 10000] = rc.getRoundNum();
+                        rc.setIndicatorDot(nt.enemies[i].location, 255, 0, 0);
+                        comms.addStunned(nt.enemies[i].ID - 10000);
+                    }
+                }
+            }
+            triggered_stuns1 -= lsb;
+        }
+    }
+
+    public void getLatest() throws GameActionException {
+        for (int i = Channels.STUNNED_UNITS; i < Channels.STUNNED_UNITS_NUM + Channels.STUNNED_UNITS; i++) {
+            int data = rc.readSharedArray(i);
+            if(data == 0) continue;
+            int id = data >> 3;
+            int turns = data & 0b111;
+            lastStunned[id] = rc.getRoundNum() - turns;
+        }
     }
 
     // Precomputes the region friendly stuns protect for use in micro.
@@ -140,5 +204,16 @@ public class StunManager {
             prev_stun_mask0 = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (63 - shift));
             prev_stun_mask1 = ((tm1 >>> shift) & overflow);
         }
+
+        tm0 = mt.prev_stun_trap0;
+        tm1 = mt.prev_stun_trap1;
+        if (positive) {
+            mt.prev_stun_trap0 = ((tm0 << shift) & overflow);
+            mt.prev_stun_trap1 = ((tm1 << shift) & overflow) | ((tm0 >>> (63 - shift)) & 0x1FF);
+        } else {
+            mt.prev_stun_trap0 = ((tm0 >>> shift) & overflow) | ((tm1 & 0x1FF) << (63 - shift));
+            mt.prev_stun_trap1 = ((tm1 >>> shift) & overflow);
+        }
+
     }
 }

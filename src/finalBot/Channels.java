@@ -15,4 +15,6 @@ public class Channels {
     static int RUNAWAY_FLAGS_ID = RUNAWAY_FLAGS + FLAG_NUM + 1;
     static int CARRIER_TARGET = RUNAWAY_FLAGS_ID + FLAG_NUM + 1;
     static int ID_CHANNEL = CARRIER_TARGET + FLAG_NUM + 1;
+    static int STUNNED_UNITS = ID_CHANNEL + 1;
+    static int STUNNED_UNITS_NUM = 20;
 }

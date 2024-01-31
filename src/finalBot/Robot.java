@@ -29,7 +29,7 @@ public abstract class Robot {
         mt = new MapTracker(rc);
         sc = new SymmetryChecker(rc);
         nt = new NeighborTracker(rc);
-        sm = new StunManager(rc, mt, nt);
+        sm = new StunManager(rc, mt, nt, communications);
     }
     
     public void init_turn() throws GameActionException {
