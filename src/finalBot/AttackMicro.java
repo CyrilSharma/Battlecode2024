@@ -83,7 +83,11 @@ public class AttackMicro {
 
     public boolean runMicro() throws GameActionException {
         attacker = comms.order >= 30;
-        healer = comms.order < 30;
+        healer = comms.order > 6 && comms.order < 30;
+        if(attacker && rc.getHealth() < 300){
+            attacker = false;
+            healer = true;
+        }
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
@@ -110,11 +114,11 @@ public class AttackMicro {
     }
 
     boolean healer(int id){
-        return (comms.ord[id - 10000] < 30);
+        return comms.ord[id - 10000] > 6 && comms.ord[id - 10000] < 30;
     }
 
     boolean attacker(int id){
-        return (comms.ord[id - 10000] >= 30);
+        return comms.ord[id - 10000] >= 30;
     }
 
     public boolean closeToEnemies() throws GameActionException {
@@ -275,11 +279,12 @@ public class AttackMicro {
         int minDistToAlly = 100000;
 
         int healAttackRange = 0;
+        int friendsAttackRange = 1;
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
         int friendAttackDmg = 0;
         int friendCloseDmg = 0;
-        int canLandHit;
+        int canLandHit = 0;
 
         boolean canMove;
         boolean even = false;
@@ -294,7 +299,7 @@ public class AttackMicro {
             nloc = myloc.add(dir);
             bl = myloc.translate(-4, -4);
             offset = bl.hashCode();
-            canMove = rc.canMove(dir) || dir == Direction.CENTER;
+            canMove = rc.canMove(dir);// || dir == Direction.CENTER;
             even = (nloc.x + nloc.y) % 2 == 0;
             computeHitMask();
         }
@@ -449,22 +454,13 @@ public class AttackMicro {
             if (r.hasFlag) return;
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
-            if (healer(r.ID)) {
-                if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                    healAttackRange += healscores[r.healLevel];
-                }
-                if (d < minDistToHealer) minDistToHealer = d;
-            } else {
-                if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                    healAttackRange += healscores[r.healLevel] / 3;
-                }
-                if (d < minDistToAttacker) minDistToAttacker = d;
-                if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                    friendAttackDmg += dmgscores[r.attackLevel];
-                }
-                if (canHitSoon(r.location) != 0) {
-                    friendCloseDmg += dmgscores[r.attackLevel];
-                }
+            if (d < minDistToAttacker) minDistToAttacker = d;
+            if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
+                friendAttackDmg += dmgscores[r.attackLevel];
+                healAttackRange += healscores[r.healLevel];
+            }
+            if (canHitSoon(r.location) != 0) {
+                friendCloseDmg += dmgscores[r.attackLevel];
             }
             if (r.health < 300) {
                if (d < minDistToInjured) minDistToInjured = d;
@@ -476,14 +472,15 @@ public class AttackMicro {
         }
 
         int healsafe() {
-            int score = (healAttackRange / 3) + canLandHit;
-            if (dmgAttackRange > friendAttackDmg + score) return 1;
-            if (dmgVisionRange > friendCloseDmg + score) return 2;
-            return 3;
+            return attacksafe();
+            // int score = (healAttackRange / 3) + canLandHit;
+            // if (dmgAttackRange > friendAttackDmg + score) return 1;
+            // if (dmgVisionRange > friendCloseDmg + score) return 2;
+            // return 3;
         }
 
         int attacksafe() {
-            int score = (healAttackRange) + canLandHit;
+            int score = (healAttackRange / friendsAttackRange) + canLandHit;
             if (dmgAttackRange > friendAttackDmg + score) return 1;
             if (dmgVisionRange > friendCloseDmg + score) return 2;
             return 3;
