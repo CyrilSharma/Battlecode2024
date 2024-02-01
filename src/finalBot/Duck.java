@@ -199,22 +199,22 @@ public class Duck extends Robot {
 
     public void tryHeal() throws GameActionException {
         if (!rc.isActionReady()) return;
+        if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return;
         if (communications.order >= 30) {
             if (rc.getExperience(SkillType.HEAL) >= 98) return;
         }
         RobotInfo[] r = rc.senseNearbyRobots(5, rc.getTeam().opponent());
         if (r.length > 0) return;
 
+
+        // Prioritize Attackers.
         int besthealth = 1001;
         RobotInfo bestfriend = null;
         RobotInfo[] friends = rc.senseNearbyRobots(-1, rc.getTeam());
         for (int i = friends.length; i-- > 0;) {
             RobotInfo f = friends[i];
-            int score = f.health - 100 * f.buildLevel;
-            if (rc.getRoundNum() >= 200) {
-                if(communications.ord[f.ID - 10000] >= 30) score -= 200 * f.attackLevel;
-            }
-            if (f.hasFlag) score = 0;
+            if (!am.attacker(f.ID) && !f.hasFlag) continue;
+            int score = (f.hasFlag) ? 0 : f.health;
             if ((score < besthealth) && rc.canHeal(friends[i].location)) {
                 bestfriend = friends[i];
                 besthealth = score;
@@ -222,6 +222,20 @@ public class Duck extends Robot {
         }
         if ((bestfriend != null) && (rc.canHeal(bestfriend.location))) {
             rc.heal(bestfriend.location);
+            return;
+        }
+
+        for (int i = friends.length; i-- > 0;) {
+            RobotInfo f = friends[i];
+            int score = f.health - 100 * f.buildLevel;
+            if ((score < besthealth) && rc.canHeal(friends[i].location)) {
+                bestfriend = friends[i];
+                besthealth = score;
+            }
+        }
+        if ((bestfriend != null) && (rc.canHeal(bestfriend.location))) {
+            rc.heal(bestfriend.location);
+            return;
         }
     }
 

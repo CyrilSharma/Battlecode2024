@@ -64,12 +64,11 @@ public class AttackMicro {
 
     public void computeScores(boolean attackupgrade) {
         int atop = (attackupgrade) ? 225 : 150;
-        int abottom = 150;
         for (int i = 0; i < 7; i++) {
-            healscores[i] = (100 + SkillType.HEAL.getSkillEffect(i)) * 100 /
+            healscores[i] = (80 / 3) * (100 + SkillType.HEAL.getSkillEffect(i)) * 100 /
                     (100 + SkillType.HEAL.getCooldown(i));
-            dmgscores[i] = (2 * atop * (100 + SkillType.ATTACK.getSkillEffect(i)) * 100) /
-                        (abottom * (100 + SkillType.ATTACK.getCooldown(i)));
+            dmgscores[i] = (atop / 2) * ((100 + SkillType.ATTACK.getSkillEffect(i)) * 100) /
+                        ((100 + SkillType.ATTACK.getCooldown(i)));
         }
     } 
 
@@ -91,6 +90,7 @@ public class AttackMicro {
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
+        rc.setIndicatorDot(rc.getLocation(), 0, 255, 0);
         if (!closeToEnemies()) return false;
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
@@ -154,27 +154,8 @@ public class AttackMicro {
         // We can compute more stats here too, like,
         // Am I in a 1v1? Is every enemy stunned? etc.
         rc.setIndicatorString("Not Movement Ready?");
-        rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
         if (!rc.isMovementReady()) return;
         maneuver();
-    }
-
-    public void defendFlag(MapLocation floc) throws GameActionException {
-        rc.setIndicatorString("Defending the flag!");
-        Direction[] dirs = Direction.values();
-        EnemyFlagTarget[] flagtargets = new EnemyFlagTarget[9];
-        for (int i = 9; i-- > 0;) {
-            flagtargets[i] = new EnemyFlagTarget(floc, dirs[i]);
-        }
-        EnemyFlagTarget bestTarget = flagtargets[Direction.CENTER.ordinal()];
-        for (int i = 9; i-- > 0;) {
-            if (flagtargets[i].isBetterThan(bestTarget)) {
-                bestTarget = flagtargets[i];
-            }
-        }
-        if (rc.canMove(bestTarget.dir)) {
-            rc.move(bestTarget.dir);
-        }
     }
 
     void maneuver() throws GameActionException {
@@ -261,8 +242,6 @@ public class AttackMicro {
         } else if (healer) {
             rc.setIndicatorDot(rc.getLocation(), 255, 255, 0);
         }
-        // rc.setIndicatorString("Iters: " + iters);
-        // rc.setIndicatorString("attack: " + best.dmgAttackRange + "| vision: " + best.dmgVisionRange + "| heal: " + best.healAttackRange + "| friend: " + best.friendDmg + "| safe: " + best.safe() + "| dir: " + best.dir);
     }
 
     // Choose best candidate for maneuvering in close encounters.
@@ -272,38 +251,43 @@ public class AttackMicro {
         long close1 = 0;
 
         int minDistToEnemy = 100000;
-        int minDistToFlag = 1000000;
-        int minDistToInjured = 1000000;
-        int minDistToAttacker = 1000000;
-        int minDistToHealer = 1000000;
         int minDistToAlly = 100000;
+        int minDistToInjured = 1000000;
+        int minDistToFlag = 1000000;
+        int minDistToAttacker = 1000000;
 
+        int friendDmg = 0;
+        int friendDmgMore = 0;
         int healAttackRange = 0;
-        int friendsAttackRange = 1;
+        int healAttackRangeMore = 0;
         int dmgAttackRange = 0;
         int dmgVisionRange = 0;
-        int friendAttackDmg = 0;
-        int friendCloseDmg = 0;
-        int canLandHit = 0;
+        int canLandHit;
 
-        boolean canMove;
-        boolean even = false;
+        int nattackers_near = 1;
+        int nattackers_far = 1;
 
-        Direction dir;
+
         MapLocation nloc;
         MapLocation bl;
+        Direction dir;
         
+        MapLocation closestEnemy = null;
+        boolean even = false;
+        boolean canMove;
+
         MicroTarget(Direction dir) throws GameActionException {
             MapLocation myloc = rc.getLocation();
-            this.dir = dir;
             nloc = myloc.add(dir);
             bl = myloc.translate(-4, -4);
             offset = bl.hashCode();
             canMove = rc.canMove(dir);// || dir == Direction.CENTER;
-            even = (nloc.x + nloc.y) % 2 == 0;
+            this.dir = dir;
             computeHitMask();
+            even = (nloc.x + nloc.y) % 2 == 0;
         }
 
+        // It's not too much overhead I promise.
         void computeHitMask() throws GameActionException {
             long action0 = 0b000010000000111000001111100000111000000010000000000000000000000L;
             long action1 = 0;
@@ -339,8 +323,8 @@ public class AttackMicro {
                 t_close0 = (t_close0 | (t_close0 << 9) | (t_close0 >>> 9) | (t_close1 << 54)) & passible0;
                 t_close1 = (t_close1 | (t_close1 << 9) | (t_close1 >>> 9) | (temp >>> 54)) & passible1;
             }
-            close0 = (t_close0 | action0);
-            close1 = (t_close1 | action1);
+            close0 = (t_close0 | action0);// & (~sm.stunned_mask0);
+            close1 = (t_close1 | action1);// & (~sm.stunned_mask1);
         }
 
         long canHitSoon(MapLocation loc) throws GameActionException {
@@ -436,9 +420,12 @@ public class AttackMicro {
                 if (dist < minDistToFlag) minDistToFlag = dist;
                 return;
             }
-            if (dist < minDistToEnemy) minDistToEnemy = dist;
+            if (dist < minDistToEnemy) {
+                minDistToEnemy = dist;
+                closestEnemy = r.location;
+            }
             if ((rc.getRoundNum() > 201)
-             && (rc.getRoundNum() - sm.lastStunned[r.ID - 10000]) < 2) {
+             && (rc.getRoundNum() - sm.lastStunned[r.ID - 10000] < 2)) {
                 return;
             }
             if (canHitSoon(r.location) != 0) {
@@ -454,16 +441,34 @@ public class AttackMicro {
             if (r.hasFlag) return;
             int d = nloc.distanceSquaredTo(r.location);
             if (d < minDistToAlly) minDistToAlly = d;
-            if (d < minDistToAttacker) minDistToAttacker = d;
+
+            boolean rattacker = attacker(r.ID);
+            if (rattacker && d < minDistToAttacker) minDistToAttacker = d;
             if (d <= GameConstants.ATTACK_RADIUS_SQUARED) {
-                friendAttackDmg += dmgscores[r.attackLevel];
-                healAttackRange += healscores[r.healLevel];
+                healAttackRange += healscores[r.healLevel] / (attacker(r.ID) ? 2 : 1);
+                healAttackRangeMore += healscores[r.healLevel] / (attacker(r.ID) ? 2 : 1);
+                if (rattacker) {
+                    nattackers_near++;
+                    nattackers_far++;
+                }
+            } else if (d <= 9) {
+                healAttackRangeMore += healscores[r.healLevel] / (attacker(r.ID) ? 2 : 1);
+                if (rattacker) nattackers_far++;
             }
-            if (canHitSoon(r.location) != 0) {
-                friendCloseDmg += dmgscores[r.attackLevel];
+            if (r.getHealth() < 300) {
+               if (d < minDistToInjured) {
+                   minDistToInjured = d;
+               }
             }
-            if (r.health < 300) {
-               if (d < minDistToInjured) minDistToInjured = d;
+            if (closestEnemy != null) {
+                if (r.location.distanceSquaredTo(closestEnemy) <= 4) {
+                    int dmg = dmgscores[r.attackLevel];
+                    friendDmg += dmg;
+                    friendDmgMore += dmg;
+                } else if (r.location.distanceSquaredTo(closestEnemy) <= 9) {
+                    int dmg = dmgscores[r.attackLevel];
+                    friendDmgMore += dmg;
+                }
             }
         }
 
@@ -471,18 +476,19 @@ public class AttackMicro {
             return minDistToEnemy <= GameConstants.ATTACK_RADIUS_SQUARED;
         }
 
-        int healsafe() {
-            return attacksafe();
-            // int score = (healAttackRange / 3) + canLandHit;
-            // if (dmgAttackRange > friendAttackDmg + score) return 1;
-            // if (dmgVisionRange > friendCloseDmg + score) return 2;
-            // return 3;
+        int attacksafe() {
+            int score1 = (healAttackRange / nattackers_near) + canLandHit;
+            int score2 = (healAttackRangeMore / nattackers_far) + canLandHit;
+            if (dmgAttackRange > friendDmg + score1) return 1;
+            if (dmgVisionRange > friendDmgMore + score2) return 2;
+            return 3;
         }
 
-        int attacksafe() {
-            int score = (healAttackRange / friendsAttackRange) + canLandHit;
-            if (dmgAttackRange > friendAttackDmg + score) return 1;
-            if (dmgVisionRange > friendCloseDmg + score) return 2;
+        int healsafe() {
+            // int score1 = (healAttackRange / nallies_near) + canLandHit;
+            // int score2 = (healAttackRangeMore / nattackers_far) + canLandHit;
+            if (dmgAttackRange > friendDmg + canLandHit) return 1;
+            if (dmgVisionRange > friendDmgMore + canLandHit) return 2;
             return 3;
         }
 
@@ -492,70 +498,46 @@ public class AttackMicro {
                 if (minDistToFlag < mt.minDistToFlag) return true;
                 if (minDistToFlag > mt.minDistToFlag) return false;
             }
-            if (healer) return healerBetterThan(mt);
-            else return attackerBetterThan(mt);
+            if (healer) return isHealerBetterThan(mt);
+            else return isAttackerBetterThan(mt);
         }
 
-        boolean healerBetterThan(MicroTarget mt) {
+        boolean isHealerBetterThan(MicroTarget mt) {
             if (healsafe() > mt.healsafe()) return true;
             if (healsafe() < mt.healsafe()) return false;
 
-            if (canLandHit > mt.canLandHit) return true;
-            if (canLandHit < mt.canLandHit) return false;
+            // if (even && !mt.even) return false;
+            // if (!even && mt.even) return true;
 
-            // if ((minDistToAttacker <= 4) && (mt.minDistToAttacker > 4)) return true;
-            // if ((minDistToAttacker > 4) && (mt.minDistToAttacker <= 4)) return false;
+            // if (canLandHit > mt.canLandHit) return true;
+            // if (canLandHit < mt.canLandHit) return false;
 
-            if ((minDistToInjured <= 4) && (mt.minDistToInjured > 4)) return true;
-            if ((minDistToInjured > 4) && (mt.minDistToInjured <= 4)) return false;
-            
-            if ((minDistToAlly <= 4) && (mt.minDistToAlly > 4)) return true;
-            if ((minDistToAlly > 4) && (mt.minDistToAlly <= 4)) return false;   
+            if ((minDistToAttacker <= 4) && (mt.minDistToAttacker > 4)) return true;
+            if ((minDistToAttacker > 4) && (mt.minDistToAttacker <= 4)) return false;
 
-            if (inRange()) return minDistToEnemy >= mt.minDistToEnemy;
-            else return minDistToEnemy <= mt.minDistToEnemy;
+            // if ((minDistToInjured <= 4) && (mt.minDistToInjured > 4)) return true;
+            // if ((minDistToInjured > 4) && (mt.minDistToInjured <= 4)) return false;
+
+            // if ((minDistToAlly <= 4) && (mt.minDistToAlly > 4)) return true;
+            // if ((minDistToAlly > 4) && (mt.minDistToAlly <= 4)) return false;
+
+            if (!inRange() && mt.inRange()) return true;
+            if (inRange() && !mt.inRange()) return false;
+            return minDistToEnemy >= mt.minDistToEnemy;
+
+            // if (inRange()) return minDistToEnemy >= mt.minDistToEnemy;
+            // else return minDistToEnemy <= mt.minDistToEnemy;
         }
 
-        boolean attackerBetterThan(MicroTarget mt) {
+        boolean isAttackerBetterThan(MicroTarget mt) {
             if (attacksafe() > mt.attacksafe()) return true;
             if (attacksafe() < mt.attacksafe()) return false;
 
             if (canLandHit > mt.canLandHit) return true;
             if (canLandHit < mt.canLandHit) return false;
+
             if (inRange()) return minDistToEnemy >= mt.minDistToEnemy;
             else return minDistToEnemy <= mt.minDistToEnemy;
-
-            // if (!hurt) {
-            //     if (canLandHit > mt.canLandHit) return true;
-            //     if (canLandHit < mt.canLandHit) return false;
-            //     if (inRange()) return minDistToEnemy >= mt.minDistToEnemy;
-            //     else return minDistToEnemy <= mt.minDistToEnemy;
-            // } else {
-            //     if ((minDistToHealer <= 4) && (mt.minDistToHealer > 4)) return true;
-            //     if ((minDistToHealer > 4) && (mt.minDistToHealer <= 4)) return false;
-            //     if (inRange()) return minDistToEnemy >= mt.minDistToEnemy;
-            //     else return minDistToEnemy <= mt.minDistToEnemy;
-            // }
-        }
-    }
-
-
-    class EnemyFlagTarget {
-        int distToFlag;
-        boolean canMove;
-        MapLocation nloc;
-        Direction dir;
-
-        EnemyFlagTarget(MapLocation floc, Direction dir) throws GameActionException {
-            nloc = rc.getLocation().add(dir);
-            canMove = rc.canMove(dir);
-            distToFlag = nloc.distanceSquaredTo(floc);
-            this.dir = dir;
-        }
-
-        boolean isBetterThan(EnemyFlagTarget ft) {
-            if (!canMove) return false;
-            return distToFlag < ft.distToFlag;
         }
     }
 }
