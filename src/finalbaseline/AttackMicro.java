@@ -1,4 +1,4 @@
-package finalBot;
+package finalbaseline;
 import battlecode.common.*;
 public class AttackMicro {
     int mydmg = -1;
@@ -91,6 +91,7 @@ public class AttackMicro {
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
+        rc.setIndicatorDot(rc.getLocation(), 0, 255, 0);
         if (!closeToEnemies()) return false;
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
@@ -154,7 +155,6 @@ public class AttackMicro {
         // We can compute more stats here too, like,
         // Am I in a 1v1? Is every enemy stunned? etc.
         rc.setIndicatorString("Not Movement Ready?");
-        rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
         if (!rc.isMovementReady()) return;
         /* boolean hasFlag = false;
         MapLocation floc = null;
@@ -192,12 +192,13 @@ public class AttackMicro {
 
     void maneuver() throws GameActionException {
         rc.setIndicatorString("Maneuvering");
+        rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
         canAttack = rc.isActionReady();
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
         hurt = rc.getHealth() <= (GameConstants.DEFAULT_HEALTH / 3);
-        // if (hurt) {
-        //     rc.setIndicatorDot(rc.getLocation(), 0, 0, 255);
-        // }
+        if (hurt) {
+            rc.setIndicatorDot(rc.getLocation(), 0, 0, 255);
+        }
 
         // Needs 1k Bytecode.
         MicroTarget[] microtargets = new MicroTarget[9];
@@ -272,13 +273,6 @@ public class AttackMicro {
             nt.friends = rc.senseNearbyRobots(-1, myteam);
             nt.enemies = rc.senseNearbyRobots(-1, myteam.opponent());
         }
-        if (best.dir == Direction.CENTER) {
-            rc.setIndicatorDot(rc.getLocation(), 255, 0, 255);
-        } else if (attacker) {
-            rc.setIndicatorDot(rc.getLocation(), 255, 0, 0);
-        } else if (healer) {
-            rc.setIndicatorDot(rc.getLocation(), 0, 0, 255);
-        }
         // rc.setIndicatorString("Iters: " + iters);
         rc.setIndicatorString("attack: " + best.dmgAttackRange + "| vision: " + best.dmgVisionRange + "| heal: " + best.healAttackRange + "| friend: " + best.friendDmg + "| safe: " + best.safe() + "| dir: " + best.dir);
     }
@@ -315,17 +309,17 @@ public class AttackMicro {
             nloc = myloc.add(dir);
             bl = myloc.translate(-4, -4);
             offset = bl.hashCode();
-            canMove = rc.canMove(dir) || dir == Direction.CENTER;
+            canMove = rc.canMove(dir);
             this.dir = dir;
             computeHitMask();
             even = (nloc.x + nloc.y) % 2 == 0;
         }
 
         void displayHitMask() throws GameActionException {
-            // src.setIndicatorString("HitMask for " + dir);
-            // Util.displayMask(rc, close0, close1);
+            rc.setIndicatorString("HitMask for " + dir);
+            Util.displayMask(rc, close0, close1);
             // Util.displayMask(rc, hits0, hits1);
-            // rc.setIndicatorDot(nloc, 255, 165, 0);
+            rc.setIndicatorDot(nloc, 255, 165, 0);
         }
 
         void log() throws GameActionException {
@@ -552,19 +546,32 @@ public class AttackMicro {
             if (canLandHit < mt.canLandHit) return false;
 
             if (attacker) {
+
                 if (inRange()) return minDistToEnemy >= mt.minDistToEnemy;
                 else return minDistToEnemy <= mt.minDistToEnemy;
+
             }
 
-
+            // if (hurt) {
+            //     if (minDistToAlly < mt.minDistToAlly) return true;
+            //     if (minDistToAlly > mt.minDistToAlly) return false;
+            // } else {
+            //     if ((minDistToAlly >= 2) && (mt.minDistToAlly < 2)) return true;
+            //     if ((minDistToAlly < 2) && (mt.minDistToAlly >= 2)) return false;
+            // }
+            // if ((minDistToAlly >= 2) && (mt.minDistToAlly < 2)) return true;
+            // if ((minDistToAlly < 2) && (mt.minDistToAlly >= 2)) return false;
             if (healer) {
+
                 if ((minDistToInjured <= 4) && (mt.minDistToInjured > 4)) return true;
                 if ((minDistToInjured > 4) && (mt.minDistToInjured <= 4)) return false;
+
             }
 
             if ((minDistToAlly <= 4) && (mt.minDistToAlly > 4)) return true;
             if ((minDistToAlly > 4) && (mt.minDistToAlly <= 4)) return false;
-
+            // if (minDistToAlly < mt.minDistToAlly) return true;
+            // if (minDistToAlly > mt.minDistToAlly) return false;
 
             if (inRange()) return minDistToEnemy >= mt.minDistToEnemy;
             else return minDistToEnemy <= mt.minDistToEnemy;

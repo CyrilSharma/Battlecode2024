@@ -1,4 +1,4 @@
-package finalBot;
+package finalbaseline;
 import battlecode.common.*;
 
 public class StunManager {
@@ -52,7 +52,7 @@ public class StunManager {
     public void updateStun() throws GameActionException {
         long triggered_stuns0 = (mt.stun_mask0 ^ mt.prev_stun_trap0) & mt.prev_stun_trap0;
         long triggered_stuns1 = (mt.stun_mask1 ^ mt.prev_stun_trap1) & mt.prev_stun_trap1;
-        // Util.displayMask(rc, triggered_stuns0, triggered_stuns1, 150, 50, 50);
+        Util.displayMask(rc, triggered_stuns0, triggered_stuns1, 150, 50, 50);
         //ok i can make it faster later, rn i just want to test it out
         while (triggered_stuns0 > 0) {
             long lsb = triggered_stuns0 & (-triggered_stuns0);
@@ -66,7 +66,7 @@ public class StunManager {
                 if (d <= 13) {
                     if (lastStunned[nt.enemies[i].ID - 10000] != rc.getRoundNum() - 1) {
                         lastStunned[nt.enemies[i].ID - 10000] = rc.getRoundNum();
-                        // rc.setIndicatorDot(nt.enemies[i].location, 255, 0, 0);
+                        rc.setIndicatorDot(nt.enemies[i].location, 255, 0, 0);
                         comms.addStunned(nt.enemies[i].ID - 10000);
                     }
                 }
@@ -85,7 +85,7 @@ public class StunManager {
                 if (d <= 13) {
                     if (lastStunned[nt.enemies[i].ID - 10000] != rc.getRoundNum() - 1) {
                         lastStunned[nt.enemies[i].ID - 10000] = rc.getRoundNum();
-                        // rc.setIndicatorDot(nt.enemies[i].location, 255, 0, 0);
+                        rc.setIndicatorDot(nt.enemies[i].location, 255, 0, 0);
                         comms.addStunned(nt.enemies[i].ID - 10000);
                     }
                 }

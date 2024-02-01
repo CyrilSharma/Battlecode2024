@@ -1,6 +1,6 @@
-package finalBot;
+package finalbaseline;
 import battlecode.common.*;
-import finalBot.Communications.AttackTarget;
+import finalbaseline.Communications.AttackTarget;
 
 import static java.util.Arrays.sort;
 
@@ -160,6 +160,7 @@ public class Duck extends Robot {
         if (fflags.length <= communications.order) return false;
         if (communications.flagdead) return false;
         MapLocation fl = fflags[communications.order];
+        rc.setIndicatorString("i am defending " + fl);
         RobotInfo[] r = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
         MapLocation closest = null;
         int dist = 1000000;
@@ -361,6 +362,7 @@ public class Duck extends Robot {
 
     void explore() throws GameActionException {
         MapLocation exploreTarget = exploration.tryExplore();
+        rc.setIndicatorString("Exploring: " + exploreTarget);
         if (exploreTarget != null) path.moveTo(exploreTarget);
     }
 
@@ -412,6 +414,7 @@ public class Duck extends Robot {
             }
             if (closest <= 100) {
                 communications.markCarrier(closestCarrier);
+                //rc.setIndicatorString("there are " + numb);
                 protectCarrier(closestCarrier, tar);
                 return null;
             }

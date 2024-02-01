@@ -1,4 +1,4 @@
-package jan253;
+package finalbaseline;
 import battlecode.common.*;
 
 public class Util {
@@ -10,7 +10,7 @@ public class Util {
             for (int j = FE_MASK_WIDTH; j-- > 0;) {
                 if (Clock.getBytecodesLeft() < 1000) break;
                 if ((mask0 >>> (i * FE_MASK_WIDTH + j) & 1) > 0) {
-                    // rc.setIndicatorDot(bl.translate(j, i), 255, 0, 0);
+                    rc.setIndicatorDot(bl.translate(j, i), 255, 0, 0);
                 }
             }
         }
@@ -20,7 +20,7 @@ public class Util {
             for (int j = FE_MASK_WIDTH; j-- > 0;) {
                 if (Clock.getBytecodesLeft() < 1000) break;
                 if ((mask1 >>> (i * FE_MASK_WIDTH + j) & 1) > 0) {
-                    // rc.setIndicatorDot(bl.translate(j, i), 255, 0, 0);
+                    rc.setIndicatorDot(bl.translate(j, i), 255, 0, 0);
                 }
             }
         }
@@ -34,7 +34,7 @@ public class Util {
             for (int j = FE_MASK_WIDTH; j-- > 0;) {
                 if (Clock.getBytecodesLeft() < 1000) break;
                 if ((mask0 >>> (i * FE_MASK_WIDTH + j) & 1) > 0) {
-                    // rc.setIndicatorDot(bl.translate(j, i), r, g, b);
+                    rc.setIndicatorDot(bl.translate(j, i), r, g, b);
                 }
             }
         }
@@ -44,7 +44,7 @@ public class Util {
             for (int j = FE_MASK_WIDTH; j-- > 0;) {
                 if (Clock.getBytecodesLeft() < 1000) break;
                 if ((mask1 >>> (i * FE_MASK_WIDTH + j) & 1) > 0) {
-                    // rc.setIndicatorDot(bl.translate(j, i), r, g, b);
+                    rc.setIndicatorDot(bl.translate(j, i), r, g, b);
                 }
             }
         }

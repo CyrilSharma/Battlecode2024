@@ -1,4 +1,4 @@
-package jan253;
+package finalbaseline;
 import battlecode.common.*;
 
 public class TrapMicro {
@@ -97,7 +97,7 @@ public class TrapMicro {
             long enemyreach1 = t_close1;
             // if (dir == Direction.CENTER) {
             //     Util.displayMask(rc, enemyreach0 & action0, enemyreach1 & action1);
-            //     // rc.setIndicatorDot(nloc, 0, 0, 0);
+            //     rc.setIndicatorDot(nloc, 0, 0, 0);
             // }
             probTriggered = ((enemyreach0 & action0) != 0 || (enemyreach1 & action1) != 0);
 
@@ -115,7 +115,7 @@ public class TrapMicro {
             long explosion1 = t_close1;
             // if (dir == Direction.CENTER) {
             //     Util.displayMask(rc, explosion0, explosion1);
-            //     // rc.setIndicatorDot(nloc, 0, 0, 0);
+            //     rc.setIndicatorDot(nloc, 0, 0, 0);
             // }
             enemyDamageScore += 500 * Long.bitCount(explosion0 & nt.enemy_mask0);
             enemyDamageScore += 500 * Long.bitCount(explosion1 & nt.enemy_mask1);

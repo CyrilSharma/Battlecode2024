@@ -666,7 +666,7 @@ public class OptimalPathing {
             target = bestTarget;
         }
         
-        rc.setIndicatorDot(target, 255, 0, 255);
+        // rc.setIndicatorDot(target, 255, 0, 255);
         
         int i = ((target.y - (myloc.y - 4)) * 9) + (target.x - (myloc.x - 4));
         if (i >= 63) {
