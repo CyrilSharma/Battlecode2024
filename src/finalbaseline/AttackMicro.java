@@ -91,7 +91,6 @@ public class AttackMicro {
         if (rc.hasFlag()) return false;
         if (nt.enemies.length == 0) return false;
         if (rc.getRoundNum() < GameConstants.SETUP_ROUNDS) return false;
-        rc.setIndicatorDot(rc.getLocation(), 0, 255, 0);
         if (!closeToEnemies()) return false;
         lastactivated = rc.getRoundNum();
         if (hasAttackUpgrade() && !updatedScores) {
@@ -192,13 +191,9 @@ public class AttackMicro {
 
     void maneuver() throws GameActionException {
         rc.setIndicatorString("Maneuvering");
-        rc.setIndicatorDot(rc.getLocation(), 0, 0, 0);
         canAttack = rc.isActionReady();
         mydmg = dmgscores[rc.getLevel(SkillType.ATTACK)];
         hurt = rc.getHealth() <= (GameConstants.DEFAULT_HEALTH / 3);
-        if (hurt) {
-            rc.setIndicatorDot(rc.getLocation(), 0, 0, 255);
-        }
 
         // Needs 1k Bytecode.
         MicroTarget[] microtargets = new MicroTarget[9];
@@ -317,9 +312,7 @@ public class AttackMicro {
 
         void displayHitMask() throws GameActionException {
             rc.setIndicatorString("HitMask for " + dir);
-            Util.displayMask(rc, close0, close1);
             // Util.displayMask(rc, hits0, hits1);
-            rc.setIndicatorDot(nloc, 255, 165, 0);
         }
 
         void log() throws GameActionException {
