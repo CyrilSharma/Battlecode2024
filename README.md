@@ -1,3 +1,5 @@
+# Repository for Team Om Nom (4th Place Finalists)
+
 # Modal Tester
 Example:
 ```modal run modal_tester.py --team1=initialBot --team2=initialBot```
